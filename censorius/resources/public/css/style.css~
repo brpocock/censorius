@@ -1,0 +1,583 @@
+* {
+   -webkit-tap-highlight-color: rgba(0,0,0,0);
+   /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+   }
+
+@font-face {
+    font-family: Century-Schoolbook;
+    src: url(Century-Schoolbook.woff);
+}
+
+@font-face {
+    font-family: Jane-Austen;
+    src: url(JaneAust.woff);
+}
+
+@font-face {
+    font-family: Jellyka-Castle;
+    src: url(Jellykas.woff);
+}
+
+@font-face {
+    font-family: Kells;
+    src: url(KellsFLF.woff);
+}
+
+@font-face {
+    font-family: Meath;
+    src: url(MeathFLF.woff);
+}
+
+@import url(http://fonts.googleapis.com/css?family=Cantarell:400,400italic,700,700italic);
+
+
+html {
+    background: #4c4c4c; /* Old browsers */
+    background: -moz-linear-gradient(top, #4c4c4c 0%, #595959 12%, #666666 25%, #474747 39%, #2c2c2c 50%, #000000 51%, #111111 60%, #2b2b2b 76%, #1c1c1c 91%, #131313 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#4c4c4c), color-stop(12%,#595959), color-stop(25%,#666666), color-stop(39%,#474747), color-stop(50%,#2c2c2c), color-stop(51%,#000000), color-stop(60%,#111111), color-stop(76%,#2b2b2b), color-stop(91%,#1c1c1c), color-stop(100%,#131313)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#4c4c4c', endColorstr='#131313',GradientType=0 ); /* IE6-9 */
+    margin: 0;
+    padding: 0;
+    font-family: Century-Schoolbook, "Century Schoolbook", serif;
+}
+
+body {
+    background: #e2e2e2; /* Old browsers */
+    background: -moz-linear-gradient(top, #e2e2e2 0%, #dbdbdb 50%, #d1d1d1 51%, #fefefe 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#e2e2e2), color-stop(50%,#dbdbdb), color-stop(51%,#d1d1d1), color-stop(100%,#fefefe)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e2e2e2', endColorstr='#fefefe',GradientType=0 ); /* IE6-9 */
+    border: 1px solid white;
+    padding: 2pt 2pt 18pt 2pt;
+    border-radius: 1.5em;
+    min-height: 90%;
+    min-width: 50%;
+    max-width: 100%;
+    max-width: calc(100% - 2em);
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2.5em;
+    margin-bottom: auto;
+}
+
+@keyframes fade {
+    from { opacity: 1.0; }
+    50% { opacity: 0.4; }
+    to { opacity: 1.0; }
+}
+ 
+@-webkit-keyframes fade {
+    from { opacity: 1.0; }
+    50% { opacity: 0.4; }
+    to { opacity: 1.0; }
+}
+ 
+.blink {
+    animation:fade 3000ms infinite;
+    -webkit-animation:fade 3000ms infinite;
+}
+
+h1 {
+    text-decoration: none;
+    color: white;
+    background-color: indigo;
+    border: 0px solid indigo;
+    font-family: Meath;
+    width: auto;
+    margin: 0;
+    padding: .5ex;
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+    font-size: 100%;
+    width: 100%;
+}
+
+h2 {
+    font-family: Meath;
+    color: black;
+    text-shadow: white 1pt 1pt 2pt;
+}
+
+h3,h4,h5,h6 {
+    font-family: Kells;
+    color: black;
+    text-shadow: white 1pt 1pt 2pt;
+}
+
+h1,h2,h3 {
+    background: #b4ddb4; /* Old browsers */
+    background: -moz-linear-gradient(top, #b4ddb4 0%, #83c783 17%, #52b152 33%, #008a00 67%, #005700 83%, #002400 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#b4ddb4), color-stop(17%,#83c783), color-stop(33%,#52b152), color-stop(67%,#008a00), color-stop(83%,#005700), color-stop(100%,#002400)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b4ddb4', endColorstr='#002400',GradientType=0 ); /* IE6-9 */
+}
+
+h2,h3 {
+    border-radius: 1ex;
+    margin: 1ex;
+    padding: 4pt;
+}
+
+h1+div,h1+section {
+    margin-top: 3em;
+}
+
+h2.status {
+    font-size: small;
+    font-weight: light;
+    color: #666;
+    margin: 1ex;
+    padding: 3.5em 0 0 0;
+}
+
+
+p {
+    padding: 1ex;
+    text-indent: 3ex;
+    align: justify;
+}
+
+address {
+    padding: 1ex;
+    font-style: normal;
+}
+
+br+br { display: none; }
+
+.card {
+    border: 1pt solid #444;
+    background-color: #eed;
+    display: inline-block;
+    box-shadow: 3pt 3pt 3pt #999;
+    padding: 0;
+    margin: 1em;
+    max-width: 40em;
+    min-width: 20em;
+}
+
+.card:hover {
+    box-shadow: 3pt 3pt 3pt #666;
+    margin-left: .5ex;
+    margin-right: .5ex;
+}
+
+.card>h2 {
+    background-color: #eee;
+    margin: 0;
+    padding: 1ex 1ex 0 1ex;
+}
+
+.card:hover>h2 {
+    color: #222;
+}
+
+.card>p {
+    text-align: justify;
+    text-indent: 1em;
+    padding: 4pt;
+    margin: 0;
+    color: #555;
+}
+
+.card>div {
+    margin: 4pt;
+}
+
+.card>.actionArea {
+    margin: 0;
+    background-color: #d0d0c0;
+    padding: 1ex;
+    text-align: right;
+}
+
+.card>.actionArea:hover {
+    background-color: #d8d8c8;
+}
+
+button {
+    min-height: 1cm;
+    min-width: 1cm;
+    background-color: #dde;
+    border: 2pt solid #222;
+    color: #227;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.card>.actionArea button {
+    display: inline-block;
+    min-width: 3cm;
+    min-height: 1.5cm;
+}
+
+.card:hover button {
+    xxtransform: rotate(2deg);
+    margin: 6pt 3pt 9pt 9pt;
+    box-shadow: 3pt 3pt 3pt #999;
+}
+
+button:active {
+    background-color: #eee;
+    color: #222;
+}
+
+.card button:hover {
+    background-color: #eef;
+    color: #224;
+    margin: 9pt 0pt 6pt 12pt;
+    box-shadow: none;
+}
+
+.card:hover button.true {
+    background-color: #dfd;
+    color: #242;
+}
+
+.card:hover button.href {
+    background-color: #fed;
+    color: #432;
+}
+
+.card:hover button.false {
+    background-color: #fdd;
+    color: #422;
+}
+
+h1>button {
+    border: 2pt solid blue;
+    border-radius: 1ex;
+    margin: 0 0 0 2em;
+    background-color: blue;
+    color: #ddd;
+    box-shadow: none;
+    font-size: 1em;
+    overflow: clip;
+    padding: 0;
+    display: inline-block;
+}
+
+h1>button:hover {
+    color: blue;
+    background-color: #ddd;
+    border-color: #eef;
+    border: 2pt solid #ddd;
+    border-radius: 100%;
+    margin: 0 0 0 2em;
+}
+
+h1:hover>button {
+    transform: rotate(4deg);
+}
+
+.inset {
+    max-width: 50%;
+    max-height: 50%;
+    min-width: 1.5in;
+    min-height: 1.5 in;
+}
+
+.hint {
+    color: #555;
+    font-size: 90%;
+}
+
+.icon {
+    border: 2pt solid;
+    border-radius: 1.5em;
+    margin: 0 0 0 2em;
+    background-color: #ddd;
+    color: #111;
+    box-shadow: none;
+    font-size: 150%;
+    overflow: clip;
+    padding: 0;
+    display: inline-block;
+    height: 1.5em;
+    width: 1.5em;
+    margin: .5ex;
+}
+
+body.is-dev {
+    border: 2pt solid red;
+}
+
+
+button {
+    min-height: 1cm;
+    min-width: 1cm;
+    background-color: #dde;
+    border: 2pt solid #222;
+    color: #227;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.card>.actionArea button {
+    display: inline-block;
+    min-width: 5cm;
+    min-height: 1.5cm;
+}
+
+.card:hover button {
+    xxtransform: rotate(2deg);
+    margin: 6pt 3pt 9pt 9pt;
+    box-shadow: 3pt 3pt 3pt #999;
+}
+
+button:active {
+    background-color: #eee;
+    color: #222;
+}
+
+.card button:hover {
+    background-color: #eef;
+    color: #224;
+    margin: 9pt 0pt 6pt 12pt;
+    box-shadow: none;
+}
+
+.card:hover button.true {
+    background-color: #dfd;
+    color: #242;
+}
+
+.card:hover button.false {
+    background-color: #fdd;
+    color: #422;
+}
+
+h1>button {
+    border: 2pt solid blue;
+    border-radius: 1ex;
+    margin: 0 0 0 2em;
+    background-color: blue;
+    color: #ddd;
+    box-shadow: none;
+    font-size: 1em;
+    overflow: clip;
+    padding: 0;
+    display: inline-block;
+}
+
+h1>button:hover {
+    color: blue;
+    background-color: #ddd;
+    border-color: #eef;
+    border: 2pt solid #ddd;
+    border-radius: 100%;
+    margin: 0 0 0 2em;
+}
+
+h1:hover>button {
+    transform: rotate(4deg);
+}
+
+textarea {
+    display: block;
+    width: calc(100% - 1em);
+}
+
+label.two-column {
+    width: calc(100% - 2em);
+    text-align: right;
+}
+
+label.two-column>input[type=text] {
+    position: relative;
+    /* right: 100% */;               
+}
+
+textarea:focus {
+    border: 1px dotted #222;
+}
+
+input[type=text]:focus {
+    border-top: 1px dotted #999;
+    border-left: 1px dotted #999;
+    border-right: 1px dotted #999;
+    
+    border-bottom: 1pt solid #222;
+}
+
+input:hover, option:hover, textarea:hover {
+    border-color: #222;
+    background-color: #dde;
+}
+
+label>input[type=text], label>select { 
+    margin-left: 1em;
+}
+
+label { 
+    font-weight: bold; 
+    font-size: 110%; 
+    color: #333;
+    min-width: 1cm;
+    min-height: 1cm;
+}
+
+label:hover {
+    background-color: rgba(192,192,128,192);
+}
+
+option {
+    transition-duration: .1s;
+}
+
+/* Just the suggestion of a boxy thing, without a really visible outline */
+
+fieldset { 
+    border-width: 0 0 2pt 2pt;
+    border-style: solid;
+    border-color: #ccd;
+    border-radius: 1em;
+    padding: 1ex 1ex 1ex 1em;
+    margin: 3pt;
+}
+
+fieldset>legend { 
+    font-size: 110%;
+    margin-left: -1em;
+}
+
+@-webkit-keyframes pulse { 
+    0% { -webkit-transform: scale(1); } 
+    50% { -webkit-transform: scale(1.1); } 
+    100% { -webkit-transform: scale(1); } 
+} 
+@keyframes pulse { 
+    0% { transform: scale(1); } 
+    50% { transform: scale(1.15); } 
+    100% { transform: scale(1); } 
+} 
+
+/* Placeholder (hint) text coloring is troublesome */
+
+/* not yet in the CSS standard, so we repeat ourselves a bunch */
+::-webkit-input-placeholder {
+    color: #966;
+}
+:-moz-placeholder { /* Firefox 18- */
+    color: #966;  
+}
+::-moz-placeholder {  /* Firefox 19+ */
+    color: #966;  
+}
+:-ms-input-placeholder {  
+    color: #966;  
+}
+
+::selection {
+    color: black;
+    background-color: #ca8;
+}
+::-moz-selection {
+    color: black;
+    background-color: #ca8;
+}
+
+/* Don't suggest selecting click-only types of things */
+label, legend, h1, /*h2, h3, h4, h5, h6,*/ button,
+ input[type=submit], input[type=checkbox], input[type=radio] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+/* prevent animating some attributes when switching states */
+.marker.valid-unknown { 
+    display: inline-block;
+    height: 1em; 
+    width: 1em; 
+    color: transparent; 
+    background-color: transparent; 
+    content: ' '; 
+    border-radius: 1em; 
+}
+
+.marker { margin-left: 8pt; font-size: 1.25em; }
+
+.marker.valid-true { 
+    display: inline-block;
+    height: 1em; 
+    width: 1em; 
+    color: white; 
+    background-color: green; 
+    content: '✓'; 
+    border-radius: 1em; 
+}
+
+.marker.valid-false { 
+    display: inline-block;
+    height: 1em; 
+    width: 1em; 
+    color: black; 
+    background-color: red; 
+    content: '✗'; 
+    border-radius: 1em; 
+    cursor: pointer;
+
+    -webkit-animation-name: pulse; 
+    animation-name: pulse; 
+
+    -webkit-animation-duration: 2s; 
+    animation-duration: 2s; 
+    -webkit-animation-fill-mode: both; 
+    animation-fill-mode: both; 
+    -webkit-animation-timing-function: ease-in-out; 
+    animation-timing-function: ease-in-out; 
+    animation-iteration-count:infinite; 
+    -webkit-animation-iteration-count:infinite; 
+} 
+
+
+input[type=text], textarea {
+    background-color: #eee;
+    color: #555;
+    border-width: 1px 1px 1pt 1px;
+    border-color: #999;
+    border-style: solid;
+}
+
+input[type=text].valid-false {
+    border-color: red;
+    background-color: pink;
+    color: black;
+}
+
+input[type=text].valid-false:focus {
+    background-color: #fee;
+    color: #655;
+    border-color: #a99;
+}
+
+.ui-button { 
+    border-width: 2pt; 
+    border-style: solid; 
+    border-radius: .5ex; 
+    border-color: ButtonHighlight ButtonHighlight ButtonShadow
+    ButtonShadow; 
+    background-color: ButtonFace; 
+    color: ButtonText;
+    font-family: Chicago, Carbon, Cantarell, "MS Sans Serif", serif; 
+    font-size: 12pt;
+    padding: 2pt;
+    margin: 6pt;
+}
+
+

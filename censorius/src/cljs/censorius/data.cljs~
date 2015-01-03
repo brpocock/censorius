@@ -1,0 +1,120 @@
+(ns censorius.page
+  (:require
+   
+   ;; [cljs-uuid-utils :as uuid]
+   [clojure.string :as string]
+   [datascript :as d]
+   [goog.events :as events]
+   [goog.history.EventType :as EventType]
+   [reagent.core :as reagent :refer [atom]]
+   [reagent.session :as session]
+   [secretary.core :as secretary :refer-macros [defroute]]
+   
+   ;; [censorius.address :as address]
+   [censorius.guest :as guest]
+   [censorius.text :as text]
+   [censorius.utils :as util]
+   
+   ))
+(def guests (atom [
+                   (atom { :called-by "Sage" :given-name "John" :surname "Starkie"
+                          :formal-name nil :presenter-bio nil :presenter-requests nil
+                          :e-mail "sage@star-hope.org" :telephone nil
+                          :adult? true :staff? true :lugal+? true
+                          :sleep :tent :eat :looney :day nil
+                          :t-shirt :xs :coffee? false :tote? false })
+                   
+                   ])) 
+
+(def extras (atom []))
+
+(def vending (atom {:title nil, :blurb nil, :notes nil, :qty 0, :agreement false}))
+
+(def workshops (atom []))
+
+(def festival (atom {:season "Beltane" :year 2015}))
+
+(def scholarships (atom {:php 0 :seva 0 :baiardi 0}))
+(def prices (atom {:ticket { :adult 95
+                            :child 30
+                            :under5 0
+                            :lugal-so 30
+                            :staff 30}
+                   :vendor 25
+                   :cauldron { :fri-sun 45
+                              :adult 65
+                              :child 30
+                              :under5 0}
+                   :cabin {:regular 45 :staff 25}
+                   :lodge {:regular 60 :staff 45}}))
+
+
+(def merch (atom {:general-shirt {:title "FPG General T-Shirt"
+                                  :description "The FPG general T-shirt"
+                                  :image "/merch/tshirt_Gen.png"
+                                  :price 175
+                                  :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 9}
+                                           {:id :s :title "Small" :qty 0 :inventory 7}
+                                           {:id :m :title "Medium" :qty 0 :inventory 9}
+                                           {:id :l :title "Large" :qty 0 :inventory 7}
+                                           {:id :xl :title "Extra-large" :qty 0 :inventory 1}
+                                           {:id :x2l :title "Double extra-large" :qty 0 :inventory 0}
+                                           {:id :x3l :title "Triple extra-large" :qty 0 :inventory 2}
+                                           {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 6}
+                                           {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 99}]}
+                  :tote-bag {:title "FPG Tote Bag"
+                             :description "The FPG general T-shirt"
+                             :image "/merch/tote-bag.jpeg"
+                             :price 325
+                             :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 999}]}
+                  :coffee {:title "FPG Coffee Mug"
+                           :price 325
+                           :description "The FPG thermal coffee mug is great for other beverages, too"
+                           :image "/merch/tote-bag.jpeg"
+                           :styles [{:id :tote :title "Coffee mug" :qty 0 :inventory 999}]}
+                  :festival-shirt {:title "Festival T-Shirt"
+                                   :description "The new T-shirt for Beltane 2015"
+                                   :image "/merch/tshirtS14.png"
+                                   :price 798
+                                   :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
+                                            {:id :s :title "Small" :qty 0 :inventory 999}
+                                            {:id :m :title "Medium" :qty 0 :inventory 999}
+                                            {:id :l :title "Large" :qty 0 :inventory 999}
+                                            {:id :xl :title "Extra-large" :qty 0 :inventory 999}
+                                            {:id :x2l :title "Double extra-large" :qty 0 :inventory 999}
+                                            {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
+                                            {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
+                                            {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]}}))
+
+
+
+(def people (atom {:brfp {:given-name ["Bruce-Robert"]
+                          :surname ["Pocock"]
+                          :dob {:year 1977 :month 10 :day 21}
+                          :e-mail [[:personal "brpocock@star-hope.org"]
+                                   [:personal "brpocock@gmail.com"]]
+                          :phone [[:mobile "321-396-2625"]]
+                          :rel [[:spouse :sage]]}
+                   :diane {:given-name ["Diane"]}
+                   :sage {:given-name ["John"]
+                          :surname ["Starkie"]
+                          :called-by ["Sage"]
+                          :rel [[:spouse :brfp]]}
+                   :annemarie {:given-name ["Ann Marie"]
+                               :surname ["Augustino"]
+                               :e-mail [[:personal "ama422@aol.com"]]}
+                   :mystral {:given-name ["Sue Anne"]
+                             :surname ["Gould"]
+                             :called-by ["Mystral"]
+                             :rel [[:spouse :thor]
+                                   [:child :soren]]}
+                   :thor {:given-name ["John"]
+                          :surname ["Gould"]
+                          :called-by ["Thor"]
+                          :rel [[:spouse :mystral]
+                                [:child :soren]]}
+                   
+                   :soren {:given-name ["Soren"]
+                           :surname ["Gould"]
+                           :rel [[:parent :mystral]
+                                 [:parent :thor]]}}))

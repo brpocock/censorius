@@ -1,0 +1,1007 @@
+* {
+   -webkit-tap-highlight-color: rgba(0,0,0,0);
+   /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+
+   transition: all 1s ease .1s;
+}
+
+@font-face {
+    font-family: Century-Schoolbook;
+    src: url(./Century-Schoolbook.woff);
+}
+
+@font-face {
+    font-family: Jane-Austen;
+    src: url(./JaneAust.woff);
+}
+
+@font-face {
+    font-family: Jellyka-Castle;
+    src: url(./Jellykas.woff);
+}
+
+@font-face {
+    font-family: Kells;
+    src: url(./KellsFLF.woff);
+}
+
+@font-face {
+    font-family: Meath;
+    src: url(./MeathFLF.woff);
+}
+
+@import url(http://fonts.googleapis.com/css?family=Cantarell:400,400italic,700,700italic);
+
+
+html {
+    background: #4c4c4c; /* Old browsers */
+    background: -moz-linear-gradient(top, #4c4c4c 0%, #595959 12%, #666666 25%, #474747 39%, #2c2c2c 50%, #000000 51%, #111111 60%, #2b2b2b 76%, #1c1c1c 91%, #131313 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#4c4c4c), color-stop(12%,#595959), color-stop(25%,#666666), color-stop(39%,#474747), color-stop(50%,#2c2c2c), color-stop(51%,#000000), color-stop(60%,#111111), color-stop(76%,#2b2b2b), color-stop(91%,#1c1c1c), color-stop(100%,#131313)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #4c4c4c 0%,#595959 12%,#666666 25%,#474747 39%,#2c2c2c 50%,#000000 51%,#111111 60%,#2b2b2b 76%,#1c1c1c 91%,#131313 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#4c4c4c', endColorstr='#131313',GradientType=0 ); /* IE6-9 */
+    margin: 0;
+    padding: 0;
+    font-family: Century-Schoolbook, "Century Schoolbook", serif;
+}
+
+body {
+    background: #e2e2e2; /* Old browsers */
+    background: -moz-linear-gradient(top, #e2e2e2 0%, #dbdbdb 50%, #d1d1d1 51%, #fefefe 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#e2e2e2), color-stop(50%,#dbdbdb), color-stop(51%,#d1d1d1), color-stop(100%,#fefefe)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #e2e2e2 0%,#dbdbdb 50%,#d1d1d1 51%,#fefefe 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e2e2e2', endColorstr='#fefefe',GradientType=0 ); /* IE6-9 */
+    border: 1px solid white;
+    padding: 2pt 2pt 18pt 2pt;
+    border-radius: 1.5em;
+    min-height: 90%;
+    min-width: 50%;
+    max-width: 52em;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2.5em;
+    margin-bottom: auto;
+}
+
+@keyframes fade {
+    from { opacity: 1.0; }
+    50% { opacity: 0.4; }
+    to { opacity: 1.0; }
+}
+ 
+@-webkit-keyframes fade {
+    from { opacity: 1.0; }
+    50% { opacity: 0.4; }
+    to { opacity: 1.0; }
+}
+ 
+.blink {
+    animation:fade 3000ms infinite;
+    -webkit-animation:fade 3000ms infinite;
+}
+
+h1 {
+    text-decoration: none;
+    color: white;
+    background-color: indigo;
+    border: 0px solid indigo;
+    font-family: Meath;
+    width: auto;
+    margin: 0;
+    padding: .5ex;
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+    font-size: 100%;
+    width: 100%;
+}
+
+h2 {
+    font-family: Meath;
+    color: maroon;
+    text-shadow: white 1pt 1pt 2pt;
+}
+
+h3,h4,h5,h6 {
+    font-family: Kells;
+    color: black;
+    text-shadow: white 1pt 1pt 2pt;
+}
+
+h1,h3 {
+    background: #b4ddb4; /* Old browsers */
+    background: -moz-linear-gradient(top, #b4ddb4 0%, #83c783 17%, #52b152 33%, #008a00 67%, #005700 83%, #002400 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#b4ddb4), color-stop(17%,#83c783), color-stop(33%,#52b152), color-stop(67%,#008a00), color-stop(83%,#005700), color-stop(100%,#002400)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #b4ddb4 0%,#83c783 17%,#52b152 33%,#008a00 67%,#005700 83%,#002400 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b4ddb4', endColorstr='#002400',GradientType=0 ); /* IE6-9 */
+}
+
+h3 {
+    border-radius: 1ex;
+    margin: 1ex;
+    padding: 4pt;
+}
+
+h1+div,h1+section {
+    margin-top: 3em;
+}
+
+h2.status {
+    font-size: small;
+    font-weight: light;
+    color: #666;
+    margin: 1ex;
+    padding: 3.5em 0 0 0;
+}
+
+
+p {
+    padding: 1ex;
+    text-indent: 3ex;
+    align: justify;
+}
+
+address {
+    padding: 1ex;
+    font-style: normal;
+}
+
+br+br { display: none; }
+
+.card {
+    border: 1pt solid #444;
+    background-color: #eed;
+    display: inline-block;
+    box-shadow: 3pt 3pt 3pt #999;
+    padding: 0;
+    margin: 1em;
+    max-width: 50em;
+    min-width: 20em;
+}
+
+.card:hover {
+    box-shadow: 3pt 3pt 3pt #666;
+}
+
+.card>h2 {
+    background-color: #eee;
+    margin: 0;
+    padding: 1ex 1ex 0 1ex;
+}
+
+.card:hover>h2 {
+    color: #222;
+}
+
+.card>p {
+    text-align: justify;
+    text-indent: 1em;
+    padding: 4pt;
+    margin: 0;
+    color: #555;
+}
+
+.card>div {
+    margin: 4pt;
+}
+
+.card>.actionArea {
+    margin: 0;
+    background-color: #d0d0c0;
+    padding: 1ex;
+    text-align: right;
+}
+
+.card>.actionArea:hover {
+    background-color: #d8d8c8;
+}
+
+button {
+    min-height: 1cm;
+    min-width: 1cm;
+    background-color: #dde;
+    border: 2pt solid #222;
+    color: #227;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.card>.actionArea button {
+    display: inline-block;
+    min-width: 3cm;
+    min-height: 1.5cm;
+}
+
+.card:hover button {
+    xxtransform: rotate(2deg);
+    margin: 6pt 3pt 9pt 9pt;
+    box-shadow: 3pt 3pt 3pt #999;
+}
+
+button:active {
+    background-color: #eee;
+    color: #222;
+}
+
+.card button:hover {
+    background-color: #eef;
+    color: #224;
+    margin: 9pt 0pt 6pt 12pt;
+    box-shadow: none;
+}
+
+.card:hover button.true {
+    background-color: #dfd;
+    color: #242;
+}
+
+.card:hover button.href {
+    background-color: #fed;
+    color: #432;
+}
+
+.card:hover button.false {
+    background-color: #fdd;
+    color: #422;
+}
+
+h1>button {
+    border: 2pt solid blue;
+    border-radius: 1ex;
+    margin: 0 0 0 2em;
+    background-color: blue;
+    color: #ddd;
+    box-shadow: none;
+    font-size: 1em;
+    overflow: clip;
+    padding: 0;
+    display: inline-block;
+}
+
+h1>button:hover {
+    color: blue;
+    background-color: #ddd;
+    border-color: #eef;
+    border: 2pt solid #ddd;
+    border-radius: 100%;
+    margin: 0 0 0 2em;
+}
+
+h1:hover>button {
+    transform: rotate(4deg);
+}
+
+.inset {
+    max-width: 50%;
+    max-height: 50%;
+    min-width: 1.5in;
+    min-height: 1.5 in;
+}
+
+.hint {
+    color: #555;
+    max-font-size: 90%;
+    font-size: 75%;
+    min-font-size: 7pt;
+    font-weight: 200;
+}
+
+.hint:before { 
+    color: yellow; 
+    font-weight: normal;
+    padding-left: 1ex; 
+    padding-right: .5ex;
+    content: '💡'; 
+}
+
+.hint:before:hover {
+    position: absolute;
+    font-size: 1in;
+    display: block;
+    background: black;
+    border-radius: 1em;
+    border: 1px solid black;
+}
+
+.icon {
+    border: 2pt solid;
+    border-radius: 1.5em;
+    margin: 0 0 0 2em;
+    background-color: #ddd;
+    color: #111;
+    box-shadow: none;
+    font-size: 150%;
+    overflow: clip;
+    padding: 0;
+    display: inline-block;
+    height: 1.5em;
+    width: 1.5em;
+    margin: .5ex;
+}
+
+body.is-dev {
+    border: 2pt solid red;
+}
+
+body.is-dev:after {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    color: pink;
+    background-color: rgba(0,0,0,.666667);
+    padding: 4pt;
+    content: "☠ BRFP — Development mode — DRAFT";
+}
+
+button {
+    min-height: 1cm;
+    min-width: 1cm;
+    background-color: #dde;
+    border: 2pt solid #222;
+    color: #227;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.card>.actionArea button {
+    display: inline-block;
+    min-width: 5cm;
+    min-height: 1.5cm;
+}
+
+.card:hover button {
+    transform: rotate(2deg);
+    margin: 6pt 3pt 9pt 9pt;
+    box-shadow: 3pt 3pt 3pt #999;
+}
+
+button:active {
+    background-color: #eee;
+    color: #222;
+}
+
+.card button:hover {
+    background-color: #eef;
+    color: #224;
+    margin: 9pt 0pt 6pt 12pt;
+    box-shadow: none;
+}
+
+.card:hover button.true {
+    background-color: #dfd;
+    color: #242;
+}
+
+.card:hover button.false {
+    background-color: #fdd;
+    color: #422;
+}
+
+h1>button {
+    border: 2pt solid blue;
+    border-radius: 1ex;
+    margin: 0 0 0 2em;
+    background-color: blue;
+    color: #ddd;
+    box-shadow: none;
+    font-size: 1em;
+    overflow: clip;
+    padding: 0;
+    display: inline-block;
+}
+
+h1>button:hover {
+    color: blue;
+    background-color: #ddd;
+    border-color: #eef;
+    border: 2pt solid #ddd;
+    border-radius: 100%;
+    margin: 0 0 0 2em;
+}
+
+h1:hover>button {
+    transform: rotate(4deg);
+}
+
+textarea {
+    display: block;
+    width: calc(100% - 1em);
+}
+
+label.two-column {
+    width: calc(100% - 2em);
+    text-align: right;
+    x-white-space: nowrap;
+}
+
+label.two-column>input[type=text] {
+    position: relative;
+    /* right: 100% */;               
+}
+
+textarea:focus {
+    border: 1px dotted #222;
+}
+
+input[type=text]:focus {
+    border-top: 1px dotted #999;
+    border-left: 1px dotted #999;
+    border-right: 1px dotted #999;
+    
+    border-bottom: 1pt solid #222;
+}
+
+input:hover, option:hover, textarea:hover {
+    border-color: #222;
+    background-color: #dde;
+}
+
+label>input[type=text], label>select { 
+    margin-left: 1em;
+}
+
+label { 
+    font-weight: bold; 
+    font-size: 110%; 
+    color: #333;
+    min-width: 1cm;
+    min-height: 1cm;
+}
+
+label:hover {
+    background-color: rgba(192,192,128,192);
+}
+
+option {
+    transition-duration: .1s;
+}
+
+/* Just the suggestion of a boxy thing, without a really visible outline */
+
+fieldset { 
+    border-width: 0 0 2pt 2pt;
+    border-style: solid;
+    border-color: #ccd;
+    border-radius: 1em;
+    padding: 1ex 1ex 1ex 1em;
+    margin: 3pt;
+}
+
+fieldset>legend { 
+    font-size: 110%;
+    margin-left: -1em;
+}
+
+@-webkit-keyframes pulse { 
+    0% { -webkit-transform: scale(1); } 
+    50% { -webkit-transform: scale(1.1); } 
+    100% { -webkit-transform: scale(1); } 
+} 
+@keyframes pulse { 
+    0% { transform: scale(1); } 
+    50% { transform: scale(1.15); } 
+    100% { transform: scale(1); } 
+} 
+
+/* Placeholder (hint) text coloring is troublesome */
+
+/* not yet in the CSS standard, so we repeat ourselves a bunch */
+::-webkit-input-placeholder {
+    color: #0cf;
+}
+:-moz-placeholder { /* Firefox 18- */
+    color: #0cf;  
+}
+::-moz-placeholder {  /* Firefox 19+ */
+    color: #0cf;  
+}
+:-ms-input-placeholder {  
+    color: #0cf;  
+}
+
+::selection {
+    color: black;
+    background-color: #ca8;
+}
+::-moz-selection {
+    color: black;
+    background-color: #ca8;
+}
+
+/* Don't suggest selecting click-only types of things */
+label, legend, h1, /*h2, h3, h4, h5, h6,*/ button, 
+input[type=submit], input[type=checkbox], input[type=radio] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+label:hover, abbr:hover, button:hover, input[type=text]:hover, textarea:hover, select,
+input[type=submit]:hover, input[type=checkbox]:hover, input[type=radio]:hover {
+    border-color: black;
+}
+
+/* prevent animating some attributes when switching states */
+.marker.valid-unknown { 
+    display: inline-block;
+    height: 1em; 
+    width: 1em; 
+    color: transparent; 
+    background-color: transparent; 
+    content: ' '; 
+    border-radius: 1em; 
+}
+
+.marker { margin-left: 8pt; font-size: 1.25em; }
+
+.marker.valid-true { 
+    display: inline-block;
+    height: 1em; 
+    width: 1em; 
+    color: white; 
+    background-color: green; 
+    content: '⛤'; 
+    border-radius: 1em; 
+}
+
+.marker.valid-false { 
+    display: inline-block;
+    height: 1em; 
+    width: 1em; 
+    color: black; 
+    background-color: red; 
+    content: '⌢'; 
+    border-radius: 1em; 
+    cursor: pointer;
+
+    -webkit-animation-name: pulse; 
+    animation-name: pulse; 
+
+    -webkit-animation-duration: 2s; 
+    animation-duration: 2s; 
+    -webkit-animation-fill-mode: both; 
+    animation-fill-mode: both; 
+    -webkit-animation-timing-function: ease-in-out; 
+    animation-timing-function: ease-in-out; 
+    animation-iteration-count:infinite; 
+    -webkit-animation-iteration-count:infinite; 
+} 
+
+.urgent { 
+    -webkit-animation-name: pulse; 
+    animation-name: pulse; 
+
+    -webkit-animation-duration: 2s; 
+    animation-duration: 2s; 
+    -webkit-animation-fill-mode: both; 
+    animation-fill-mode: both; 
+    -webkit-animation-timing-function: ease-in-out; 
+    animation-timing-function: ease-in-out; 
+    animation-iteration-count:infinite; 
+    -webkit-animation-iteration-count:infinite; 
+}
+
+input[type=text], textarea {
+    background-color: #eee;
+    color: #555;
+    border-width: 1px 1px 1pt 1px;
+    border-color: #999;
+    border-style: solid;
+}
+
+input[type=text].valid-false {
+    border-color: red;
+    background-color: pink;
+    color: black;
+}
+
+input[type=text].valid-false:focus {
+    background-color: #fee;
+    color: #655;
+    border-color: #a99;
+}
+
+.ui-button { 
+    border-width: 2pt; 
+    border-style: solid; 
+    border-radius: .5ex; 
+    border-color: ButtonHighlight ButtonHighlight ButtonShadow
+    ButtonShadow; 
+    background-color: ButtonFace; 
+    color: ButtonText;
+    font-family: Chicago, Carbon, Cantarell, "MS Sans Serif", serif; 
+    font-size: 12pt;
+    padding: 2pt;
+    margin: 6pt;
+}
+
+table {
+    min-width: 75%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+th,td {
+    text-align: left;
+    vertical-align: top;
+}
+
+table>tbody>tr>td>abbr {
+    font-size: 1.25em;
+    padding: 3pt;
+    margin: 3pt;
+    display: inline-block;
+    border: none;
+}
+
+table.people>tbody abbr {
+    min-width: 1em;
+}
+
+table.people>tbody>tr>td {
+    border: 1pt solid transparent;
+    margin: 0;
+    padding: 0;
+    background-color: #ddd;
+}
+
+table.people>tbody>tr:hover>td>abbr {
+    cursor: pointer;
+}
+
+table.people>tbody>tr:hover>td {
+    border: 1pt dotted orange;;
+    background-color: orange;
+    cursor: pointer;
+}
+
+table.people>tbody>tr.editing:hover>td {
+    border: 1pt dotted orange;;
+    padding: 4pt;
+    background-color: inherit;
+    cursor: pointer;
+}
+
+table.people>tbody>tr>:nth-child(1)>abbr {
+    min-width: 5em;
+}
+
+section.card { 
+    min-width: 40em; 
+    width: 95%;
+    max-width: 60em; 
+}
+
+.card>table { width: 100% }
+
+abbr { 
+    cursor: help; 
+    border-bottom: 1pt dotted blue; 
+    font-weight: normal;
+}
+
+.merch-thumb {
+    height: 3em;
+    width: auto;
+    padding: .75ex;
+    border: 1px solid black;
+    border-radius: 2em;
+    overflow: hidden;
+    background-color: white;
+    transition-duration: 3s;
+    text-align: middle;
+    cursor: -webkit-zoom-in; cursor: -moz-zoom-in;
+}
+
+.merch-thumb:active {
+    height: auto;
+    width: 100%;
+    margin: 2pt;
+    transition-duration: 3s;
+    position: absolute;
+    z-index: 12;
+}
+
+.pop-out {
+    z-index: 11; 
+    position: absolute;
+    border: 1pt solid #444;
+    border-radius: 0 1em 1em 1em;
+    background-color: #ffe;
+    display: block;
+    box-shadow: 4pt 4pt 9pt green;
+    padding: 1ex;
+    max-width: 40em;
+    min-width: 20em
+}
+
+.pop-out>button.close {
+    width: 100%;
+    min-width: 100%; max-width: 100%;
+    transform: rotate(0deg);
+    margin: 9pt -1ex -1ex -1ex;
+    box-shadow: 0pt 0pt 0pt transparent;
+    border-radius: 0 0 1em 1em;
+    border: 1px solid black;
+}
+
+abbr>.ellide {
+    display: none;
+}
+
+@media screen and (min-width: 50em) {
+    abbr>.ellide {
+        display: block;
+    }
+}
+
+#assistant {
+    display: block; 
+    background-color: ivory; 
+    color: maroon;
+    border: 1px solid #444; 
+    margin: 0; 
+    padding: 1ex;
+    position: relative;
+    min-width: 20em;
+    max-width: 40em;
+    max-height: 100%;
+    overflow-y: scroll;
+}
+
+@media screen and (min-width: 80em) {
+    body {
+        max-width: 60em; 
+        margin-left: 1em; 
+        margin-left: calc(100%-104em);
+    }
+    #assistant {
+        position: fixed; 
+        top: 0; 
+        left: 62em; 
+        right: 100%; 
+        bottom: 100%;
+        height: 100%;
+        max-width: 40em;
+        margin-left: calc(100%-62em);
+    }
+}
+
+table { 
+    border-collapse: collapse;
+}
+
+
+@media print { 
+    body.is-dev:before { 
+        content: "☠ Warning: this is a DEVELOPMENT version of this application."
+    }
+
+    body.is-dev:after { 
+        display: none; 
+    }
+    body.is-dev { 
+        border:
+        none; 
+    }
+    html { 
+        background: white; 
+        color: black; 
+        border:
+        inherit; 
+    }
+    body { 
+        border: inherit; 
+        background: white;
+        margin-left: 3em; 
+        font-size: 10.5pt; 
+    }
+
+    h1,h2,h3 {
+        margin-left: -3em; 
+        color: black; 
+        background: #ccc; 
+    }
+ 
+    h1 {
+        color: black; 
+        font-size: 2em; 
+        display: block;
+        position: relative;
+    }
+    .card { 
+        border-shadow: 0 0
+        0; 
+        border: none; 
+        border-radius: 1ex; 
+        display: block;
+        background: white; 
+        page-break-inside: avoid; 
+        margin-bottom:
+        3em; 
+    }
+    .card>h2 { 
+        background: white; 
+        margin-left: -3em; 
+    }
+
+    .card>* { 
+        background-color: white
+    }
+
+    
+    abbr { 
+        border: 0pt solid white; 
+    }
+
+    abbr>.ellide { 
+        display: block;
+    }
+
+    #assistant { 
+        display: none; 
+    }
+
+    input[type=text] { 
+        display: inline; 
+        width: auto; 
+        border: inherit; 
+        text-decoration: underline; 
+        background: inherit;
+    }
+
+    textarea {
+        display: block; 
+        border: 1pt dotted #888; 
+        background: inherit;
+    }
+
+    /* not yet in the CSS standard, so we repeat ourselves a bunch */
+    ::-webkit-input-placeholder {
+        display: none; 
+        color: white;
+    }
+
+    :-moz-placeholder { /* Firefox 18- */
+        display: none; 
+        color: white;
+    }
+
+    ::-moz-placeholder {  /* Firefox 19+ */
+        display: none; 
+        color: white;
+    }
+
+    :-ms-input-placeholder {  
+        display: none; 
+        color: white;
+    }
+
+    .actionArea,button { 
+        display: none; 
+    }
+
+    select { 
+        border: 0; 
+        text-decoration: underline; 
+        background: white; 
+        color: black;
+        font-family: inherit;
+    }
+
+    select:after { 
+        content: '⁂'
+    }
+
+    label:hover { 
+        background: inherit
+    }
+
+    abbr:hover { 
+        background: inherit
+    }
+
+    table, td {
+        border: 1pt solid #ccc;
+    }
+
+    th {
+        border-top: 1pt solid #ccc;
+        border-left: 1pt solid #ccc;
+        border-right: 1pt solid #ccc;        
+        border-bottom: 1pt solid black;
+    }
+
+    
+    *:hover,tr:hover { background: inherit }
+
+
+    table.people { display: block }
+
+    table.people>tfoot,    table.people>tfoot>tr {display: block }
+
+
+    table.people>tfoot>tr>th,    table.people>tfoot>tr>td { display: inline }
+
+
+    table.people>thead { display: none }
+
+
+    table.people>tbody>tr {
+        display: block;
+        border: 1pt solid #888;
+        page-break-inside: avoid;
+    }
+
+
+
+    table.people>tbody>tr>td {
+        display: inline-block;
+        width: 75%;
+    }
+
+    table.people>tbody>tr>td:before {
+        font-size: 125%; 
+        color: blue;
+        width: 25%;
+    }
+
+    
+    table.people>tbody>tr>td.name:before {
+        content: "Name:";
+    }
+
+    table.people>tbody>tr>td.mail:before {
+        content: "eMail Address:";
+    }
+
+    table.people>tbody>tr>td.phone:before {
+        content: "Telephone number:";
+    }
+
+    table.people>tbody>tr>td.ticket-type:before {
+        content: "Ticket Type:";
+    }
+
+    table.people>tbody>tr>td.days:before {
+        content: "Days:";
+    }
+
+    table.people>tbody>tr>td.sleep:before {
+        content: "Sleeping:";
+    }
+
+    table.people>tbody>tr>td.eat:before {
+        content: "Meal Plan:";
+    }
+
+    table.people>tbody>tr>td.t-shirt:before {
+        content: "T-Shirt:";
+    }
+
+    table.people>tbody>tr>td.tote:before {
+        content: "Tote Bag:";
+    }
+
+    table.people>tbody>tr>td.coffee:before {
+        content: "Coffee Mug:";
+    }
+
+
+}
+
+input.size-3 { width: 3em }
+input.size-6 { width: 6em }
+

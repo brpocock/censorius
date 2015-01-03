@@ -1,0 +1,164 @@
+(ns censorius.address
+  (:require-macros [cljs.core.async.macros :refer [go alt!]])
+  (:require [om.core :as om :include-macros true]
+            [om-tools.dom :as dom :include-macros true]
+            [cljs.core.async :refer [put! chan <!]]
+            [clojure.data :as data]
+            [clojure.string :as string]
+            [goog.events :as events]
+            [secretary.core :as secretary]
+            [censorius.utils :as util]
+            [censorius.text :as text])
+  (:import [goog History]
+           [goog.history EventType]))
+
+
+
+(def +clear+ 12)
+(def +return+ 13)
+(def +escape+ 27)
+
+(defn confirm-change [owner]
+  (let [label (om/get-state owner :label)
+        text "FIXME"]
+    (js/window.confirm (str
+                        "“"
+                        text
+                        "” does not appear valid for “"
+                        label
+                        "”.\nDo you want to submit it?\n\nClick OK to confirm this value, or Cancel to edit."))))
+
+(defn do-validate [owner]
+  (and (map text/do-validate (om/children owner))
+       (let [zip3 (.substring (get owner :zip) 0 3)]
+         (or (and (= zip3 "662")
+                  (#{"KS" "MO"} (get owner :state)))
+             (= (get util/+zip-states+ zip3)
+                (get owner :state))))))
+
+(defn validate-submission [owner can-prompt?]
+  (let [valid-1? (do-validate owner)
+        valid-2? (or valid-1?
+                     (and can-prompt? 
+                          (when (confirm-change owner)
+                            (util/log "User confirms, store invalid value.")
+                            (om/set-state! owner :validated? nil)
+                            true)))]
+    #_ (util/log "validation of " text " ⇒ " valid-1? "; " valid-2?)
+    (or valid-1? valid-2?)))
+
+(defn submit 
+  ([event cursor owner]
+   (submit event cursor owner false))
+  ([event cursor owner suppress-prompt?]
+   (let [text (om/get-state owner :text)
+         korks (om/get-state owner :korks)
+         old-text (get (deref cursor) korks)]
+     #_ (util/log "Considering to submit change to " korks)
+     (cond 
+       (= old-text text)
+       (util/log "no change to " korks)
+       
+       (not (validate-submission owner (not suppress-prompt?)))
+       (util/log "no change to " korks ": validation failed")
+       
+       true
+       (let [formatter (om/get-state owner :format)
+             final-text (if formatter 
+                          (apply formatter (list text))
+                          text)]
+         (when (not= text final-text)
+           (om/set-state! owner :text final-text))
+         (util/log korks " ← “" final-text "”")
+         (om/update! cursor korks final-text)
+         (om/set-state! owner :orig-text final-text))))
+   false))
+
+(defn mkfun-validity-submit [cursor owner]
+  (fn [event]
+    (when (.contains (.-className (.-target event)) "valid-false")
+      (util/log "Field doesn't seem valid. Verifying user intent." event)
+      (submit event cursor owner))))
+
+(defn address [cursor owner {:keys [korks label note]}]
+  (let [name (util/gensymreally label)] 
+    (reify 
+      om/IInitState
+      (init-state [_]
+        {:korks korks
+         :label label
+         :note note})
+      
+      om/IDisplayName
+      (display-name [_]
+        (str "Address block " label "=" name))
+      
+      om/IDidUpdate
+      (did-update [_ _ _]
+        (when (om/get-state owner :needs-focus)
+          (when-let [node (util/get-child owner name)]
+            (let [length (.-length (.-value node))]
+              (.focus node)
+              (.setSelectionRange node length length)))
+          (om/set-state! owner :needs-focus nil))
+        (when-let [where-to (om/get-state owner :needs-cursor-set)]
+          (when-let [node (util/get-child owner name)]
+            (.setSelectionRange node where-to where-to))
+          (om/set-state! owner :needs-cursor-set nil)))
+      
+      
+      om/IRenderState
+      (render-state [self {:keys [label korks]}]
+        #_ (util/log "render-state “" label "” (" name ") " 
+                     (case validated?
+                       false "✗"
+                       true "✓"
+                       nil "⁇"))
+        (let [[validity validity-sigil]
+              (case (do-validate self)
+                false [false "✗"]
+                true [true "✓"]
+                nil ["unknown" " "])]
+          (dom/fieldset {:class "address-edit"}
+            (dom/legend nil
+              (dom/label label)
+              (dom/span {:class (str "marker valid-" validity)}
+                validity-sigil))
+            (dom/div nil
+              (om/build text/text-input owner
+                        {:opts {:korks :address1
+                                :label "Street address (line 1)"
+                                :rows 0
+                                :formatter util/name-case
+                                :placeholder "123 Main St."}}))
+            (dom/div nil
+              (om/build text/text-input owner
+                        {:opts {:korks :address2
+                                :label "Street address (line 2)"
+                                :rows 0
+                                :formatter util/name-case
+                                :placeholder "Ste. 123"}}))
+            (dom/div nil
+              (om/build text/text-input owner
+                        {:opts {:korks :city
+                                :label "City"
+                                :rows 0
+                                :formatter util/name-case
+                                :placeholder "Nicetown"}})
+              ", "
+              (om/build text/text-input owner
+                        {:opts {:korks :state
+                                :label "State"
+                                :rows 0
+                                :formatter string/upper-case
+                                :placeholder "FL"}})
+              "   "
+              (om/build text/text-input owner
+                        {:opts {:korks :zip
+                                :label "ZIP code"
+                                :rows 0
+                                :formatter util/format-zip-code
+                                :validate util/zip-code?
+                                :placeholder "32123"}}))))))))
+
+
