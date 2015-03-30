@@ -62,7 +62,7 @@
                                         :optimizations :none
                                         :pretty-print  true}}}}
   
-  :figwheel {:http-server-root "./www"
+  :figwheel {:http-server-root "./resources"
              
              ;; :server-port 3449
              ;; default
@@ -70,7 +70,7 @@
              ;; CSS reloading (optional)
              ;; if :css-dirs is set figwheel will detect css file changes and
              ;; send them to the browser
-             :css-dirs ["www/css"]
+             :css-dirs ["./resources/css"]
              
              ;; Server Ring Handler (optional)
              ;; if you want to embed a ring handler into the figwheel http-kit

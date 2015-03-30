@@ -20,6 +20,8 @@
                             "-" "_"))
     (gensym "G")))
 
+(defn log10 [x] (/ (js/Math.log x) (.-LN10 js/Math)))
+
 (defn stringerific [thing]
   (let [naïve (str thing)]
     (if (= "[object Object]" naïve)
