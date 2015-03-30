@@ -1,7 +1,0 @@
-(require :alexandria)
-(defpackage :herald-fcgi
-  (:use :cl :alexandria))
-
-(in-package :herald-fcgi)
-
-(defun )
