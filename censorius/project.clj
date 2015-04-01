@@ -4,18 +4,19 @@
   :license {:name "Gnu Affero General Public License"
             :url "http://www.gnu.org/licenses/agpl/"}
 
-  :jar-exclusions [#"\.cljx\.swp|\.swo|\.DS_Store"]
+  :jar-exclusions [#"\.cljx\.swp|\.swo|\.DS_Store|~"]
   
   :source-paths ["src/clj" "src/cljs"]
 
   :dependencies [ ;; -- (these come first, to be safe)
                  [org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2496" :scope "provided"]
+                 [org.clojure/clojurescript "0.0-2665" ;; :scope "provided"
+                  ]
                  ;; --- (sorted, to make life easier)
-                 [com.cemerick/piggieback "0.1.3"]
+                 [com.cemerick/piggieback "0.1.4"]
                  [com.facebook/react "0.12.2"]
-                 [cljs-ajax "0.3.3"]
-                 [compojure "1.2.0"]
+                 [cljs-ajax "0.3.9"]
+                 [compojure "1.3.1"]
                  [datascript "0.7.2"]
                  [enlive "1.1.5"]
                  [environ "1.0.0"]
@@ -24,22 +25,23 @@
                  [leiningen "2.5.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [prone "0.8.0"]
-                 [reagent "0.4.3"]
+                 [reagent "0.5.0"]
                  [reagent-utils "0.1.0"]
                  [ring "1.3.2"]
-                 [ring/ring-defaults "0.1.2"]
+                 [ring/ring-defaults "0.1.3"]
                  [secretary "1.2.1"]
-                 [selmer "0.7.7"]
-                 [weasel "0.4.2"]
+                 [selmer "0.7.9"]
+                 [weasel "0.5.0"]
                  ;; ---
                  ]
 
   :plugins [ ;; --- (sorted, to make life easier)
             [cider/cider-nrepl "0.8.2-SNAPSHOT"]
             [lein-asset-minifier "0.2.0"]
-            [lein-cljsbuild "1.0.3"]
+            [lein-cljsbuild "1.0.5"]
             [lein-environ "1.0.0"]
-            [lein-ring "0.8.13"]
+            [lein-less "1.7.2"]
+            [lein-ring "0.9.0"]
             ;; ---
             ]
 
@@ -51,18 +53,19 @@
 
   :minify-assets
   {:assets
-    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
+   {"www/css/style.min.css" "www/css/style.css"}}
 
   :cljsbuild {:builds {:app {:source-paths ["src/cljs"]
-                             :compiler {:output-to     "resources/public/js/app.js"
-                                        :output-dir    "resources/public/js/out"
-                                        :source-map    "resources/public/js/out.js.map"
-                                        :preamble      ["react/react.min.js"]
-                                        :externs       ["react/externs/react.js"]
-                                        :optimizations :none
+                             :compiler {:output-to     "www/js/app.js"
+                                        :output-dir    "www/js"
+                                        ;; :source-map    "www/js/app.js.map"
+                                        ;; :preamble ["react/react.min.js"]
+                                        ;; :externs       ["react/externs/react.js"]
+                                        :main "censorius.page"
+                                        :print-input-delimiter true
                                         :pretty-print  true}}}}
   
-  :figwheel {:http-server-root "./resources"
+  :figwheel {:http-server-root "www"
              
              ;; :server-port 3449
              ;; default
@@ -70,7 +73,7 @@
              ;; CSS reloading (optional)
              ;; if :css-dirs is set figwheel will detect css file changes and
              ;; send them to the browser
-             :css-dirs ["./resources/css"]
+             :css-dirs ["www/css"]
              
              ;; Server Ring Handler (optional)
              ;; if you want to embed a ring handler into the figwheel http-kit
@@ -92,12 +95,14 @@
 
                    :figwheel {:http-server-root "public"
                               :port 3449
-                              :css-dirs ["resources/public/css"]}
+                              :css-dirs ["www/css"]}
 
                    :env {:dev? true}
 
-                   :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs"]
-                                              :compiler {:source-map  "resources/public/js/out.js.map"}}}}}
+                   :cljsbuild {:builds {:app {:source-paths ["src/cljs" "env/dev/cljs"]
+                                              :pretty-print true
+                                              :optimizations true
+                                              :compiler {:source-map  "www/js/app.js.map"}}}}}
 
              :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
                        :env {:production true}
@@ -108,10 +113,10 @@
                        
                        :cljsbuild {:jar true
                                    :builds {:app
-                                             {:source-paths ["env/prod/cljs"]
-                                              :compiler
-                                              {:optimizations :advanced
-                                               :pretty-print false}}}}}
+                                            {:source-paths ["env/prod/cljs"]
+                                             :compiler
+                                             {:optimizations :advanced
+                                              :pretty-print false}}}}}
 
              :production {:ring {:open-browser? false
                                  :stacktraces?  false
