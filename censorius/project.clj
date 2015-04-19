@@ -101,7 +101,7 @@
 
                    :cljsbuild {:builds {:app {:source-paths ["src/cljs" "env/dev/cljs"]
                                               :pretty-print true
-                                              :optimizations true
+                                              :optimizations none 
                                               :compiler {:source-map  "www/js/app.js.map"}}}}}
 
              :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]

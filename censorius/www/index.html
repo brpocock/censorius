@@ -2,7 +2,7 @@
 <html>
   <head>
     <link href="css/style.css" rel="stylesheet" type="text/css">
-    <meta charset="utf-8" />
+    <meta charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
     <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
@@ -13,19 +13,32 @@
     <title>Registration</title>
   </head>
   <body>
-    <div id="app">
+    <div id="censorius">
 
       <center>
         <img src="css/spinner.gif" alt="Please wait… Loading">
         <br>
         <h2>Loading</h2>
         <br>
-        <a href="mailto:brpocock@star-hope.org">brpocock@star-hope.org</a>
-        is the programmer building this application.
       </center>
 
+      <h3>Having trouble?</h3>
+
+        <p class="hint"><a href="http://getfirefox.com/">Mozilla
+          Firefox</a> is the most popular <abbr for="Firefox is free —
+          like “free speech” — as well as free — like “free
+          beer.”">free</abbr> web browser for <abbr for="Android™,
+          Linux®, MacOS®, or Microsoft™ Windows">most computers and
+          devices</abbr>. <a href="http://getfirefox.com/">Download
+          Firefox</a> to safely access this, and other web-based
+          applications. </p>
+      
+      <p class"hint"><a href="mailto:brpocock@star-hope.org">brpocock@star-hope.org</a>
+        is the programmer building this application.</p>
+      
       <script>
-        var not_loaded=setTimeout(function(){alert("There seems to be a problem loading this application. You may need to check your network connection or make sure you have the latest Firefox. I'll keep trying for now, but you might want to click “Reload” to try again.")},10000);
+        var
+        not_loaded=setTimeout(function(){document.getElementById("censorius").getElementsByTagName("center")[0].getElementsByTagName("h2")[0].innerHTML="¿Loading trouble?";alert("There seems to be a problem loading this application. You may need to check your network connection, or make sure you have the latest update for Firefox. I'll keep trying for now, but you might want to click “Reload” to try again.")},10000);
       </script>
       <noscript>
         <p> This program requires a web browser with
