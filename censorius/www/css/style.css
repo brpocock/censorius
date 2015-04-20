@@ -1005,3 +1005,7 @@ table {
 input.size-3 { width: 3em }
 input.size-6 { width: 6em }
 
+center.centerboth {
+    margin: auto auto auto auto;
+}
+

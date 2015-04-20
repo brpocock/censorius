@@ -1,5 +1,7 @@
 // Compiled by ClojureScript 0.0-2665 {}
+if(!goog.isProvided_('censorius.text')) {
 goog.provide('censorius.text');
+}
 goog.require('cljs.core');
 goog.require('reagent.core');
 goog.require('secretary.core');
@@ -49,7 +51,7 @@ return true;
 return and__3787__auto__;
 }
 });
-censorius.text.validate_submission = (function validate_submission(props,text,can_prompt_QMARK_){
+censorius.text.valid_submission_QMARK_ = (function valid_submission_QMARK_(props,text,can_prompt_QMARK_){
 var valid_1_QMARK_ = censorius.text.do_validate.call(null,props,text);
 var valid_2_QMARK_ = (function (){var or__3799__auto__ = valid_1_QMARK_;
 if(cljs.core.truth_(or__3799__auto__)){
@@ -84,25 +86,25 @@ var submit__2 = (function (event,props){
 return submit.call(null,event,props,false);
 });
 var submit__3 = (function (event,props,suppress_prompt_QMARK_){
-var text_10379 = new cljs.core.Keyword(null,"text","text",-1790561697).cljs$core$IFn$_invoke$arity$1(cljs.core.deref.call(null,props));
-var keys_10380 = new cljs.core.Keyword(null,"keys","keys",1068423698).cljs$core$IFn$_invoke$arity$1(cljs.core.deref.call(null,props));
-var old_text_10381 = cljs.core.get.call(null,cljs.core.deref.call(null,props),keys_10380);
-if(cljs.core._EQ_.call(null,old_text_10381,text_10379)){
-censorius.utils.log.call(null,"no change to ",keys_10380);
+var text_10290 = new cljs.core.Keyword(null,"text","text",-1790561697).cljs$core$IFn$_invoke$arity$1(cljs.core.deref.call(null,props));
+var keys_10291 = new cljs.core.Keyword(null,"keys","keys",1068423698).cljs$core$IFn$_invoke$arity$1(cljs.core.deref.call(null,props));
+var old_text_10292 = cljs.core.get.call(null,cljs.core.deref.call(null,props),keys_10291);
+if(cljs.core._EQ_.call(null,old_text_10292,text_10290)){
+censorius.utils.log.call(null,"no change to ",keys_10291);
 } else {
-if(cljs.core.not.call(null,censorius.text.validate_submission.call(null,props,text_10379,cljs.core.not.call(null,suppress_prompt_QMARK_)))){
-censorius.utils.log.call(null,"no change to ",keys_10380,": validation failed");
+if(cljs.core.not.call(null,censorius.text.valid_submission_QMARK_.call(null,props,text_10290,cljs.core.not.call(null,suppress_prompt_QMARK_)))){
+censorius.utils.log.call(null,"no change to ",keys_10291,": validation failed");
 } else {
-var formatter_10382 = new cljs.core.Keyword(null,"format","format",-1306924766).cljs$core$IFn$_invoke$arity$1(cljs.core.deref.call(null,props));
-var final_text_10383 = (cljs.core.truth_(formatter_10382)?cljs.core.apply.call(null,formatter_10382,cljs.core._conj.call(null,cljs.core.List.EMPTY,text_10379)):text_10379);
-if(cljs.core.not_EQ_.call(null,text_10379,final_text_10383)){
-cljs.core.swap_BANG_.call(null,props,cljs.core.assoc,new cljs.core.Keyword(null,"text","text",-1790561697),final_text_10383);
+var formatter_10293 = new cljs.core.Keyword(null,"format","format",-1306924766).cljs$core$IFn$_invoke$arity$1(cljs.core.deref.call(null,props));
+var final_text_10294 = (cljs.core.truth_(formatter_10293)?cljs.core.apply.call(null,formatter_10293,cljs.core._conj.call(null,cljs.core.List.EMPTY,text_10290)):text_10290);
+if(cljs.core.not_EQ_.call(null,text_10290,final_text_10294)){
+cljs.core.swap_BANG_.call(null,props,cljs.core.assoc,new cljs.core.Keyword(null,"text","text",-1790561697),final_text_10294);
 } else {
 }
 
-censorius.utils.log.call(null,keys_10380," \u2190 \u201C",final_text_10383,"\u201D");
+censorius.utils.log.call(null,keys_10291," \u2190 \u201C",final_text_10294,"\u201D");
 
-cljs.core.swap_BANG_.call(null,props,cljs.core.assoc_in,keys_10380,final_text_10383,new cljs.core.PersistentVector(null, 1, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"orig-text","orig-text",650637509)], null),final_text_10383);
+cljs.core.swap_BANG_.call(null,props,cljs.core.assoc_in,keys_10291,final_text_10294,new cljs.core.PersistentVector(null, 1, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"orig-text","orig-text",650637509)], null),final_text_10294);
 
 }
 }
@@ -161,41 +163,41 @@ return null;
 }
 }
 });
-censorius.text.text_input = (function text_input(p__10393){
-var map__10399 = p__10393;
-var map__10399__$1 = ((cljs.core.seq_QMARK_.call(null,map__10399))?cljs.core.apply.call(null,cljs.core.hash_map,map__10399):map__10399);
-var props = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"props","props",453281727));
-var format = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"format","format",-1306924766));
-var placeholder = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"placeholder","placeholder",-104873083));
-var validate = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"validate","validate",-201300827));
-var ellipsis = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"ellipsis","ellipsis",998505738));
-var size = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"size","size",1098693007));
-var input_type = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"input-type","input-type",856973840));
-var rows = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"rows","rows",850049680));
-var keys = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"keys","keys",1068423698));
-var label = cljs.core.get.call(null,map__10399__$1,new cljs.core.Keyword(null,"label","label",1718410804));
+censorius.text.text_input = (function text_input(p__10304){
+var map__10310 = p__10304;
+var map__10310__$1 = ((cljs.core.seq_QMARK_.call(null,map__10310))?cljs.core.apply.call(null,cljs.core.hash_map,map__10310):map__10310);
+var props = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"props","props",453281727));
+var format = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"format","format",-1306924766));
+var placeholder = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"placeholder","placeholder",-104873083));
+var validate = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"validate","validate",-201300827));
+var ellipsis = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"ellipsis","ellipsis",998505738));
+var size = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"size","size",1098693007));
+var input_type = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"input-type","input-type",856973840));
+var rows = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"rows","rows",850049680));
+var keys = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"keys","keys",1068423698));
+var label = cljs.core.get.call(null,map__10310__$1,new cljs.core.Keyword(null,"label","label",1718410804));
 var name = censorius.utils.gensymreally.call(null,label);
-return ((function (name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p__10400){
-var map__10401 = p__10400;
-var map__10401__$1 = ((cljs.core.seq_QMARK_.call(null,map__10401))?cljs.core.apply.call(null,cljs.core.hash_map,map__10401):map__10401);
-var props__$1 = map__10401__$1;
-var validated_QMARK_ = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"validated?","validated?",923640924));
-var validate__$1 = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"validate","validate",-201300827));
-var keys__$1 = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"keys","keys",1068423698));
-var input_type__$1 = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"input-type","input-type",856973840));
-var rows__$1 = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"rows","rows",850049680));
-var placeholder__$1 = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"placeholder","placeholder",-104873083));
-var text = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"text","text",-1790561697));
-var label__$1 = cljs.core.get.call(null,map__10401__$1,new cljs.core.Keyword(null,"label","label",1718410804));
-var vec__10402 = (function (){var G__10403 = validated_QMARK_;
-if(cljs.core._EQ_.call(null,null,G__10403)){
+return ((function (name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p__10311){
+var map__10312 = p__10311;
+var map__10312__$1 = ((cljs.core.seq_QMARK_.call(null,map__10312))?cljs.core.apply.call(null,cljs.core.hash_map,map__10312):map__10312);
+var props__$1 = map__10312__$1;
+var validated_QMARK_ = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"validated?","validated?",923640924));
+var validate__$1 = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"validate","validate",-201300827));
+var keys__$1 = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"keys","keys",1068423698));
+var input_type__$1 = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"input-type","input-type",856973840));
+var rows__$1 = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"rows","rows",850049680));
+var placeholder__$1 = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"placeholder","placeholder",-104873083));
+var text = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"text","text",-1790561697));
+var label__$1 = cljs.core.get.call(null,map__10312__$1,new cljs.core.Keyword(null,"label","label",1718410804));
+var vec__10313 = (function (){var G__10314 = validated_QMARK_;
+if(cljs.core._EQ_.call(null,null,G__10314)){
 return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["unknown"," "], null);
 } else {
-if(cljs.core._EQ_.call(null,true,G__10403)){
+if(cljs.core._EQ_.call(null,true,G__10314)){
 return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [true,"\u26E4"], null);
 } else {
-if(cljs.core._EQ_.call(null,false,G__10403)){
+if(cljs.core._EQ_.call(null,false,G__10314)){
 return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [false,"\u2717"], null);
 } else {
 throw (new Error([cljs.core.str("No matching clause: "),cljs.core.str(validated_QMARK_)].join('')));
@@ -204,78 +206,80 @@ throw (new Error([cljs.core.str("No matching clause: "),cljs.core.str(validated_
 }
 }
 })();
-var validity = cljs.core.nth.call(null,vec__10402,(0),null);
-var validity_sigil = cljs.core.nth.call(null,vec__10402,(1),null);
+var validity = cljs.core.nth.call(null,vec__10313,(0),null);
+var validity_sigil = cljs.core.nth.call(null,vec__10313,(1),null);
 if(cljs.core._EQ_.call(null,(0),rows__$1)){
-return new cljs.core.PersistentVector(null, 4, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"span","span",1394872991),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"input","input",556931961),cljs.core.PersistentHashMap.fromArrays([new cljs.core.Keyword(null,"placeholder","placeholder",-104873083),new cljs.core.Keyword(null,"name","name",1843675177),new cljs.core.Keyword(null,"value","value",305978217),new cljs.core.Keyword(null,"on-blur","on-blur",814300747),new cljs.core.Keyword(null,"type","type",1174270348),new cljs.core.Keyword(null,"size","size",1098693007),new cljs.core.Keyword(null,"title","title",636505583),new cljs.core.Keyword(null,"id","id",-1388402092),new cljs.core.Keyword(null,"class","class",-2030961996),new cljs.core.Keyword(null,"on-change","on-change",-732046149),new cljs.core.Keyword(null,"on-key-down","on-key-down",-1374733765)],[placeholder__$1,name,text,((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10384_SHARP_){
-return censorius.text.submit.call(null,p1__10384_SHARP_,props__$1,true);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+return new cljs.core.PersistentVector(null, 4, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"span","span",1394872991),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"input","input",556931961),cljs.core.PersistentHashMap.fromArrays([new cljs.core.Keyword(null,"placeholder","placeholder",-104873083),new cljs.core.Keyword(null,"name","name",1843675177),new cljs.core.Keyword(null,"value","value",305978217),new cljs.core.Keyword(null,"on-blur","on-blur",814300747),new cljs.core.Keyword(null,"type","type",1174270348),new cljs.core.Keyword(null,"size","size",1098693007),new cljs.core.Keyword(null,"title","title",636505583),new cljs.core.Keyword(null,"id","id",-1388402092),new cljs.core.Keyword(null,"class","class",-2030961996),new cljs.core.Keyword(null,"on-change","on-change",-732046149),new cljs.core.Keyword(null,"on-key-down","on-key-down",-1374733765)],[placeholder__$1,name,text,((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10295_SHARP_){
+return censorius.text.submit.call(null,p1__10295_SHARP_,props__$1,true);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
 ,(function (){var or__3799__auto__ = input_type__$1;
 if(cljs.core.truth_(or__3799__auto__)){
 return or__3799__auto__;
 } else {
 return "text";
 }
-})(),size,label__$1,name,[cljs.core.str("valid-"),cljs.core.str(validity),cljs.core.str(" size-"),cljs.core.str(size)].join(''),((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10385_SHARP_){
-return censorius.text.do_change.call(null,props__$1,p1__10385_SHARP_.target.value);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
-,((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10386_SHARP_){
-return censorius.text.key_down.call(null,p1__10386_SHARP_,props__$1,true);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
-])], null),(cljs.core.truth_(ellipsis)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"button","button",1456579943),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"on-click","on-click",1632826543),((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+})(),size,label__$1,name,[cljs.core.str("valid-"),cljs.core.str(validity),cljs.core.str(" size-"),cljs.core.str(size)].join(''),((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10296_SHARP_){
+return censorius.text.do_change.call(null,props__$1,p1__10296_SHARP_.target.value);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+,((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10297_SHARP_){
+return censorius.text.key_down.call(null,p1__10297_SHARP_,props__$1,true);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+])], null),(cljs.core.truth_(ellipsis)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"button","button",1456579943),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"on-click","on-click",1632826543),((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
 return (function (){
 return cljs.core.apply.call(null,ellipsis,keys__$1);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
 ], null),"\u2026"], null):null),(cljs.core.truth_(validate__$1)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"span","span",1394872991),new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null,"class","class",-2030961996),[cljs.core.str("marker valid-"),cljs.core.str(validity)].join(''),new cljs.core.Keyword(null,"on-click","on-click",1632826543),censorius.text.mkfun_validity_submit.call(null,props__$1)], null),validity_sigil], null):null)], null);
 } else {
 if((cljs.core.not.call(null,rows__$1)) || (cljs.core._EQ_.call(null,(1),rows__$1))){
-return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"div","div",1057191632),new cljs.core.PersistentVector(null, 6, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"label","label",1718410804),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"class","class",-2030961996),"two-column"], null),[cljs.core.str(label__$1),cljs.core.str(":")].join(''),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"input","input",556931961),cljs.core.PersistentHashMap.fromArrays([new cljs.core.Keyword(null,"placeholder","placeholder",-104873083),new cljs.core.Keyword(null,"name","name",1843675177),new cljs.core.Keyword(null,"value","value",305978217),new cljs.core.Keyword(null,"on-blur","on-blur",814300747),new cljs.core.Keyword(null,"type","type",1174270348),new cljs.core.Keyword(null,"title","title",636505583),new cljs.core.Keyword(null,"id","id",-1388402092),new cljs.core.Keyword(null,"class","class",-2030961996),new cljs.core.Keyword(null,"on-change","on-change",-732046149),new cljs.core.Keyword(null,"on-key-down","on-key-down",-1374733765)],[placeholder__$1,name,text,((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10387_SHARP_){
-return censorius.text.submit.call(null,p1__10387_SHARP_,props__$1,true);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"div","div",1057191632),new cljs.core.PersistentVector(null, 6, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"label","label",1718410804),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"class","class",-2030961996),"two-column"], null),[cljs.core.str(label__$1),cljs.core.str(":")].join(''),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"input","input",556931961),cljs.core.PersistentHashMap.fromArrays([new cljs.core.Keyword(null,"placeholder","placeholder",-104873083),new cljs.core.Keyword(null,"name","name",1843675177),new cljs.core.Keyword(null,"value","value",305978217),new cljs.core.Keyword(null,"on-blur","on-blur",814300747),new cljs.core.Keyword(null,"type","type",1174270348),new cljs.core.Keyword(null,"title","title",636505583),new cljs.core.Keyword(null,"id","id",-1388402092),new cljs.core.Keyword(null,"class","class",-2030961996),new cljs.core.Keyword(null,"on-change","on-change",-732046149),new cljs.core.Keyword(null,"on-key-down","on-key-down",-1374733765)],[placeholder__$1,name,text,((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10298_SHARP_){
+return censorius.text.submit.call(null,p1__10298_SHARP_,props__$1,true);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
 ,(function (){var or__3799__auto__ = input_type__$1;
 if(cljs.core.truth_(or__3799__auto__)){
 return or__3799__auto__;
 } else {
 return "text";
 }
-})(),(cljs.core.truth_(placeholder__$1)?[cljs.core.str(label__$1),cljs.core.str(" ("),cljs.core.str(placeholder__$1),cljs.core.str(")")].join(''):label__$1),name,[cljs.core.str("valid-"),cljs.core.str(validity),cljs.core.str(" size-"),cljs.core.str(size)].join(''),((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10388_SHARP_){
-return censorius.text.do_change.call(null,props__$1,p1__10388_SHARP_.target.value);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
-,((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10389_SHARP_){
-return censorius.text.key_down.call(null,p1__10389_SHARP_,props__$1,true);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
-])], null),(cljs.core.truth_(ellipsis)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"button","button",1456579943),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"on-click","on-click",1632826543),((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+})(),(cljs.core.truth_(placeholder__$1)?[cljs.core.str(label__$1),cljs.core.str(" ("),cljs.core.str(placeholder__$1),cljs.core.str(")")].join(''):label__$1),name,[cljs.core.str("valid-"),cljs.core.str(validity),cljs.core.str(" size-"),cljs.core.str(size)].join(''),((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10299_SHARP_){
+return censorius.text.do_change.call(null,props__$1,p1__10299_SHARP_.target.value);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+,((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10300_SHARP_){
+return censorius.text.key_down.call(null,p1__10300_SHARP_,props__$1,true);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+])], null),(cljs.core.truth_(ellipsis)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"button","button",1456579943),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"on-click","on-click",1632826543),((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
 return (function (){
 return cljs.core.apply.call(null,ellipsis,props__$1);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
 ], null),"\u2026"], null):null),(cljs.core.truth_(validate__$1)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"span","span",1394872991),new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null,"class","class",-2030961996),[cljs.core.str("marker "),cljs.core.str([cljs.core.str("valid-"),cljs.core.str(validity)].join(''))].join(''),new cljs.core.Keyword(null,"on-click","on-click",1632826543),censorius.text.mkfun_validity_submit.call(null,props__$1)], null),validity_sigil], null):null)], null)], null);
 } else {
-return new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"fieldset","fieldset",-1949770816),new cljs.core.PersistentVector(null, 4, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"legend","legend",-1027192245),new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"label","label",1718410804),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"for","for",-1323786319),[cljs.core.str("textarea-"),cljs.core.str(name)].join('')], null),label__$1], null),(cljs.core.truth_(ellipsis)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"button","button",1456579943),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"on-click","on-click",1632826543),((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"fieldset","fieldset",-1949770816),new cljs.core.PersistentVector(null, 4, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"legend","legend",-1027192245),new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"label","label",1718410804),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"for","for",-1323786319),[cljs.core.str("textarea-"),cljs.core.str(name)].join('')], null),label__$1], null),(cljs.core.truth_(ellipsis)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"button","button",1456579943),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"on-click","on-click",1632826543),((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
 return (function (){
 return cljs.core.apply.call(null,ellipsis,keys__$1);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
-], null),"\u2026"], null):null),(cljs.core.truth_(validate__$1)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"span","span",1394872991),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"class","class",-2030961996),[cljs.core.str("marker valid-"),cljs.core.str(validity)].join('')], null),validity_sigil], null):null)], null),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"textarea","textarea",-650375824),cljs.core.PersistentHashMap.fromArrays([new cljs.core.Keyword(null,"placeholder","placeholder",-104873083),new cljs.core.Keyword(null,"name","name",1843675177),new cljs.core.Keyword(null,"value","value",305978217),new cljs.core.Keyword(null,"on-blur","on-blur",814300747),new cljs.core.Keyword(null,"title","title",636505583),new cljs.core.Keyword(null,"rows","rows",850049680),new cljs.core.Keyword(null,"id","id",-1388402092),new cljs.core.Keyword(null,"class","class",-2030961996),new cljs.core.Keyword(null,"on-change","on-change",-732046149),new cljs.core.Keyword(null,"on-key-down","on-key-down",-1374733765)],[placeholder__$1,name,text,((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10390_SHARP_){
-return censorius.text.submit.call(null,p1__10390_SHARP_,props__$1,true);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
-,[cljs.core.str(label__$1),cljs.core.str((cljs.core.truth_(placeholder__$1)?[cljs.core.str(" ("),cljs.core.str(placeholder__$1),cljs.core.str(")")].join(''):""))].join(''),rows__$1,name,validity,((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10391_SHARP_){
-return censorius.text.do_change.call(null,props__$1,p1__10391_SHARP_.target.value);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
-,((function (vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
-return (function (p1__10392_SHARP_){
-return censorius.text.key_down.call(null,p1__10392_SHARP_,props__$1,false);
-});})(vec__10402,validity,validity_sigil,map__10401,map__10401__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+], null),"\u2026"], null):null),(cljs.core.truth_(validate__$1)?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"span","span",1394872991),new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"class","class",-2030961996),[cljs.core.str("marker valid-"),cljs.core.str(validity)].join('')], null),validity_sigil], null):null)], null),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.Keyword(null,"textarea","textarea",-650375824),cljs.core.PersistentHashMap.fromArrays([new cljs.core.Keyword(null,"placeholder","placeholder",-104873083),new cljs.core.Keyword(null,"name","name",1843675177),new cljs.core.Keyword(null,"value","value",305978217),new cljs.core.Keyword(null,"on-blur","on-blur",814300747),new cljs.core.Keyword(null,"title","title",636505583),new cljs.core.Keyword(null,"rows","rows",850049680),new cljs.core.Keyword(null,"id","id",-1388402092),new cljs.core.Keyword(null,"class","class",-2030961996),new cljs.core.Keyword(null,"on-change","on-change",-732046149),new cljs.core.Keyword(null,"on-key-down","on-key-down",-1374733765)],[placeholder__$1,name,text,((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10301_SHARP_){
+return censorius.text.submit.call(null,p1__10301_SHARP_,props__$1,true);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+,[cljs.core.str(label__$1),cljs.core.str((cljs.core.truth_(placeholder__$1)?[cljs.core.str(" ("),cljs.core.str(placeholder__$1),cljs.core.str(")")].join(''):""))].join(''),rows__$1,name,validity,((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10302_SHARP_){
+return censorius.text.do_change.call(null,props__$1,p1__10302_SHARP_.target.value);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+,((function (vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label){
+return (function (p1__10303_SHARP_){
+return censorius.text.key_down.call(null,p1__10303_SHARP_,props__$1,false);
+});})(vec__10313,validity,validity_sigil,map__10312,map__10312__$1,props__$1,validated_QMARK_,validate__$1,keys__$1,input_type__$1,rows__$1,placeholder__$1,text,label__$1,name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
 ])], null)], null);
 
 }
 }
 });
-;})(name,map__10399,map__10399__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
+;})(name,map__10310,map__10310__$1,props,format,placeholder,validate,ellipsis,size,input_type,rows,keys,label))
 });
+
+//# sourceMappingURL=text.js.map

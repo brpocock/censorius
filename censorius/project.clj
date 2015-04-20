@@ -1,3 +1,4 @@
+
 (defproject censorius "0.1.0-SNAPSHOT"
   :description "Festival management program"
   :url "http://star-hope.org/censurius"
@@ -61,6 +62,7 @@
                                         ;; :source-map    "www/js/app.js.map"
                                         ;; :preamble ["react/react.min.js"]
                                         ;; :externs       ["react/externs/react.js"]
+                                        :optimizations :none
                                         :main "censorius.page"
                                         :print-input-delimiter true
                                         :pretty-print  true}}}}
@@ -93,7 +95,7 @@
                    :injections [(require 'pjstadig.humane-test-output)
                                 (pjstadig.humane-test-output/activate!)]
 
-                   :figwheel {:http-server-root "public"
+                   :figwheel {:http-server-root "www"
                               :port 3449
                               :css-dirs ["www/css"]}
 
@@ -101,7 +103,7 @@
 
                    :cljsbuild {:builds {:app {:source-paths ["src/cljs" "env/dev/cljs"]
                                               :pretty-print true
-                                              :optimizations true
+                                              :optimizations :none ; true
                                               :compiler {:source-map  "www/js/app.js.map"}}}}}
 
              :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]

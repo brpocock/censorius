@@ -18,7 +18,7 @@
 
 (defonce workshops (atom []))
 
-(defonce festival (atom {:season "Beltane" :year 2015}))
+(defonce festival (atom {:season "Samhain" :year 2015}))
 
 (defonce scholarships (atom {:php 0 :seva 0 :baiardi 0}))
 (defonce prices (atom {:ticket { :adult 95

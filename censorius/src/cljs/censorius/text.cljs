@@ -41,7 +41,7 @@
     (and (or validated? (not could-validate?)) 
          true)))
 
-(defn validate-submission [props text can-prompt?]
+(defn valid-submission? [props text can-prompt?]
   (let [valid-1? (do-validate props text)
         valid-2? (or valid-1?
                      (and can-prompt? 
@@ -61,7 +61,7 @@
          old-text (get (deref props) keys)]
      (cond (= old-text text) (util/log "no change to " keys)
            
-           (not (validate-submission props text (not suppress-prompt?)))
+           (not (valid-submission? props text (not suppress-prompt?)))
            (util/log "no change to " keys ": validation failed")
            
            true

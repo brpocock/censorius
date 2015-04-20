@@ -13,11 +13,11 @@
   (io/resource "index.html") [] [:body] (if dev?
                                           inject-devmode-html
                                           identity))
-
+y
 (defroutes routes
-  (resources "/" {:root "www"})
+  (resources "/reg" {:root "resources"})
   (resources "/react" {:root "react"})
-  (GET "/*" req (page)))
+  (GET "/register" req (page)))
 
 (def http-handler
   (if dev?

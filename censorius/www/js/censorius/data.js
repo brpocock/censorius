@@ -21,7 +21,7 @@ censorius.data.workshops = reagent.core.atom.call(null,cljs.core.PersistentVecto
 }
 if(typeof censorius.data.festival !== 'undefined'){
 } else {
-censorius.data.festival = reagent.core.atom.call(null,new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null,"season","season",851675697),"Beltane",new cljs.core.Keyword(null,"year","year",335913393),(2015)], null));
+censorius.data.festival = reagent.core.atom.call(null,new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null,"season","season",851675697),"Samhain",new cljs.core.Keyword(null,"year","year",335913393),(2015)], null));
 }
 if(typeof censorius.data.scholarships !== 'undefined'){
 } else {
