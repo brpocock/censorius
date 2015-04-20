@@ -130,6 +130,10 @@ h3 {
     padding: 4pt;
 }
 
+h4,h5,h6 {
+    display: inline-block;
+}
+
 h1+div,h1+section {
     margin-top: 3em;
 }
@@ -253,12 +257,12 @@ button:active {
     color: #422;
 }
 
-h1>button {
-    border: 2pt solid blue;
+h1 button {
+    border: 2pt solid #ddd;
     border-radius: 1ex;
     margin: 0 0 0 2em;
-    background-color: blue;
-    color: #ddd;
+    background-color: rgba(221,221,221,128);
+    color: #339;
     box-shadow: none;
     font-size: 1em;
     overflow: clip;
@@ -266,7 +270,7 @@ h1>button {
     display: inline-block;
 }
 
-h1>button:hover {
+h1 button:hover {
     color: blue;
     background-color: #ddd;
     border-color: #eef;
@@ -275,7 +279,7 @@ h1>button:hover {
     margin: 0 0 0 2em;
 }
 
-h1:hover>button {
+h1:hover button {
     transform: rotate(4deg);
 }
 

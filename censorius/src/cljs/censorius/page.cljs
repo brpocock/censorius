@@ -54,11 +54,11 @@
   [:thead
    [:tr [:th (abbr "Name" "Name of each party member")]
     [:th (abbr "✉" "eMail")]
-    [:th (abbr "📞" "Phone")]
+    [:th (abbr "📞" "Phone#")]
     [:th (abbr "🚸" "Ticket" "The type of ticket — adult or child")]
     [:th (abbr "📅" "Days")]
     [:th (abbr "⛺/🏠" "Sleep" "The lodging for each person: tent, cabin, or lodge bed.")]
-    [:th (abbr "🍲🍴" "Eat" "Purchase the Bubbling Cauldron meal plan here.")]
+    [:th (abbr "🍲🍴" "Meals" "Purchase the Bubbling Cauldron meal plan here.")]
     [:th (abbr "👕" "T-Shirt" "FPG T-shirt for this Festival. (Buy other shirts in the “Extras” box)")]
     [:th (abbr "💼" "Tote" "FPG tote bags")]
     [:th (abbr "🍺" "Mug" "FPG 20th Anniversary hot & cold beverage mugs. (Buy other mugs in the “Extras” box)")]]])
@@ -86,7 +86,6 @@
            0))
 
      (case (:eat guest)
-       nil 0
        :looney 10000000.01
        :cauldron 7000
        (do (util/log "bad eating " (:eat guest))
@@ -228,10 +227,9 @@
    [:h2 "Extras"]
    [:table {:class "extras"}
     [:thead [:tr [:th "Item"] [:th "Price Ea."] [:th "Style / Qty."] [:th "Subtotal"]]]
-    ;; [:tbody (map product-row @d/merch )]
-    ;; [:tfoot [:tr [:th {:col-span 3} "Subtotal"]
-    ;;          [:td [sum-merch-prices]]]]
-    ]])
+    [:tbody (map product-row @d/merch )]
+    [:tfoot [:tr [:th {:col-span 3} "Subtotal"]
+             [:td [sum-merch-prices]]]]]])
 
 (defn workshop-box []
   [:section {:class "card"}
@@ -240,13 +238,12 @@
      [:fieldset [:legend "Workshop Requests"]
       [:table
        [:thead [:tr [:th "Title"] [:th "Presenter"]]]
-       ;; [:tbody
-       ;;  (for [workshop @d/workshops]
-       ;;    [:tr [:td [:a {:href (str "#/workshops/" (:id @workshop))}
-       ;;               (:long-name @workshop)]]
-       ;;     [:td (:formal-name (:presenter @workshop))]])]
-       ]])
-   [:a {:href "#/add-workshop"} [:button {:class "true"}
+       [:tbody 
+        (for [workshop @d/workshops]
+          [:tr [:td [:a {:href (str "#/workshops/" (:id @workshop))}
+                     (:long-name @workshop)]]
+           [:td (:formal-name (:presenter @workshop))]])]]])
+   [:a {:href "#/add-workshop"} [:button {:class "true"} 
                                  (if (zero? (count @d/workshops))
                                    "⁂ Present a workshop"
                                    "+ Add another")]]])
@@ -307,7 +304,7 @@
    [:h2 "Assistant"]
 
    (if (zero? (count @d/guests))
-     [:div [:h3 "Getting Started"]
+     [:div [:h4 "Getting Started"]
       [:p "First, enter the (legal) name of your party's leader. Since
                                       you're entering this, that's
                                       probably you! This will be the
@@ -317,7 +314,7 @@
        " when you arrive at the Festival. Then, click (or tap) "
        [:strong "+ Add to Party"] "."]]
      [:div
-      [:h3 "Editing your Party"]
+      [:h4 "Editing your Party"]
       [:p "For each person in your party, click the buttons under each
        column to fill in their complete details."]
       [:p "The information you fill in for your party leader will
@@ -327,7 +324,7 @@
 
    (if (nil? (filter #(and (= :adult (:ticket-type %))
                            (not (nil? (:e-mail %)))) @d/guests))
-     [:div [:h3 {:class "warning"} "eMail Address Needed"]
+     [:div [:h4 {:class "warning"} "eMail Address Needed"]
       [:p "The eMail address of at least one adult in the party must be provided."]])
 
    (let [babies (count (filter #(= :baby (:ticket-type %)) @d/guests))
@@ -335,7 +332,7 @@
          adults (count (filter #(= :adult (:ticket-type %)) @d/guests))
          adults-needed (+ babies (if (pos? children) 1 0))]
      (if (> adults-needed adults)
-       [:div [:h3 {:class "warning"} (util/counting (- adults-needed adults) "Adult") " Required"]
+       [:div [:h4 {:class "warning"} (util/counting (- adults-needed adults) "Adult") " Required"]
         [:p "At least "
          (string/lower-case (util/counting adults-needed "adult"))
          " must accompany "
@@ -347,7 +344,7 @@
 
    (if (< 1 (count @d/guests))
      [:div
-      [:h3 "Removing tickets"]
+      [:h4 "Removing tickets"]
       [:p "To remove someone from your party, click on their name, then click the "
        [:strong "Remove from Party"] " button."]])
 
@@ -356,19 +353,19 @@
                                                    (:coffee? guest)
                                                    (:tote? guest)))) @d/guests)
      [:div
-      [:h3 "Merchandise"]
+      [:h4 "Merchandise"]
       [:p
        "You can purchase great merchandise for every member of your party, and order extra items to take home from the "
        [:strong "Extras"]
        " box as well. There are additional items, like general T-shirts, also available this way."]]
      [:div
-      [:h3 "Merchandise"]
+      [:h4 "Merchandise"]
       [:p
        "Buy your festival T-shirts for every party member, or order more merchandise from the "
        [:strong "Extras"] " box."]])
 
    [:div
-    [:h3 "Vendors"]
+    [:h4 "Vendors"]
     [:p
      "Set up your vending booth by picking the number of spaces you'll
                                                      need, then put in
@@ -377,7 +374,7 @@
                                                      appear in
                                                      the handbook."]]
    [:div
-    [:h3 "Workshops"]
+    [:h4 "Workshops"]
     [:p "If any members of your party want to present a workshop at FPG, just fill out the information here."]]])
 
 (defn scholarship-box []
@@ -503,6 +500,7 @@
                      :filter nil}))
 
 (secretary/set-config! :prefix "#")
+(defn location-hash [x] (set! (.-hash (.-location js/window)) x))
 
 (secretary/defroute "/" []
   (swap! uri-view assoc :current-page registration-page))
@@ -520,31 +518,26 @@
   (swap! uri-view assoc  :current-page staff-confirm :id id))
 
 
-
-;; History
+;; Initialize app
 
 ;; need to run this after routes have been defined
 
-#_(let [history (goog.history.Html5History.)]
-  (.setUseFragment history false)
-  (.setPathPrefix history "#")
-  (.setEnabled history true)
-  (events/listen history EventType/NAVIGATE
-                 #(secretary/dispatch! (.-token %))))
+(defn init! []
+  (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))
 
 
+;; History
+(defn hook-browser-navigation! []
+  (let [history (History.)] 
+    (goog.events/listen history EventType/NAVIGATE
+                        #(secretary/dispatch! (.-token %)))
+    (doto history (.setEnabled true))))
 
+
+(defn main []
+  (util/log "clearTimeout " js/not-loaded)
+  (js/window.clearTimeout js/not-loaded)
+  (hook-browser-navigation!)
+  (init!))
 
-
-
-(util/log "clearTimeout " js/not-loaded)
-(js/window.clearTimeout js/not-loaded)
-
-(util/log "current view ") (:current-page @uri-view)
-
-(reagent/render-component [(or (:current-page @uri-view)
-                               registration-page)
-                           uri-view]
-                          (.getElementById js/document "app"))
-
-
+(main)
