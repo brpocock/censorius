@@ -10,3 +10,6 @@ pom.xml.asc
 /resources/public/js
 /out
 /.repl
+www/js/*/*.map
+www/js/**/*.map
+www/js/goog/deps.js
