@@ -1,5 +1,7 @@
 // Compiled by ClojureScript 0.0-2665 {}
+if(!goog.isProvided_('censorius.address')) {
 goog.provide('censorius.address');
+}
 goog.require('cljs.core');
 goog.require('reagent.core');
 goog.require('secretary.core');
@@ -12,3 +14,5 @@ goog.require('goog.History');
 goog.require('goog.events');
 goog.require('censorius.utils');
 goog.require('clojure.string');
+
+//# sourceMappingURL=address.js.map

@@ -1,16 +1,16 @@
 (ns censorius.address
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:require
-            [cljs.core.async :refer [put! chan <!]]
-            [clojure.data :as data]
-            [clojure.string :as string]
-            [goog.events :as events]
-            [reagent.core :as reagent :refer [atom]]
-            [reagent.session :as session]
-            [secretary.core :as secretary]
-            
-            [censorius.utils :as util]
-            [censorius.text :as text])
+   [cljs.core.async :refer [put! chan <!]]
+   [clojure.data :as data]
+   [clojure.string :as string]
+   [goog.events :as events]
+   [reagent.core :as reagent :refer [atom]]
+   [reagent.session :as session]
+   [secretary.core :as secretary]
+   
+   [censorius.utils :as util]
+   [censorius.text :as text])
   (:import [goog History]
            [goog.history EventType]))
 
@@ -56,10 +56,10 @@
 ;;      (cond 
 ;;        (= old-text text)
 ;;        (util/log "no change to " keys)
-       
+
 ;;        (not (validate-submission address (not suppress-prompt?)))
 ;;        (util/log "no change to " keys ": validation failed")
-       
+
 ;;        true
 ;;        (let [formatter (om/get-state address :format)
 ;;              final-text (if formatter 
@@ -78,12 +78,14 @@
 ;;       (util/log "Field doesn't seem valid. Verifying user intent." event)
 ;;       (submit event cursor address))))
 
-;; (defn address [cursor address {:keys [keys label note]}]
+;; (defn address [cursor {:cursor address
+;;:keys  [keys label note]
+;; }]
 ;;   (let [name (util/gensymreally label)
 ;;         local {:keys keys
 ;;                :label label
 ;;                :note note}] 
-    
+
 ;;     (when (om/get-state address :needs-focus)
 ;;       (when-let [node (util/get-child address name)]
 ;;         (let [length (.-length (.-value node))]
@@ -94,7 +96,7 @@
 ;;       (when-let [node (util/get-child address name)]
 ;;         (.setSelectionRange node where-to where-to))
 ;;       (om/set-state! address :needs-cursor-set nil))
-    
+
 ;;     (fn [self {:keys [label keys]}]
 ;;                   #_ (util/log "render-state “" label "” (" name ") " 
 ;;                                (case validated?
@@ -111,29 +113,39 @@
 ;;                       [:label label]
 ;;                       [:span {:class (str "marker valid-" validity)}
 ;;                        validity-sigil]]
-;;                      [:div [text/text-input address {:keys :address1
+;;                      [:div [text/text-input {:cursor address
+;;:keys  :address1
+
 ;;                                                      :label "Street address (line 1)"
 ;;                                                      :rows 0
 ;;                                                      :formatter util/name-case
 ;;                                                      :placeholder "123 Main St."}]]
-;;                      [:div [text/text-input address {:keys :address2
+;;                      [:div [text/text-input {:cursor address
+;;:keys  :address2
+
 ;;                                                      :label "Street address (line 2)"
 ;;                                                      :rows 0
 ;;                                                      :formatter util/name-case
 ;;                                                      :placeholder "Ste. 123"}]]
-;;                      [:div [text/text-input address {:keys :city
+;;                      [:div [text/text-input {:cursor address
+;;:keys  :city
+
 ;;                                                      :label "City"
 ;;                                                      :rows 0
 ;;                                                      :formatter util/name-case
 ;;                                                      :placeholder "Nicetown"}]
 ;;                       ", "
-;;                       [text/text-input address {:keys :state
+;;                       [text/text-input {:cursor address
+;;:keys  :state
+
 ;;                                                 :label "State"
 ;;                                                 :rows 0
 ;;                                                 :formatter string/upper-case
 ;;                                                 :placeholder "FL"}]
 ;;                       "   "
-;;                       [text/text-input address {:keys :zip
+;;                       [text/text-input {:cursor address
+;;:keys  :zip
+
 ;;                                                 :label "ZIP code"
 ;;                                                 :rows 0
 ;;                                                 :formatter util/format-zip-code

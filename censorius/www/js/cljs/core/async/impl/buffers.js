@@ -1,5 +1,7 @@
 // Compiled by ClojureScript 0.0-2665 {}
+if(!goog.isProvided_('cljs.core.async.impl.buffers')) {
 goog.provide('cljs.core.async.impl.buffers');
+}
 goog.require('cljs.core');
 goog.require('cljs.core.async.impl.protocols');
 cljs.core.async.impl.buffers.acopy = (function acopy(src,src_start,dest,dest_start,len){
@@ -8,8 +10,8 @@ while(true){
 if((cnt < len)){
 (dest[(dest_start + cnt)] = (src[(src_start + cnt)]));
 
-var G__21089 = (cnt + (1));
-cnt = G__21089;
+var G__21105 = (cnt + (1));
+cnt = G__21105;
 continue;
 } else {
 return null;
@@ -112,14 +114,14 @@ var n__4686__auto__ = self__.length;
 var x = (0);
 while(true){
 if((x < n__4686__auto__)){
-var v_21090 = this$.pop();
-if(keep_QMARK_.call(null,v_21090)){
-this$.unshift(v_21090);
+var v_21106 = this$.pop();
+if(keep_QMARK_.call(null,v_21106)){
+this$.unshift(v_21106);
 } else {
 }
 
-var G__21091 = (x + (1));
-x = G__21091;
+var G__21107 = (x + (1));
+x = G__21107;
 continue;
 } else {
 return null;
@@ -319,3 +321,5 @@ return (new cljs.core.async.impl.buffers.SlidingBuffer(buf,n));
 cljs.core.async.impl.buffers.sliding_buffer = (function sliding_buffer(n){
 return (new cljs.core.async.impl.buffers.SlidingBuffer(cljs.core.async.impl.buffers.ring_buffer.call(null,n),n));
 });
+
+//# sourceMappingURL=buffers.js.map
