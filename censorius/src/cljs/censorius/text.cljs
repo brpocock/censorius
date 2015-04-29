@@ -42,7 +42,7 @@
                                          validated? true
                                          true false))
     
-    (util/log "validate% new text " new-text " could validate? " could-validate? " validated? " validated?)
+    ;; (util/log "validate% new text " new-text " could validate? " could-validate? " validated? " validated?)
     
     (or validated? 
         (not could-validate?))))
@@ -52,7 +52,7 @@
         valid-2? (or valid-1?
                      (and can-prompt?
                           (when (confirm-change (:label @props) text)
-                            (util/log "User confirms, store invalid value.")
+                            ;; (util/log "User confirms, store invalid value.")
                             (swap! props assoc :validated? nil)
                             true)))]
     (or valid-1? valid-2?)))
@@ -65,10 +65,11 @@
    (let [text (:text @props)
          keys (:keys @props)
          old-text (if keys (get @props keys) @props)]
-     (cond (= old-text text) (util/log "no change to " keys)
+     (cond (= old-text text)  nil ;; (util/log "no change to " keys)
 
            (not (valid-submission? props text (not suppress-prompt?)))
-           (util/log "no change to " keys ": validation failed")
+           nil
+           ;; (util/log "no change to " keys ": validation failed")
 
            true
            (let [formatter (:format @props)
@@ -77,7 +78,7 @@
                               text)]
              (when (not= text final-text)
                (swap! props assoc :text final-text))
-             (util/log keys " ← “" final-text "”")
+             ;; (util/log keys " ← “" final-text "”")
              (swap! props assoc :orig-text final-text))))
    false))
 
@@ -85,12 +86,13 @@
   (fn [event]
     (when (.contains (.-className (.-target event)) "valid-false")
       (util/log "Field doesn't seem valid. Verifying user intent." event)
-      (submit event props))))
+      (submit event props))
+    true))
 
 (defn do-change [props new-text]
-  (util/log "do-change “" new-text "” (string? "
-            (string? new-text) "; validate%? " 
-            (validate% props new-text) ")")
+  ;; (util/log "do-change “" new-text "” (string? "
+  ;;           (string? new-text) "; validate%? " 
+  ;;           (validate% props new-text) ")")
   (when (and (string? new-text)
              (validate% props new-text))
     (swap! props assoc :text new-text)
@@ -98,8 +100,8 @@
 
 (defn key-down [event props want-return?]
   (cond (#{+escape+ +clear+} (.-keyCode event))
-        (do (util/log "clearing field to " (:orig-text @proprs))
-            (do-change props (:orig-text @props)))
+        (do ;; (util/log "clearing field to " (:orig-text @props))
+          (do-change props (:orig-text @props)))
 
         (and want-return?
              (== +return+ (.-keyCode event))) (submit event props)
@@ -159,7 +161,7 @@
       
       :reagent-render (fn [props-in]
                         
-                        (util/log "rendering text edit " name " with value " (:text @props))
+                        ;; (util/log "rendering text edit " name " with value " (:text @props))
                         
                         (let [[validity validity-sigil]
                               (case (:validated? @props)
@@ -234,6 +236,6 @@
                                          :value (:text @props)}]])))})))
 
 
-(util/log "Text-entry module loaded")
+;;; (util/log "Text-entry module loaded")
 
 

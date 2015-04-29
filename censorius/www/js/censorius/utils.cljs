@@ -61,10 +61,13 @@
   (apply str (filter +digit-chars+ string)))
 
 (defn just-decimal [string]
-  (apply str (filter (fn [char]
-                       (or (some +digit-chars+ char)
-                           (= \. char)))
-                     (str string))))
+  (cond (string? string)
+        (apply str (filter (fn [char]
+                             (or (some +digit-chars+ char)
+                                 (= \. char)))
+                           (str string)))
+        (number? string)
+        string))
 
 (defn just-digits++ [string]
   (let [digits (apply str (filter +digit-chars+ string))]

@@ -14,9 +14,11 @@
    ;; [censorius.address :as address]
    [censorius.data :as d]
    [censorius.guest :as guest]
+   [censorius.guest-list :as guest-list]
    [censorius.text :as text]
    [censorius.utils :as util])
   (:import [goog History] [goog events]))
+
 
 (enable-console-print!)
 
@@ -76,54 +78,10 @@
 (defn guests-price-sum []
   [:span (util/format-money (price-all-guests))])
 
-(let [new-name (atom {:new-name ""})]
-  (defn add-to-party [event]
-    (let [name (:new-name @new-name)
-          name-parts (string/split (string/trim name) #"\s+")
-          [given surname] (if (= 2 name-parts)
-                            [(first name-parts) (second name-parts)]
-                            [(first name-parts) (:surname (deref (first @d/guests)))])]
-      (when (not (string/blank? given))
-        (reset! new-name {:new-name ""})
-        (swap! d/guests conj {:called-by nil :given-name given :surname surname
-                              :e-mail nil :telephone nil
-                              :adult? true :staff? false :lugal+? false
-                              :sleep :tent :eat nil
-                              :t-shirt nil :coffee false :tote false}))))
-
-  (defn guest-list-add-row []
-    [:tr
-     [:td {:col-span 10
-           :style {:border "2pt solid black"
-                   :border-radius "1ex"
-                   :padding "8pt"}}
-      [text/text-input {:cursor new-name
-                        :keys :new-name
-                        :label "Add a person"
-                        :placeholder "John Doe"
-                        :format util/name-case
-                        :validate util/a-name?
-                        :rows 0}]
-      [:button
-       (let [name$ (:new-name new-name)
-             named? (and name$
-                         (string? name$)
-                         (string/blank? name$))]
-         {:on-click (if named?
-                      add-to-party
-                      (fn [] nil))
-          :class (str (if named?
-                        "disabled"
-                        "true ")
-                      (if (zero? (count @d/guests))
-                        " urgent"
-                        ""))})
-       "+ Add to party"]]]))
-
 (defn guest-list-box []
-
+  
   (util/log "Guests = " @d/guests)
-
+  
   [:section [:h1 "Registration for " (:season @d/festival) " " (:year @d/festival)
              [:a {:href "#/load"} [:button {:title "Load a previous registration"} "📂"]]]
    [:section {:class "card"}
@@ -133,11 +91,19 @@
                 " — "
                 " Party of " (util/counting (count @d/guests) "Guest"))
            "New party")]
+    
     [:table {:class "people"}
      [guests-thead]
-     [:tbody (map guest/guest-row @d/guests)]
-     [:tfoot [guest-list-add-row]
-      [:tr [:th {:col-span 7} "Subtotal"] [:td {:col-span 3 :style {:align "right"}} [guests-price-sum]]]]]]])
+     
+     [:tbody
+      (for [guest @d/guests]
+        [guest/guest-row @guest])
+      ;; (doall (map #(guest/guest-row (deref %)) @d/guests))
+      ]
+     
+     [:tfoot [guest-list/add-person-row]
+      [:tr {:key "|subtotal|"} 
+       [:th {:col-span 7} "Subtotal"] [:td {:col-span 3 :style {:align "right"}} [guests-price-sum]]]]]]])
 
 (defn running-out-style [style]
   [:p [:strong {:class "warning"} "Please change your order."]
@@ -500,9 +466,9 @@
 
 ;; Routes
 
-(def uri-view (atom {:current-page registration-page
-                     :id nil
-                     :filter nil}))
+(def uri-view (reagent/atom  {:current-page registration-page
+                              :id nil
+                              :filter nil}))
 
 (secretary/set-config! :prefix "#")
 (defn location-hash [x] (set! (.-hash (.-location js/window)) x))
