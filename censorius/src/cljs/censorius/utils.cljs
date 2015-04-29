@@ -770,3 +770,22 @@
 
 
 
+(defn hidden [^boolean is-hidden]
+  (if is-hidden
+    {:display "none"}
+    {}))
+
+(defn alert-hint [event]
+  (js/alert (.getAttribute (.-target event) "title")))
+
+(defn abbr
+  ([short long]
+   [:abbr {:title long :on-click #(js/alert (str short ": " long))}
+    short
+    [:span {:class "ellide hint"}
+     " " long]])
+  ([short long longer]
+   [:abbr {:title long :on-click #(js/alert (str short " (" long "): " longer))}
+    short
+    [:span {:class "ellide hint"}
+     " " long]]))

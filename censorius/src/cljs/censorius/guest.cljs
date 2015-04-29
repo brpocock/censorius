@@ -67,11 +67,6 @@
 (defn t-shirt-size-short-name [size]
   (string/upper-case (util/keyword->string size)))
 
-(defn abbr [short long]
-  [:abbr {:title long}
-   short
-   [:span {:class "ellide hint"}
-    " " long]])
 
 (defn lugal+-spouse? [guest]
   (and (:spouse guest)
@@ -138,19 +133,22 @@
 (defn name-edit-box [{:keys [guest]} children this]
   [:div
    (conj [] children)
-   [text/text-input {:cursor guest :korks :given-name
+   [text/text-input {:cursor guest
+                     :keys :given-name
                      :label "Given name"
                      :placeholder "John"
                      :format util/name-case
                      :validate util/a-name?
                      :rows 1}]
-   [text/text-input {:cursor guest :korks :surname
+   [text/text-input {:cursor guest
+                     :keys :surname
                      :label "Surname"
                      :placeholder "Doe"
                      :format util/name-case
                      :validate util/a-name?
                      :rows 1}]
-   [text/text-input {:cursor guest :korks :called-by
+   [text/text-input {:cursor guest
+                     :keys :called-by
                      :label "Called by"
                      :placeholder "Fuzzy Owl"
                      :format util/name-case
@@ -188,7 +186,7 @@
 
                [:button {:class "close true"
                          :on-click #(close-edit! editing)} "✓"]])
-            (abbr (or (:called-by guest)
+            (util/abbr (or (:called-by guest)
                       (:given-name guest))
               (str (:given-name guest)
                    " "
@@ -198,7 +196,8 @@
         (when (= :mail @editing)
           (util/modality #(reset! editing nil)
                          [:div {:class "pop-out"}
-                          [text/text-input {:cursor guest :korks :e-mail
+                          [text/text-input {:cursor guest
+                                            :keys :e-mail
                                             :label "eMail address"
                                             :placeholder "jdoe@example.com"
                                             :format util/format-email
@@ -207,13 +206,14 @@
                           [:button {:class "close true"
                                     :on-click #(close-edit! editing)} "✓"]]))
         (if-let [mail (:e-mail guest)]
-          (abbr "✉" mail)
-          (abbr "⃠" "No e-mail address"))]
+          (util/abbr "✉" mail)
+          (util/abbr "⃠" "No e-mail address"))]
        
        [:td (click-edit% editing :phone)
         (when (= :phone @editing)
           [:div {:class "pop-out"}
-           [text/text-input {:cursor guest :korks :telephone
+           [text/text-input {:cursor guest
+                             :keys :telephone
                              :label "Phone number"
                              :placeholder "(305) 555-1234"
                              :format util/format-phone
@@ -222,8 +222,8 @@
            [:button {:class "close true"
                      :on-click #(close-edit! editing)} "✓"]])
         (if-let [phone (:telephone guest)]
-          (abbr "📞" phone)
-          (abbr "⃠" "No telephone number"))]
+          (util/abbr "📞" phone)
+          (util/abbr "⃠" "No telephone number"))]
        
        [:td (click-edit% editing :ticket-type)
         (when (= :ticket-type @editing)
@@ -252,15 +252,15 @@
           [marital-edit {:guest guest}])
 
         [:div (case (:ticket-type guest)
-                :adult (abbr "🎫" "Adult")
-                :child (abbr "🎫🚸" "Child")
-                :baby (abbr "🎫🚶" "Baby"))
+                :adult (util/abbr "🎫" "Adult")
+                :child (util/abbr "🎫🚸" "Child")
+                :baby (util/abbr "🎫🚶" "Baby"))
 
          " "
          (cond
-           (staff/lugal+? guest) (abbr "𒈗" "Lugal")
-           (lugal+-spouse? guest) (abbr (str "𒈗" (couple-icon guest)) "Lugal spouse")
-           (:staff? guest) (abbr "⛤" "Staff"))]]
+           (staff/lugal+? guest) (util/abbr "𒈗" "Lugal")
+           (lugal+-spouse? guest) (util/abbr (str "𒈗" (couple-icon guest)) "Lugal spouse")
+           (:staff? guest) (util/abbr "⛤" "Staff"))]]
        
        [:td (click-edit% editing :days)
         (if (= :days @editing)
@@ -275,7 +275,7 @@
                                             [:day "One day"]]}])
            [:button {:class "close true"
                      :on-click #(close-edit! editing)} "✓"]]
-          (abbr (case (:days guest)
+          (util/abbr (case (:days guest)
                   :day "Day"
                   :week-end "Fri-Sun"
                   nil (str (if (:staff? guest)
@@ -300,9 +300,9 @@
            [:button {:class "close true"
                      :on-click #(close-edit! editing)} "✓"]]
           (case (:sleep guest)
-            :tent (abbr "⛺" "Tent camping")
-            :cabin (abbr "🏡" "Cabin camping")
-            :lodge (abbr "🏠" "Lodge camping")))]
+            :tent (util/abbr "⛺" "Tent camping")
+            :cabin (util/abbr "🏡" "Cabin camping")
+            :lodge (util/abbr "🏠" "Lodge camping")))]
        
        [:td (click-edit% editing :eat)
         (if (= :eat @editing)
@@ -317,9 +317,9 @@
            [:button {:class "close true"
                      :on-click #(close-edit! editing)} "✓"]]
           (case (:eat guest)
-            :looney (abbr "🍱🐇" "Looney Bin secret meal plan")
-            :cauldron (abbr "🍲🍴" "Bubbling Cauldron meal plan")
-            nil (abbr "⃠" "Bringing food along")))]
+            :looney (util/abbr "🍱🐇" "Looney Bin secret meal plan")
+            :cauldron (util/abbr "🍲🍴" "Bubbling Cauldron meal plan")
+            nil (util/abbr "⃠" "Bringing food along")))]
        
        [:td (click-edit% editing :t-shirt)
         (if (= :t-shirt @editing)
@@ -334,13 +334,13 @@
            [:button {:class "close true"
                      :on-click #(close-edit! editing)} "✓"]]
           (if (:t-shirt guest)
-            (abbr (str "👕 " (t-shirt-size-short-name (:t-shirt guest)))
+            (util/abbr (str "👕 " (t-shirt-size-short-name (:t-shirt guest)))
               (str (:season @d/festival)
                    " "
                    (:year @d/festival)
                    "T-shirt: "
                    (t-shirt-size-long-name (:t-shirt guest))))
-            (abbr "⃠" "No T-shirt")))]
+            (util/abbr "⃠" "No T-shirt")))]
        
        [:td (click-edit% editing :tote)
         (when (= :tote @editing)
@@ -355,8 +355,8 @@
            [:button {:class "close true"
                      :on-click #(close-edit! editing)} "✓"]])
         (if (:tote? guest)
-          (abbr "💼" "Tote Bag")
-          (abbr "⃠" "No tote mug"))]
+          (util/abbr "💼" "Tote Bag")
+          (util/abbr "⃠" "No tote mug"))]
        
        [:td (click-edit% editing :coffee)
         (when (= :coffee @editing)
@@ -371,5 +371,5 @@
            [:button {:class "close true"
                      :on-click #(close-edit! editing)} "✓"]])
         (if (:coffee? guest)
-          (abbr "🍺" "Coffee Mug")
-          (abbr "⃠" "No coffee mug"))]])))
+          (util/abbr "🍺" "Coffee Mug")
+          (util/abbr "⃠" "No coffee mug"))]])))

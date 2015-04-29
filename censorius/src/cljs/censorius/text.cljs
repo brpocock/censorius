@@ -27,22 +27,21 @@
                       label
                       "”.\nDo you want to submit it?\n\nClick OK to confirm this value, or Cancel to edit.")))
 
-(defn do-validate [props new-text]
-  (let [validate (:validate @props)
+(defn validate% [props new-text]
+  (let [validate (:validate props)
         could-validate? (and validate 
                              (string? new-text)
                              (not (string/blank? (.trim new-text))))
         validated? (and could-validate?
                         (apply validate (list new-text)))]
-    (swap! props assoc :validated? (cond 
-                                     (not could-validate?) nil
+    (swap! props assoc :validated? (cond (not could-validate?) nil
                                      validated? true
                                      true false))
-    (and (or validated? (not could-validate?)) 
-         true)))
+    (or validated? 
+        (not could-validate?))))
 
-(defn validate-submission [props text can-prompt?]
-  (let [valid-1? (do-validate props text)
+(defn valid-submission? [props text can-prompt?]
+  (let [valid-1? (validate% props text)
         valid-2? (or valid-1?
                      (and can-prompt? 
                           (when (confirm-change (:label props) text)
@@ -58,10 +57,10 @@
   ([event props suppress-prompt?]
    (let [text (:text @props)
          keys (:keys @props)
-         old-text (get (deref props) keys)]
+         old-text (if keys (get @props keys) @props)]
      (cond (= old-text text) (util/log "no change to " keys)
            
-           (not (validate-submission props text (not suppress-prompt?)))
+           (not (valid-submission? props text (not suppress-prompt?)))
            (util/log "no change to " keys ": validation failed")
            
            true
@@ -84,7 +83,7 @@
 
 (defn do-change [props new-text]
   (when (string? new-text)
-    (do-validate props new-text)
+    (validate% props new-text)
     (swap! props assoc :text new-text)))
 
 (defn key-down [event props want-return?]
@@ -96,29 +95,17 @@
              
              true nil))
 
-(defn text-input [{:keys [props keys label rows size
+(defn text-input [{:keys [cursor keys label rows size
                           placeholder validate
-                          format input-type ellipsis]}]
+                          format input-type ellipsis] :as props} children]
   (let [name (util/gensymreally label)
-        ;; props (atom {:keys keys
-        ;;                    :label label
-        ;;                    :rows (or rows 1)
-        ;;                    :placeholder placeholder
-        ;;                    :text (or (get-in props keys) "")
-        ;;                    :orig-text (or (get-in props keys) "")
-        ;;                    :validate validate
-        ;;                    :validated? nil
-        ;;                    :input-type input-type
-        ;;                    :ellipsis ellipsis
-        ;;                    :size size
-        ;;                    :format format})
-        ]
+        reader (fn [cursor] (if keys (get @cursor keys) @cursor))]
     
-    (fn ^{:component-will-receive-props 
-          (fn [this new-props]
+    (reagent/create-class
+     {:component-will-receive-props (fn [this new-props]
             (let [before (:orig-text @props)
                   current (:text @props)
-                  after (get-in new-props keys)]
+                                            after (apply reader new-props)]
               (when (and (= before current)
                          (not= before after)
                          (string? after))
@@ -127,23 +114,25 @@
                               "”")
                     (do-change props after)
                     (swap! props assoc :orig-text after)))))
-          :component-will-mount
-          (fn [this]
-            (do-validate props (:text @props)))
-          ;;:component-did-update (fn [this old-props old-children] (when
-          ;; (:needs-focus props) (when-let [node (util/get-child
-          ;; props name)] (let [length (.-length (.-value node))]
-          ;; (.focus node) (.setSelectionRange node length length)))
-          ;; (swap! props assoc-in :needs-focus nil)) (when-let
-          ;; [where-to (:needs-props-set props)] (when-let [node
-          ;; (util/get-child props name)] (.setSelectionRange node
-          ;; where-to where-to)) (swap! props assoc-in
-          ;; :needs-props-set nil)) )
-          } 
+      :component-will-mount (fn [this]
+                              (validate% props (:text props)))
+      :component-did-update (fn [this old-props old-children]
+                              (when
+                                  (:needs-focus props)
+                                (when-let [node nil ; FIXME ;; (util/get-child props name)
+                                           ]
+                                  (let [length (.-length (.-value node))]
+                                    (.focus node) (.setSelectionRange node length length)))
+                                (swap! props assoc-in :needs-focus nil))
+                              (when-let [where-to (:needs-props-set props)]
+                                (when-let [node nil ; FIXME ;; (util/get-child props name)
+                                           ]
+                                  (.setSelectionRange node where-to where-to))
+                                (swap! props assoc-in :needs-props-set nil)))
       
-      ;; actual render ƒ now that we're done with metadata
-      [{:keys [label text placeholder rows input-type 
+      :reagent-render (fn [{:keys [cursor label text placeholder rows input-type
                keys validate validated?] :as props}]
+                        (util/log "text entry props = " props)
       (let [[validity validity-sigil]
             (case validated?
               false [false "✗"]
@@ -156,10 +145,10 @@
           [:span [:input {:name name
                           :type (or input-type "text")
                           :id name
-                          :value text
+                                            :value (apply reader props)
                           :size size
                           :class (str "valid-" validity " size-" size)
-                          :placeholder placeholder
+                                            :placeholder (or placeholder "")
                           :on-blur #(submit % props true)
                           :on-change #(do-change props (.-value (.-target %)))
                           :on-key-down #(key-down % props true)
@@ -174,13 +163,13 @@
           ;; text-entry box, single-row
           (or (not rows) (= 1 rows)) 
           [:div [:label {:class "two-column"}
-                 (str label ":")
+                                   (if (empty? label) "" (str label ":"))
                  [:input {:name name
                           :type (or input-type "text")
                           :id name
-                          :value text
+                                            :value (apply reader props)
                           :class (str "valid-" validity " size-" size)
-                          :placeholder placeholder
+                                            :placeholder (or placeholder "")
                           :on-blur #(submit % props true)
                           :on-change #(do-change props (.-value (.-target %)))
                           :on-key-down #(key-down % props true)
@@ -215,8 +204,13 @@
                        :on-blur #(submit % props true)
                        :on-change #(do-change props (.-value (.-target %)))
                        :on-key-down #(key-down % props false)
-                       :value text}]])))))
+                                         :value text}]])))
+
+      })
+
+    ))
 
 
+(util/log "Text-entry module loaded")
 
 

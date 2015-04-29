@@ -15,63 +15,53 @@
    [censorius.guest :as guest]
    [censorius.text :as text]
    [censorius.utils :as util])
-  (:import [goog History]))
+  (:import [goog History] [goog events]))
 
 (enable-console-print!)
 
-(def +escape-key+ 27)
-(def +return-key+ 13)
 
 
 
 
 (util/log "Censorius loading…")
 
-(defn hidden [^boolean is-hidden]
-  (if is-hidden
-    {:display "none"}
-    {}))
-
-(defn alert-hint [event]
-  (let [target (.-target event)]
-    (js/alert (.getAttribute target "title"))))
-
-(defn abbr [short long]
-  [:abbr {:title long :on-click #(alert-hint short " — " long)}
-   short
-   [:span {:class "ellide hint"}
-    " " long]])
 
 
 
 (defn guests-thead []
   [:thead
-   [:tr [:th (abbr "Name" "Names of each party member.")]
-    [:th (abbr "✉" "eMail")]
-    [:th (abbr "📞" "Phone#")]
-    [:th (abbr "🚸" "Ticket")]
-    [:th (abbr "📅" "Days")]
-    [:th (abbr "⛺/🏠" "Sleeping")]
-    [:th (abbr "🍲🍴" "Meals")]
-    [:th (abbr "👕" "T-Shirt")]
-    [:th (abbr "💼" "Tote")]
-    [:th (abbr "🍺" "Mug")]]])
+   [:tr [:th (util/abbr "Name" "Name of each party member")]
+    [:th (util/abbr "✉" "eMail")]
+    [:th (util/abbr "📞" "Phone#")]
+    [:th (util/abbr "🚸" "Ticket" "The type of ticket — adult or child")]
+    [:th (util/abbr "📅" "Days")]
+    [:th (util/abbr "⛺/🏠" "Sleep" "The lodging for each person: tent, cabin, or lodge bed.")]
+    [:th (util/abbr "🍲🍴" "Meals" "Purchase the Bubbling Cauldron meal plan here.")]
+    [:th (util/abbr "👕" "T-Shirt" "FPG T-shirt for this Festival. (Buy other shirts in the “Extras” box)")]
+    [:th (util/abbr "💼" "Tote" "FPG tote bags")]
+    [:th (util/abbr "🍺" "Mug" "FPG 20th Anniversary hot & cold beverage mugs. (Buy other mugs in the “Extras” box)")]]])
 
 (defn guest-price [guest]
   (+ (cond
        (:lugal+? guest) 0
        (:staff? guest) 300
-       (:adult? guest) (case (:days guest)
+       (:adult? guest)
+
+       (case (:days guest)
                          :day 490.24
                          :week-end 762.39
-                         nil 950.13)
+         nil 950.13
+         (do (util/log "bad days " (:days guest))
+             0))
        ;; child
        true 178.20)
 
      (case (:sleep guest)
+       :tent 0
        :cabin 85
        :lodge 2000
-       0)
+       (do (util/log "bad sleeping “" (:sleep guest) "” for guest " guest)
+           0))
 
      (case (:eat guest)
        :looney 10000000.01
@@ -101,26 +91,35 @@
                               :t-shirt nil :coffee false :tote false}))))
   
   (defn guest-list-add-row []
-    [:tr [:td {:col-span 10}
-          [text/text-input new-name {:korks :new-name
+    [:tr
+     [:td {:col-span 10
+           :style {:border "2pt solid black"
+                   :border-radius "1ex"
+                   :padding "8pt"}}
+      [text/text-input {:cursor new-name
+                        :keys :new-name
                                      :label "Add a person"
                                      :placeholder "John Doe"
                                      :format util/name-case
                                      :validate util/a-name?
                                      :rows 0}]
-          [:button {:on-click add-to-party
-                    :class (str (let [name$ (:new-name new-name)]
-                                  (if (and name$
+      [:button
+       (let [name$ (:new-name new-name)
+             named? (and name$
                                            (string? name$) 
-                                           (string/blank? name$))
-                                    "false"
-                                    "true "))
+                         (string/blank? name$))]
+         {:on-click (if named? 
+                      add-to-party
+                      (fn [] nil))
+          :class (str (if named?
+                        "disabled"
                                 (if (zero? (count @d/guests))
-                                  "urgent"
-                                  ""))}
+                        "true urgent"
+                        "true")))})
            "+ Add to party"]]]))
 
 (defn guest-list-box []
+  (util/log "Guests = " @d/guests) ;; FIXME debug
   [:section [:h1 "Registration for " (:season @d/festival) " " (:year @d/festival)
              [:a {:href "#/load"} [:button {:title "Load a previous registration"} "📂"]]]
    [:section {:class "card"}
@@ -134,7 +133,7 @@
      [guests-thead]
      [:tbody (map guest/guest-row @d/guests)]
      [:tfoot [guest-list-add-row]
-      [:tr [:th {:col-span 7} "Subtotal"] [:td {:col-span 3} [guests-price-sum]]]]]]])
+      [:tr [:th {:col-span 7} "Subtotal"] [:td {:col-span 3 :style {:align "right"}} [guests-price-sum]]]]]]])
 
 (defn running-out-style [style]
   [:p [:strong {:class "warning"} "Please change your order."]
@@ -150,7 +149,8 @@
 (defn merch-product-style [style]
   (if (zero? (:inventory style))
     [[:p {:class "hint"} (:title style) " — Sold out."]
-     [text/text-input style {:korks :qty
+     [text/text-input {:cursor style
+                       :keys :qty
                              :label (:title style)
                              :placeholder "0"
                              :size 3
@@ -175,7 +175,8 @@
              (let [left (:inventory style)]
                [:button {:class "false" :on-click #(swap! style assoc :qty left)}
                 "😦 Change to " left])]
-            [text/text-input style {:korks :qty
+            [text/text-input {:cursor style
+                              :keys :qty
                                     :placeholder "0"
                                     :rows 0 :size 3
                                     :format util/just-digits
@@ -247,7 +248,8 @@
        "No "]
       
       true
-      [text/text-input @d/vending {:korks :qty
+      [text/text-input {:cursor @d/vending
+                        :keys :qty
                                    :label "Quantity"
                                    :placeholder "0"
                                    :format util/just-number
@@ -265,18 +267,21 @@
        " (total " (util/format-money (* (:vendor @d/prices) (:qty @d/vending))) ")"])]
    (when (pos? (:qty @d/vending))
      [:div
-      [text/text-input @d/vending {:korks :title
+      [text/text-input {:cursor @d/vending
+                        :keys :title
                                    :label "Vending Booth Name"
                                    :placeholder "Plonkee Plonkee Shoppe"
                                    :format util/name-case
                                    :validate util/name-like?
                                    :rows 1}]
-      [text/text-input @d/vending {:korks :blurb
+      [text/text-input {:cursor @d/vending
+                        :keys :blurb
                                    :label "Description (Handbook/Web)"
                                    :placeholder "Come and have lots of fun with our widgets and doodads! You'll want to collect all nine."
                                    :validate #(> 250 (count %) 32)
                                    :rows 3}]
-      [text/text-input @d/vending {:korks :notes
+      [text/text-input {:cursor @d/vending
+                        :keys :notes
                                    :label "Requests/Notes"
                                    :placeholder ""
                                    :rows 2}]])])
@@ -367,7 +372,8 @@
      [:tr [:th "Pagans Helping Pagans"
            [:span {:class "hint"}
             "These funds are used to provide scholarships for guests who would like to attend FPG but need financial assistance."]]
-      [:td [text/text-input @d/scholarships {:korks :php
+      [:td [text/text-input {:cursor @d/scholarships
+                             :keys :php
                                            :label "Pagans Helping Pagans Fund"
                                            :placeholder "$5.00"
                                            :format util/format-money
@@ -377,7 +383,8 @@
      [:tr [:th "Robert Baiardi Memorial"
            [:span {:class "hint"}
             "Named in remembrance of Robert Baiardi, the husband of a member of FPG staff who passed away shortly after FPG Samhain 2012. This fund has been set up to provide financial assistance for staff admissions."]]
-      [:td [ text/text-input @d/scholarships {:korks :baiardi
+      [:td [text/text-input {:cursor @d/scholarships
+                             :keys :baiardi
                                             :label "Robert Baiardi Memorial Fund"
                                             :placeholder "$5.00"
                                             :format util/format-money
@@ -387,7 +394,8 @@
      [:tr [:th "Seva"
            [:span {:class "hint"}
             "The Seva Scholarship offers financial assistance to FPG staff members who need it."]]
-      [:td [text/text-input @d/scholarships  {:korks :seva
+      [:td [text/text-input {:cursor @d/scholarships 
+                             :keys :seva
                                             :label "Seva Fund"
                                             :placeholder "$5.00"
                                             :format util/format-money
@@ -396,7 +404,7 @@
                                             :rows 0}]]]]]])
 
 (defn check-out-box []
-  [:div #_ section {:class "card"}
+  [:section {:class "card"}
    [:h2 "Ready to check out?"]
    [:div {:class "buttonBox"}
     " Total: " "$399.97" " "
@@ -405,8 +413,8 @@
 (defn registration-page []
   [:div
    [guest-list-box]
-   [merch-box]
-   [vendor-box]
+   ;;   [merch-box]
+   ;;    [vendor-box]
    [workshop-box]
    [scholarship-box]
    [assistant-box]
@@ -502,6 +510,7 @@
 
 ;; Initialize app
 
+;; need to run this after routes have been defined
 
 (defn init! []
   (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))

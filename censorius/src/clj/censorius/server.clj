@@ -15,9 +15,9 @@
                                           identity))
 
 (defroutes routes
-  (resources "/" {:root "www"})
+  (resources "/reg" {:root "www"})
   (resources "/react" {:root "react"})
-  (GET "/*" req (page)))
+  (GET "/register" req (page)))
 
 (def http-handler
   (if dev?

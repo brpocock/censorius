@@ -78,7 +78,9 @@
 ;;       (util/log "Field doesn't seem valid. Verifying user intent." event)
 ;;       (submit event cursor address))))
 
-;; (defn address [cursor address {:keys [keys label note]}]
+;; (defn address [cursor {:cursor address
+;;:keys  [keys label note]
+;; }]
 ;;   (let [name (util/gensymreally label)
 ;;         local {:keys keys
 ;;                :label label
@@ -111,29 +113,34 @@
 ;;                       [:label label]
 ;;                       [:span {:class (str "marker valid-" validity)}
 ;;                        validity-sigil]]
-;;                      [:div [text/text-input address {:keys :address1
+;;                      [:div [text/text-input {:cursor address
+;;:keys  :address1
 ;;                                                      :label "Street address (line 1)"
 ;;                                                      :rows 0
 ;;                                                      :formatter util/name-case
 ;;                                                      :placeholder "123 Main St."}]]
-;;                      [:div [text/text-input address {:keys :address2
+;;                      [:div [text/text-input {:cursor address
+;;:keys  :address2
 ;;                                                      :label "Street address (line 2)"
 ;;                                                      :rows 0
 ;;                                                      :formatter util/name-case
 ;;                                                      :placeholder "Ste. 123"}]]
-;;                      [:div [text/text-input address {:keys :city
+;;                      [:div [text/text-input {:cursor address
+;;:keys  :city
 ;;                                                      :label "City"
 ;;                                                      :rows 0
 ;;                                                      :formatter util/name-case
 ;;                                                      :placeholder "Nicetown"}]
 ;;                       ", "
-;;                       [text/text-input address {:keys :state
+;;                       [text/text-input {:cursor address
+;;:keys  :state
 ;;                                                 :label "State"
 ;;                                                 :rows 0
 ;;                                                 :formatter string/upper-case
 ;;                                                 :placeholder "FL"}]
 ;;                       "   "
-;;                       [text/text-input address {:keys :zip
+;;                       [text/text-input {:cursor address
+;;:keys  :zip
 ;;                                                 :label "ZIP code"
 ;;                                                 :rows 0
 ;;                                                 :formatter util/format-zip-code
