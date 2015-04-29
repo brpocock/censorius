@@ -1,16 +1,16 @@
 (ns censorius.address
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:require
-            [cljs.core.async :refer [put! chan <!]]
-            [clojure.data :as data]
-            [clojure.string :as string]
-            [goog.events :as events]
-            [reagent.core :as reagent :refer [atom]]
-            [reagent.session :as session]
-            [secretary.core :as secretary]
-            
-            [censorius.utils :as util]
-            [censorius.text :as text])
+   [cljs.core.async :refer [put! chan <!]]
+   [clojure.data :as data]
+   [clojure.string :as string]
+   [goog.events :as events]
+   [reagent.core :as reagent :refer [atom]]
+   [reagent.session :as session]
+   [secretary.core :as secretary]
+   
+   [censorius.utils :as util]
+   [censorius.text :as text])
   (:import [goog History]
            [goog.history EventType]))
 
@@ -56,10 +56,10 @@
 ;;      (cond 
 ;;        (= old-text text)
 ;;        (util/log "no change to " keys)
-       
+
 ;;        (not (validate-submission address (not suppress-prompt?)))
 ;;        (util/log "no change to " keys ": validation failed")
-       
+
 ;;        true
 ;;        (let [formatter (om/get-state address :format)
 ;;              final-text (if formatter 
@@ -85,7 +85,7 @@
 ;;         local {:keys keys
 ;;                :label label
 ;;                :note note}] 
-    
+
 ;;     (when (om/get-state address :needs-focus)
 ;;       (when-let [node (util/get-child address name)]
 ;;         (let [length (.-length (.-value node))]
@@ -96,7 +96,7 @@
 ;;       (when-let [node (util/get-child address name)]
 ;;         (.setSelectionRange node where-to where-to))
 ;;       (om/set-state! address :needs-cursor-set nil))
-    
+
 ;;     (fn [self {:keys [label keys]}]
 ;;                   #_ (util/log "render-state “" label "” (" name ") " 
 ;;                                (case validated?

@@ -13,7 +13,6 @@
   (io/resource "index.html") [] [:body] (if dev?
                                           inject-devmode-html
                                           identity))
-
 (defroutes routes
   (resources "/reg" {:root "www"})
   (resources "/react" {:root "react"})

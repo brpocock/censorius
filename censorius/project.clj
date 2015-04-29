@@ -1,3 +1,4 @@
+
 (defproject censorius "0.1.0-SNAPSHOT"
   :description "Festival management program"
   :url "http://star-hope.org/censurius"

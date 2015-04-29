@@ -1,12 +1,14 @@
 // Compiled by ClojureScript 0.0-2665 {}
+if(!goog.isProvided_('clojure.browser.event')) {
 goog.provide('clojure.browser.event');
+}
 goog.require('cljs.core');
 goog.require('goog.events.EventType');
 goog.require('goog.events.EventTarget');
 goog.require('goog.events');
 
-clojure.browser.event.IEventType = (function (){var obj21144 = {};
-return obj21144;
+clojure.browser.event.IEventType = (function (){var obj21093 = {};
+return obj21093;
 })();
 
 clojure.browser.event.event_types = (function event_types(this$){
@@ -40,10 +42,10 @@ goog.events.EventTarget.prototype.clojure$browser$event$IEventType$ = true;
 goog.events.EventTarget.prototype.clojure$browser$event$IEventType$event_types$arity$1 = (function (this$){
 var this$__$1 = this;
 return cljs.core.into.call(null,cljs.core.PersistentArrayMap.EMPTY,cljs.core.map.call(null,((function (this$__$1){
-return (function (p__21145){
-var vec__21146 = p__21145;
-var k = cljs.core.nth.call(null,vec__21146,(0),null);
-var v = cljs.core.nth.call(null,vec__21146,(1),null);
+return (function (p__21094){
+var vec__21095 = p__21094;
+var k = cljs.core.nth.call(null,vec__21095,(0),null);
+var v = cljs.core.nth.call(null,vec__21095,(1),null);
 return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [cljs.core.keyword.call(null,k.toLowerCase()),v], null);
 });})(this$__$1))
 ,cljs.core.merge.call(null,cljs.core.js__GT_clj.call(null,goog.events.EventType))));
@@ -54,10 +56,10 @@ Element.prototype.clojure$browser$event$IEventType$ = true;
 Element.prototype.clojure$browser$event$IEventType$event_types$arity$1 = (function (this$){
 var this$__$1 = this;
 return cljs.core.into.call(null,cljs.core.PersistentArrayMap.EMPTY,cljs.core.map.call(null,((function (this$__$1){
-return (function (p__21147){
-var vec__21148 = p__21147;
-var k = cljs.core.nth.call(null,vec__21148,(0),null);
-var v = cljs.core.nth.call(null,vec__21148,(1),null);
+return (function (p__21096){
+var vec__21097 = p__21096;
+var k = cljs.core.nth.call(null,vec__21097,(0),null);
+var v = cljs.core.nth.call(null,vec__21097,(1),null);
 return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [cljs.core.keyword.call(null,k.toLowerCase()),v], null);
 });})(this$__$1))
 ,cljs.core.merge.call(null,cljs.core.js__GT_clj.call(null,goog.events.EventType))));
@@ -160,3 +162,5 @@ return null;
 clojure.browser.event.remove_all = (function remove_all(opt_obj,opt_type,opt_capt){
 return null;
 });
+
+//# sourceMappingURL=event.js.map

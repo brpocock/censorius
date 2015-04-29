@@ -1,5 +1,7 @@
 // Compiled by ClojureScript 0.0-2665 {}
+if(!goog.isProvided_('censorius.dev')) {
 goog.provide('censorius.dev');
+}
 goog.require('cljs.core');
 goog.require('weasel.repl');
 goog.require('figwheel.client');
@@ -10,3 +12,5 @@ return censorius.page.main.call(null);
 }));
 weasel.repl.connect.call(null,"ws://localhost:9001",new cljs.core.Keyword(null,"verbose","verbose",1694226060),true);
 censorius.page.main.call(null);
+
+//# sourceMappingURL=dev.js.map

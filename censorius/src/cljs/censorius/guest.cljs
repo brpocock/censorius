@@ -1,3 +1,4 @@
+
 (ns censorius.guest
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:require
@@ -13,26 +14,19 @@
    [censorius.utils :as util]
    [censorius.text :as text]
    [censorius.radio :as radio]
-   [censorius.data :as d])
+   [censorius.data :as d]
+   [censorius.editable :as ed])
   (:import [goog History]
            [goog.history EventType]))
 
-(defn set-edit! [editing tag]
-  (reset! editing (if (= @editing tag)
-                    nil
-                    tag)))
 
-(defn click-edit% [editing tag]
-  {:on-click #(set-edit! editing tag)
-   :class (str (.substring (str tag) 1 (count (str tag)))
-               " "
-               (if (= tag @editing)
-                 "display"
-                 "editing"))})
 
-(defn close-edit! [editing]
-  (util/log "Closing edits")
-  (reset! editing nil))
+(defn abbr* [short & more]
+  [:span short])
+
+
+(defn mmap [m f a] (->> m (f a) (into (empty m))))
+
 
 (defn person-icon [guest]
   (case (:gender guest) :m "👨" :f "👩"))
@@ -66,7 +60,6 @@
 
 (defn t-shirt-size-short-name [size]
   (string/upper-case (util/keyword->string size)))
-
 
 (defn lugal+-spouse? [guest]
   (and (:spouse guest)
@@ -130,7 +123,7 @@
                             :checked false}]
             [married-line {:from guest :to bachelor}]]))])))
 
-(defn name-edit-box [{:keys [guest]} children this]
+(defn name-edit-box [guest children this]
   [:div
    (conj [] children)
    [text/text-input {:cursor guest
@@ -155,9 +148,9 @@
                      :validate util/a-name?
                      :rows 1}]
 
-   [radio/radio-set guest {:label "Gender"
+   [radio/radio-set guest {:label "Gender (optional)"
                            :key :gender
-                           :tags  [[nil "⊕ (not required)"]
+                           :tags  [[nil "⊕ (not given)"]
                                    [:m "♂ Male"]
                                    [:f "♀ Female"]]}]])
 
@@ -170,206 +163,256 @@
     [:li [:a {:href "#/staff-apply"} "Apply now"]]
     [:li [:a {:href "#/staff-confirm"} "On Staff"]]]])
 
-(defn guest-row [{:keys [guest]}]
-  (let [name (util/gensymreally "guest")
-        editing (atom nil)]
+
+(defn name-cell [guest] 
+  (let [editing (atom false)]
     (fn [guest]
-      [:tr [:td (click-edit% editing :name)
-            (when (= :name @editing)
-              [:div {:class "pop-out"}
-               [name-edit-box guest]
-
-               (when (> (count @d/guests) 1)
-                 [:div [:button {:class "false"
-                                 :on-click #(js/alert "Should delete but TODO")}
-                        "Remove from party"]])
-
-               [:button {:class "close true"
-                         :on-click #(close-edit! editing)} "✓"]])
-            (util/abbr (or (:called-by guest)
-                      (:given-name guest))
+      [:td (ed/click-edit editing :name)
+       (when @editing
+         [:div
+          [name-edit-box guest]
+          
+          (when (< 1 (count @d/guests))
+            [:div [:button {:class "false"
+                            :on-click #(when (js/confirm (str"Remove "
+                                                             (or (:called-by guest) (:given guest))
+                                                             " from your party?"))
+                                         (swap! d/guests mmap remove (fn [it] (= (deref it) guest))))}
+                   "Remove from party"]])
+          
+          [:button {:class "close true"
+                    :on-click (reset! editing false)} "✓"]])
+       (abbr* (or (:called-by guest)
+                  (:given-name guest))
               (str (:given-name guest)
                    " "
-                   (:surname guest)))]
-       
-       [:td (click-edit% editing :mail)
-        (when (= :mail @editing)
-          (util/modality #(reset! editing nil)
-                         [:div {:class "pop-out"}
-                          [text/text-input {:cursor guest
-                                            :keys :e-mail
-                                            :label "eMail address"
-                                            :placeholder "jdoe@example.com"
-                                            :format util/format-email
-                                            :validate util/email?
-                                            :rows 1}]
-                          [:button {:class "close true"
-                                    :on-click #(close-edit! editing)} "✓"]]))
-        (if-let [mail (:e-mail guest)]
-          (util/abbr "✉" mail)
-          (util/abbr "⃠" "No e-mail address"))]
-       
-       [:td (click-edit% editing :phone)
-        (when (= :phone @editing)
-          [:div {:class "pop-out"}
-           [text/text-input {:cursor guest
-                             :keys :telephone
-                             :label "Phone number"
-                             :placeholder "(305) 555-1234"
-                             :format util/format-phone
-                             :validate util/phone-number?
-                             :rows 1}]
-           [:button {:class "close true"
-                     :on-click #(close-edit! editing)} "✓"]])
-        (if-let [phone (:telephone guest)]
-          (util/abbr "📞" phone)
-          (util/abbr "⃠" "No telephone number"))]
-       
-       [:td (click-edit% editing :ticket-type)
-        (when (= :ticket-type @editing)
-          (cond
-            (staff/lugal+? guest)
-            [:p {:class "hint"} "As a lugal (or higher) staff member,
+                   (:surname guest)))])))
+
+
+(defn email-cell [guest]
+  (let [editing (atom false)] 
+    (fn [guest]
+      [:td (ed/click-edit editing :mail)
+       (when @editing
+         (util/modality #(reset! editing false)
+                        [:div {:class "pop-out"}
+                         [text/text-input {:cursor guest
+                                           :keys :e-mail
+                                           :label "eMail address"
+                                           :placeholder "jdoe@example.com"
+                                           :format util/format-email
+                                           :validate util/email?
+                                           :rows 1}]
+                         [:button {:class "close true"
+                                   :on-click #(reset! editing false)} "✓"]]))
+       (if-let [mail (:e-mail guest)]
+         (abbr* "✉" mail)
+         (abbr* "⃠" "No e-mail address"))])))
+
+(defn phone-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      [:td (ed/click-edit editing :phone)
+       (when (= :phone @editing)
+         [:div {:class "pop-out"}
+          [text/text-input {:cursor guest
+                            :keys :telephone
+                            :label "Phone number"
+                            :placeholder "(305) 555-1234"
+                            :format util/format-phone
+                            :validate util/phone-number?
+                            :rows 1}]
+          [:button {:class "close true"
+                    :on-click #(reset! editing false)} "✓"]])
+       (if-let [phone (:telephone guest)]
+         (abbr* "📞" phone)
+         (abbr* "⃠" "No telephone number"))])))
+
+(defn ticket-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      [:td (ed/click-edit editing :ticket-type)
+       (when @editing
+         (cond
+           (staff/lugal+? guest)
+           [:p {:class "hint"} "As a lugal (or higher) staff member,
             your admission is free. You may also admit your spouse at a
             discounted rate."]
+           
+           (:staff? guest)
+           [:p {:class "hint"} "Staff members receive discounted admission."])
+         
+         (let [tag-list [[:adult "🎫 Adult"]]
+               tag-list (if (nil? (:spouse guest))
+                          (conj tag-list [:child "🎫🚸 Child (ages 5→17)"])
+                          tag-list)
+               tag-list (if (not (:staff? guest))
+                          (conj tag-list [:baby "🎫🚶 Child (birth→4 years)"])
+                          tag-list)]
+           [radio/radio-set {:label "Ticket type"
+                             :cursor guest
+                             :key :ticket-type
+                             :tags tag-list}])
+         (when (not= :baby (:ticket-type guest))
+           [suggest-staff-apply])
+         [marital-edit {:guest guest}])
+       
+       [:div (case (:ticket-type guest)
+               :child (abbr* "🎫🚸" "Child" "Childrpn from ages 5 through 17")
+               :baby (abbr* "🎫🚶" "Baby" "Children from birth to 4 years old")
+               (abbr* "🎫" "Adult"))
+        
+        " "
+        (cond
+          (staff/lugal+? guest) (abbr* "𒈗" "Lugal" "Lugals head each department. This ticket type also includes Division Coördinators or members of the Board of Directors.")
+          (lugal+-spouse? guest) (abbr* (str "𒈗" (couple-icon guest)) "Lugal spouse" "Spouse of a lugal (or DC or board member)")
+          (:staff? guest) (abbr* "⛤" "Staff" "General staff members (not a lugal)"))]])))
 
-            (:staff? guest)
-            [:p {:class "hint"} "Staff members receive discounted admission."])
-
-          (let [tag-list [[:adult "🎫 Adult"]]
-                tag-list (if (nil? (:spouse guest))
-                           (conj tag-list [:child "🎫🚸 Child (ages 5→17)"])
-                           tag-list)
-                tag-list (if (not (:staff? guest))
-                           (conj tag-list [:baby "🎫🚶 Child (birth→4 years)"])
-                           tag-list)]
-            [radio/radio-set {:label "Ticket type"
-                              :cursor guest
-                              :key :ticket-type
-                              :tags tag-list}])
-          (when (not= :baby (:ticket-type guest))
-            [suggest-staff-apply])
-          [marital-edit {:guest guest}])
-
-        [:div (case (:ticket-type guest)
-                :adult (util/abbr "🎫" "Adult")
-                :child (util/abbr "🎫🚸" "Child")
-                :baby (util/abbr "🎫🚶" "Baby"))
-
-         " "
-         (cond
-           (staff/lugal+? guest) (util/abbr "𒈗" "Lugal")
-           (lugal+-spouse? guest) (util/abbr (str "𒈗" (couple-icon guest)) "Lugal spouse")
-           (:staff? guest) (util/abbr "⛤" "Staff"))]]
-       
-       [:td (click-edit% editing :days)
-        (if (= :days @editing)
-          [:div {:class "pop-out"}
-           (if (:staff? guest)
-             [:span "Tuesday→Sunday"
-              [:span {:class "hint"} "Staff members are always a full week admission"]]
-             [radio/radio-set guest {:label "Days attending"
-                                     :key :days
-                                     :tags [[nil "Wednesday→Sunday" ]
-                                            [:week-end "Friday→Sunday"]
-                                            [:day "One day"]]}])
-           [:button {:class "close true"
-                     :on-click #(close-edit! editing)} "✓"]]
-          (util/abbr (case (:days guest)
+(defn days-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      
+      [:td (ed/click-edit editing :days)
+       (if @editing
+         [:div {:class "pop-out"}
+          (if (:staff? guest)
+            [:span "Tuesday→Sunday"
+             [:span {:class "hint"} "Staff members are always a full week admission"]]
+            [radio/radio-set guest {:label "Days attending"
+                                    :key :days
+                                    :tags [[nil "Wednesday→Sunday" ]
+                                           [:week-end "Friday→Sunday"]
+                                           [:day "One day"]]}])
+          [:button {:class "close true"
+                    :on-click #(reset! editing false)} "✓"]]
+         (abbr* (case (:days guest)
                   :day "Day"
                   :week-end "Fri-Sun"
                   nil (str (if (:staff? guest)
                              "Tue"
                              "Wed") "-Sun"))
-            (case (:days guest)
-              :day "Any one day"
-              :week-end "Week-end only, Friday→Sunday"
-              nil (str "Full week, "
-                       (if (:staff? guest)
-                         "Tuesday"
-                         "Wednesday") "→Sunday"))))]
-       
-       [:td (click-edit% editing :sleep)
-        (if (= :sleep @editing)
-          [:div {:class "pop-out"}
-           [radio/radio-set guest {:label "Sleeping Arrangements"
-                                   :key :sleep
-                                   :tags [ [:tent "⛺ Tent camping"]
-                                           [:cabin "🏡 Cabin camping"]
-                                           [:lodge "🏠 Lodge camping"] ]}]
-           [:button {:class "close true"
-                     :on-click #(close-edit! editing)} "✓"]]
-          (case (:sleep guest)
-            :tent (util/abbr "⛺" "Tent camping")
-            :cabin (util/abbr "🏡" "Cabin camping")
-            :lodge (util/abbr "🏠" "Lodge camping")))]
-       
-       [:td (click-edit% editing :eat)
-        (if (= :eat @editing)
-          [:div {:class "pop-out"}
-           [radio/radio-set guest {:label "Eating Arrangements"
-                                   :key :eat
-                                   :tags [ [:looney
-                                            "🍱🐇 Looney Bin secret meal plan"]
-                                           [:cauldron
-                                            "🍲🍴 Bubbling Cauldron meal plan"]
-                                           [nil "⃠ Bringing food along or eating with food vendors"] ]}]
-           [:button {:class "close true"
-                     :on-click #(close-edit! editing)} "✓"]]
-          (case (:eat guest)
-            :looney (util/abbr "🍱🐇" "Looney Bin secret meal plan")
-            :cauldron (util/abbr "🍲🍴" "Bubbling Cauldron meal plan")
-            nil (util/abbr "⃠" "Bringing food along")))]
-       
-       [:td (click-edit% editing :t-shirt)
-        (if (= :t-shirt @editing)
-          [:div {:class "pop-out"}
-           [radio/radio-set guest {:label "Buy a Festival T-shirt"
-                                   :key :t-shirt
-                                   :tags (conj
-                                          +t-shirt-long-names+
-                                          [nil "🗽 Not buying a T-shirt"]) }]
-           [:p {:class "hint"} "Buy other T-shirts and merchandise below, under "
-            [:q "Extras."]]
-           [:button {:class "close true"
-                     :on-click #(close-edit! editing)} "✓"]]
-          (if (:t-shirt guest)
-            (util/abbr (str "👕 " (t-shirt-size-short-name (:t-shirt guest)))
-              (str (:season @d/festival)
-                   " "
-                   (:year @d/festival)
-                   "T-shirt: "
-                   (t-shirt-size-long-name (:t-shirt guest))))
-            (util/abbr "⃠" "No T-shirt")))]
-       
-       [:td (click-edit% editing :tote)
-        (when (= :tote @editing)
-          [:div {:class "pop-out"}
-           [radio/radio-set guest {:label "Buy a Festival Tote Bag"
-                                   :key :tote?
-                                   :tags [[true "💼 Tote bag"]
-                                          [false "⃠ No tote bag"]] }]
-           [:p {:class "hint"}
-            "Buy other merchandise below, under "
-            [:q "Extras."]]
-           [:button {:class "close true"
-                     :on-click #(close-edit! editing)} "✓"]])
-        (if (:tote? guest)
-          (util/abbr "💼" "Tote Bag")
-          (util/abbr "⃠" "No tote mug"))]
-       
-       [:td (click-edit% editing :coffee)
-        (when (= :coffee @editing)
-          [:div {:class "pop-out"}
-           [radio/radio-set guest {:label "Buy a Festival Coffee Mug"
-                                   :key :coffee?
-                                   :tags [[true "🍺 Coffee Mug"]
-                                          [false "⃠ No coffee bag"]] }]
-           [:p {:class "hint"}
-            "Buy other merchandise below, under "
-            [:q "Extras."]]
-           [:button {:class "close true"
-                     :on-click #(close-edit! editing)} "✓"]])
-        (if (:coffee? guest)
-          (util/abbr "🍺" "Coffee Mug")
-          (util/abbr "⃠" "No coffee mug"))]])))
+                (case (:days guest)
+                  :day "Any one day"
+                  :week-end "Week-end only, Friday→Sunday"
+                  nil (str "Full week, "
+                           (if (:staff? guest)
+                             "Tuesday"
+                             "Wednesday") "→Sunday"))))])))
+
+(defn lodging-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      [:td (ed/click-edit editing :sleep)
+       (if (= :sleep @editing)
+         [:div {:class "pop-out"}
+          [radio/radio-set guest {:label "Sleeping Arrangements"
+                                  :key :sleep
+                                  :tags [ [:tent "⛺ Tent camping"]
+                                          [:cabin "🏡 Cabin camping"]
+                                          [:lodge "🏠 Lodge camping"] ]}]
+          [:button {:class "close true"
+                    :on-click #(reset! editing false)} "✓"]]
+         (case (:sleep guest)
+           :cabin (abbr* "🏡" "Cabin camping")
+           :lodge (abbr* "🏠" "Lodge camping")
+           (abbr* "⛺" "Tent camping")))])))
+
+(defn food-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      [:td (ed/click-edit editing :eat)
+       (if (= :eat @editing)
+         [:div {:class "pop-out"}
+          [radio/radio-set guest {:label "Eating Arrangements"
+                                  :key :eat
+                                  :tags [ [:looney
+                                           "🍱🐇 Looney Bin secret meal plan"]
+                                          [:cauldron
+                                           "🍲🍴 Bubbling Cauldron meal plan"]
+                                          [nil "⃠ Bringing food along or eating with food vendors"] ]}]
+          [:button {:class "close true"
+                    :on-click #(reset! editing false)} "✓"]]
+         (case (:eat guest)
+           :looney (abbr* "🍱🐇" "Looney Bin secret meal plan")
+           :cauldron (abbr* "🍲🍴" "Bubbling Cauldron meal plan")
+           nil (abbr* "⃠" "Bringing food along")))])))
+
+(defn t-shirt-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      [:td (ed/click-edit editing :t-shirt)
+       (if (= :t-shirt @editing)
+         [:div {:class "pop-out"}
+          [radio/radio-set guest {:label "Buy a Festival T-shirt"
+                                  :key :t-shirt
+                                  :tags (conj
+                                         +t-shirt-long-names+
+                                         [nil "🗽 Not buying a T-shirt"]) }]
+          [:p {:class "hint"} "Buy other T-shirts and merchandise below, under "
+           [:q "Extras."]]
+          [:button {:class "close true"
+                    :on-click #(reset! editing false)} "✓"]]
+         (if (:t-shirt guest)
+           (abbr* (str "👕 " (t-shirt-size-short-name (:t-shirt guest)))
+                  (str (:season @d/festival)
+                       " "
+                       (:year @d/festival)
+                       "T-shirt: "
+                       (t-shirt-size-long-name (:t-shirt guest))))
+           (abbr* "⃠" "No T-shirt")))])))
+
+(defn tote-bag-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      [:td (ed/click-edit editing :tote)
+       (when (= :tote @editing)
+         [:div {:class "pop-out"}
+          [radio/radio-set guest {:label "Buy a Festival Tote Bag"
+                                  :key :tote?
+                                  :tags [[true "💼 Tote bag"]
+                                         [false "⃠ No tote bag"]] }]
+          [:p {:class "hint"}
+           "Buy other merchandise below, under "
+           [:q "Extras."]]
+          [:button {:class "close true"
+                    :on-click #(reset! editing false)} "✓"]])
+       (if (:tote? guest)
+         (abbr* "💼" "Tote Bag")
+         (abbr* "⃠" "No tote mug"))]
+      )))
+      
+(defn mug-cell [guest]
+  (let [editing (atom false)]
+    (fn [guest]
+      [:td (ed/click-edit editing :coffee)
+       (when (= :coffee @editing)
+         [:div {:class "pop-out"}
+          [radio/radio-set guest {:label "Buy a Festival Coffee Mug"
+                                  :key :coffee?
+                                  :tags [[true "🍺 Coffee Mug"]
+                                         [false "⃠ No coffee bag"]] }]
+          [:p {:class "hint"}
+           "Buy other merchandise below, under "
+           [:q "Extras."]]
+          [:button {:class "close true"
+                    :on-click #(reset! editing false)} "✓"]])
+       (if (:coffee? guest)
+         (abbr* "🍺" "Coffee Mug")
+         (abbr* "⃠" "No coffee mug"))])))
+
+
+(defn guest-row [guest]
+  (let [name (util/gensymreally "guest")]
+    (fn [guest]
+      (println "Guest row for " guest)
+      [:tr {:key guest}
+       [name-cell guest]
+       [email-cell guest]
+       [phone-cell guest]
+       [ticket-cell guest]
+       [days-cell guest]
+       [lodging-cell guest]
+       [food-cell guest]
+       [t-shirt-cell guest]
+       [tote-bag-cell guest]
+       [mug-cell guest]])))

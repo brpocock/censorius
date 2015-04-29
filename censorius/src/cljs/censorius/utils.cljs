@@ -60,6 +60,15 @@
 (defn just-digits [string]
   (apply str (filter +digit-chars+ string)))
 
+(defn just-decimal [string]
+  (cond (string? string)
+        (apply str (filter (fn [char]
+                             (or (some +digit-chars+ char)
+                                 (= \. char)))
+                           (str string)))
+        (number? string)
+        string))
+
 (defn just-digits++ [string]
   (let [digits (apply str (filter +digit-chars+ string))]
     (if (= \+ (first string))
@@ -67,7 +76,7 @@
       digits)))
 
 (defn just-number [string]
-  (str (.parseInt (just-digits string))))
+  (str (js/parseInt (just-digits string))))
 
 (defn just-digits? [string]
   (= string (just-digits string)))
@@ -729,24 +738,26 @@
 
 (defn format-money [amount]
   (if (string? amount)
-    (let [[_ amount] (re-matches #"\$?\s*(\d*\.\d\d?)?" amount)]
-      (format-money (.parseFloat amount)))
+    (let [amount (if (#{\¢ \c} (last (.trim amount)))
+                   (/ (just-decimal amount) 100.0)
+                   (just-decimal amount))]
+      (format-money (js/parseFloat amount)))
     
     (cond
-     (integer? amount)
-     (gstring/format "$ %d." amount)
-     
-     (< 1 amount)
-     (gstring/format "$ %.02f" amount)
-     
-     (zero? amount)
-     "$ 0"
-     
-     true
-     (gstring/format "$ .%02f" amount))))
+      (integer? amount)
+      (gstring/format "$ %d." amount)
+      
+      (> 1 amount)
+      (gstring/format " %d ¢" (* 100 amount))
+      
+      (zero? amount)
+      nil
+      
+      true
+      (gstring/format "$ %.02f" amount))))
 
 (defn money? [string]
-  (or (.parseFloat string)
+  (or (js/parseFloat (just-decimal string))
       (let [[_ amount] (re-matches #"\$?\s*(\d*\.\d*)" string)]
         (money? amount))))
 
@@ -768,6 +779,28 @@
                          (.substring s 1 (count s)))
     true (str keyword)))
 
+
+
+(defn hidden [^boolean is-hidden]
+  (if is-hidden
+    {:display "none"}
+    {}))
+
+(defn alert-hint [event]
+  (js/alert (.getAttribute (.-target event) "title")))
+
+(defn abbr
+  ([short long]
+   [:abbr {:title long :on-click #(js/alert (str short ": " long))}
+    short
+    [:span {:class "ellide hint"}
+     " " long]])
+  ([short long longer]
+   [:abbr {:title long :on-click #(js/alert (str short " (" long "): " longer))}
+    short
+    [:span {:class "ellide hint"}
+     " " long]]))
+ 
 
 
 (defn hidden [^boolean is-hidden]
