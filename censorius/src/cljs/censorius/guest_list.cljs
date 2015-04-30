@@ -116,6 +116,7 @@
   (reduce + (map guest/price @d/guests)))
 
 (defn guests-price-sum []
+  @d/guests
   [:span (util/format-money (price-all-guests))])
 
 (defn guests-thead []
