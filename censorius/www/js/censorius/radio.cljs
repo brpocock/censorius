@@ -13,13 +13,19 @@
   (:import [goog History]
            [goog.history EventType]))
 
+(defn fix-nil [value] (case value "∅" nil value))
+
 (defn write-select [cursor label key tags size name]
   [:select {:size size :name name
-            :value (get @cursor key)
+            :value (let [tag (get @cursor key)]
+                     (case tag nil "∅" tag))
             :on-change (fn [event]
-                         (swap! cursor assoc key (.-value (.-target event))))}
+                         (swap! cursor assoc key (fix-nil (.-value (.-target event)))))}
    (map (fn [[tag name]]
-          [:option {:value (str tag)} name]) 
+          [:option {:value (or (and (nil? tag) "∅") 
+                               (str tag))
+                    :key (str name "∈" (or tag "∞"))} 
+           name]) 
      tags)])
 
 (defn radio-set [{:keys [cursor label key tags]} children this]
@@ -39,10 +45,11 @@
          true
          [:fieldset [:legend label]
           (doall (map (fn [[tag name]]
-                        [:div {:key tag} 
+                        [:div {:key (str name "∈" (or tag "∞"))} 
                          [:label [:input {:name (str name "-" key-string)
                                           :type "radio"
-                                          :value (str tag)
+                                          :value (or (and (nil? tag) "∅") 
+                                                     (str tag))
                                           :on-change
                                           (fn [event]
                                             (if (.-checked (.-target event))

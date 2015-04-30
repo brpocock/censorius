@@ -2,12 +2,12 @@
   (:require [clojure.string :as string]
             [reagent.core :as reagent :refer [atom]]))
 
-(defonce guests (atom [(atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
-                              :formal-name nil :presenter-bio nil :presenter-requests nil
-                              :e-mail "sage@star-hope.org" :telephone nil
-                              :sleep :tent :eat :looney :day nil
-                              :gender :m
-                              :t-shirt :xs :coffee? false :tote? false }) ]))
+(defonce guests (atom [#_(atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
+                                :formal-name nil :presenter-bio nil :presenter-requests nil
+                                :e-mail "sage@star-hope.org" :telephone nil
+                                :sleep :tent :eat :looney :day nil
+                                :gender :m
+                                :t-shirt :xs :coffee? false :tote? false }) ]))
 
 (defonce extras (atom []))
 
@@ -21,10 +21,12 @@
 (defonce prices (atom {:ticket { :adult 95
                                 :child 30
                                 :under5 0
+                                :week-end 40 ; TODO?
+                                :day-pass 30 ; TODO?
                                 :lugal-so 30
                                 :staff 30}
                        :vendor 25
-                       :cauldron { :fri-sun 45
+                       :cauldron {:fri-sun 45
                                   :adult 65
                                   :child 30
                                   :under5 0}
@@ -36,7 +38,7 @@
                       (atom {:title "FPG General T-Shirt"
                              :description "The FPG general T-shirt"
                              :image "/merch/tshirt_Gen.png"
-                             :price 175
+                             :price 50
                              :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
                                       {:id :s :title "Small" :qty 0 :inventory 2}
                                       {:id :m :title "Medium" :qty 0 :inventory 0}
@@ -48,19 +50,19 @@
                                       {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 2}]})
                       :tote-bag 
                       (atom {:title "FPG Tote Bag"
-                             :description "The FPG general T-shirt"
+                             :description "The tote bag with the FPG logo"
                              :image "/merch/tote-bag.jpeg"
-                             :price 325
+                             :price 35
                              :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 13}]})
                       :coffee
                       (atom {:title "FPG Coffee Mug"
-                             :price 325
+                             :price 7
                              :description "The FPG thermal coffee mug is great for other beverages, too"
                              :image "/merch/tote-bag.jpeg"
                              :styles [{:id :tote :title "Coffee mug" :qty 0 :inventory 140}]})
                       :water
                       (atom {:title "FPG Water Bottle"
-                             :price 325
+                             :price 25
                              :description "The FPG water bottle is great for other beverages, too"
                              :image "/merch/tote-bag.jpeg"
                              :styles [{:id :tote :title "Water bottle" :qty 0 :inventory 62}]})
@@ -68,7 +70,7 @@
                       (atom {:title "Festival T-Shirt"
                              :description "The new T-shirt for Beltane 2015"
                              :image "/merch/tshirtS14.png"
-                             :price 798
+                             :price 75
                              :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
                                       {:id :s :title "Small" :qty 0 :inventory 999}
                                       {:id :m :title "Medium" :qty 0 :inventory 999}

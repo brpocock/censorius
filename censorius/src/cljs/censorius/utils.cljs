@@ -237,7 +237,7 @@
                            (.substring digits 6 10)
                            " x"
                            (.substring digits 10 length))))]
-    #_ (log "Format phone number " number " ⇒ " formatted)
+    (log "Format phone number " number " ⇒ " formatted)
     formatted))
 
 (defn no-op [& any]
@@ -776,7 +776,7 @@
   (cond
     (string? keyword) keyword
     (keyword? keyword) (let [s (str keyword)] 
-                         (.substring s 1 (count s)))
+                         (.substring s 1))
     true (str keyword)))
 
 

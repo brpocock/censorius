@@ -13,8 +13,10 @@
    ;; [censorius.address :as address]
    [censorius.data :as d]
    [censorius.guest :as guest]
+   [censorius.merch :as merch]
    [censorius.guest-list :as guest-list]
    [censorius.text :as text]
+   [censorius.radio :as radio]
    [censorius.utils :as util])
   (:import [goog History] [goog events]))
 
@@ -27,182 +29,51 @@
 
 
 
-(defn guests-thead []
-  [:thead
-   [:tr [:th (util/abbr "Name" "Name of each party member")]
-    [:th (util/abbr "✉" "eMail")]
-    [:th (util/abbr "📞" "Phone#")]
-    [:th (util/abbr "🚸" "Ticket" "The type of ticket — adult or child")]
-    [:th (util/abbr "📅" "Days")]
-    [:th (util/abbr "⛺/🏠" "Sleep" "The lodging for each person: tent, cabin, or lodge bed.")]
-    [:th (util/abbr "🍲🍴" "Meals" "Purchase the Bubbling Cauldron meal plan here.")]
-    [:th (util/abbr "👕" "T-Shirt" "FPG T-shirt for this Festival. (Buy other shirts in the “Extras” box)")]
-    [:th (util/abbr "💼" "Tote" "FPG tote bags")]
-    [:th (util/abbr "🍺" "Mug" "FPG 20th Anniversary hot & cold beverage mugs. (Buy other mugs in the “Extras” box)")]]])
-
-(defn guest-price [guest]
-  (+ (cond
-       (:lugal+? guest) 0
-       (:staff? guest) 300
-       (:adult? guest)
-
-       (case (:days guest)
-                         :day 490.24
-                         :week-end 762.39
-         nil 950.13
-         (do (util/log "bad days " (:days guest))
-             0))
-       ;; child
-       true 178.20)
-
-     (case (:sleep guest)
-       :tent 0
-       :cabin 85
-       :lodge 2000
-       (do (util/log "bad sleeping “" (:sleep guest) "” for guest " guest)
-           0))
-
-     (case (:eat guest)
-       :looney 10000000.01
-       :cauldron 7000
-       0)
-
-     (if (:t-shirt guest) (:price (deref (:festival-shirt @d/merch))) 0)
-     (if (:coffee? guest) (:price (deref (:coffee @d/merch))) 0)
-     (if (:tote? guest) (:price (deref (:tote-bag @d/merch))) 0)))
-
-(defn price-all-guests []
-  (reduce + (map guest-price @d/guests)))
-
-(defn guests-price-sum []
-  [:span (util/format-money (price-all-guests))])
-
-(defn guest-list-box []
-  
-  (util/log "Guests = " @d/guests)
-  [:section [:h1 "Registration for " (:season @d/festival) " " (:year @d/festival)
-             [:a {:href "#/load"} [:button {:title "Load a previous registration"} "📂"]]]
-   [:section {:class "card"}
-    [:h2 (if-let [leader (first @d/guests)]
-           (str (or (:surname @leader)
-                    "No name yet")
-                " — "
-                " Party of " (util/counting (count @d/guests) "Guest"))
-           "New party")]
-    
-    [:table {:class "people"}
-     [guests-thead]
-     [:tbody
-      (for [guest @d/guests]
-        [guest/guest-row guest])
-      ;; (doall (map #(guest/guest-row (deref %)) @d/guests))
-      ]
-     
-     [:tfoot [guest-list/add-person-row]
-      [:tr {:key "|subtotal|"} 
-       [:th {:col-span 7} "Subtotal"] [:td {:col-span 3 :style {:align "right"}} [guests-price-sum]]]]]]])
-
-(defn running-out-style [style]
-  [:p [:strong {:class "warning"} "Please change your order."]
-   "Only " (string/lower-case (util/counting (:inventory style) "item"))
-   " of this style remain. You'll need to remove "
-   (string/lower-case (util/counting (- (:qty style) (:inventory style))
-                                     "item"))
-   " from your order."
-   (let [left (:inventory style)]
-     [:button {:class "false" :on-click #(swap! style :qty left)}
-      "😦 Change to " left])])
-
-(defn merch-product-style [style]
-  (if (zero? (:inventory style))
-    [[:p {:class "hint"} (:title style) " — Sold out."]
-     [text/text-input {:cursor style
-                       :keys :qty
-                             :label (:title style)
-                             :placeholder "0"
-                             :size 3
-                             :format util/just-digits
-                             :validate util/just-digits?}]
-     (when (> 10 (:inventory style))
-       [:div {:class "hint"} (util/counting (:inventory style) "item") " left"])
-     (when (< (:inventory style) (:qty style))
-       [running-out-style style])]))
-
-(defn merch-product-style-1 [style]
-  (if (zero? (:inventory style))
-    [:div {:class "hint"} "Sold out."]
-    [:div (if (< (:inventory style) (:qty style))
-            [:p [:strong {:class "warning"}
-                 "Please change your order."]
-             " Only " (string/lower-case (util/counting (:inventory style) "item"))
-             " of this style remain. You'll need to remove "
-             (string/lower-case (util/counting (- (:qty style) (:inventory style))
-                                               "item"))
-             " from your order."
-             (let [left (:inventory style)]
-               [:button {:class "false" :on-click #(swap! style assoc :qty left)}
-                "😦 Change to " left])]
-            [text/text-input {:cursor style
-                              :keys :qty
-                                    :placeholder "0"
-                                    :rows 0 :size 3
-                                    :format util/just-digits
-                                    :validate util/just-digits?}])
-     (when (> 10 (:inventory style))
-       [:div {:class "hint"}
-        (util/counting (:inventory style) "item") " left"])
-     (when (< (:inventory style) (:qty style))
-       [running-out-style style])]))
-
-(defn product-row [[id item]]
-  [:tr [:th [:img {:src (:image item)
-                   :class "merch-thumb"}] (:title item)
-        [:p {:class "hint"} (:description item)]]
-   [:td (util/format-money (:price item))]
-   [:td (if (= 1 (count (:styles item)))
-          [merch-product-style-1 (first (:styles item))]
-          (map merch-product-style
-            (:styles item)))]
-   [:td (util/format-money (* (reduce + (map #(:qty %)
-                                          (:styles item)))
-                              (:price item)))]])
-
-(defn price-all-merch []
-  (reduce + (map (fn [item]
-                   (* (reduce + (map #(:qty %)
-                                  (:styles @item)))
-                      (:price @item)))
-              (vals @d/merch))))
-
-(defn sum-merch-prices []
-  (util/format-money (price-all-merch)))
-
-(defn merch-box []
-  [:section {:class "card"}
-   [:h2 "Extras"]
-   [:table {:class "extras"}
-    [:thead [:tr [:th "Item"] [:th "Price Ea."] [:th "Style / Qty."] [:th "Subtotal"]]]
-    [:tbody (map product-row @d/merch )]
-    [:tfoot [:tr [:th {:col-span 3} "Subtotal"]
-             [:td [sum-merch-prices]]]]]])
 
 (defn workshop-box []
-  (when-not (empty? @d/guests)
-    [:section {:class "card"}
-     [:h2 "Workshops"]
-     (when (pos? (count @d/workshops))
-       [:fieldset [:legend "Workshop Requests"]
-        [:table
-         [:thead [:tr [:th "Title"] [:th "Presenter"]]]
-         [:tbody
-          (for [workshop @d/workshops]
-            [:tr [:td [:a {:href (str "#/workshops/" (:id @workshop))}
-                       (:long-name @workshop)]]
-             [:td (:formal-name (:presenter @workshop))]])]]])
-     [:a {:href "#/add-workshop"} [:button {:class "true"}
-                                   (if (zero? (count @d/workshops))
-                                     "⁂ Present a workshop"
-                                     "+ Add another")]]]))
+  (let [new (atom {:title "" :presenter nil})]
+    (fn [] 
+      (when-not (empty? @d/guests)
+        [:section {:class "card"}
+         [:h2 "Workshops"]
+         (when (pos? (count @d/workshops))
+           [:fieldset [:legend "Workshop Requests"]
+            [:table
+             [:thead [:tr [:th "Title"] [:th "Presenter"]]]
+             [:tbody
+              (for [workshop @d/workshops]
+                [:tr [:td (:long-name @workshop)]
+                 [:td (or (:called-by (:presenter @workshop))
+                          (:given-name (:presenter @workshop)))]])]]])
+         [:div "Disabled for now. Contact " [:a {:href "mailto:workshops@flapagan.org"}
+                                             "workshops@flapagan.org"] ", please."]
+         #_
+         [:tfoot [:tr [:td {:col-span 2}
+                       [text/text-input {:cursor new
+                                         :keys :title 
+                                         :label "Workshop title"
+                                         :placeholder "Underwater basket weaving"
+                                         :rows 1}]
+                       [radio/radio-set {:label "Presenter" 
+                                         :cursor new
+                                         :key :presenter
+                                         :tags [(map (fn [guest]
+                                                       (let [n (or (:called-by guest)
+                                                                   (:given-name guest))]
+                                                         [n n])))]}]
+                       [:button {:class "true"
+                                 :on-click (fn [_]
+                                             (swap! d/workshops conj {:long-name (:title @new)
+                                                                      :presenter 
+                                                                      (let [n (:presenter @new)] 
+                                                                        (filter #(or (= n (:called-by %))
+                                                                                     (= n (:given-name %)))
+                                                                                @d/guests))})
+                                             (swap! new assoc :titie ""))}
+                        (if (zero? (count @d/workshops))
+                          "⁂ Present a workshop"
+                          "+ Add another")]]]]]
+        ))))
 
 (defn price-vendor []
   (* (:vendor @d/prices) (:qty @d/vending)))
@@ -212,16 +83,13 @@
    [:h2 "Vending"]
    [:div
     (cond
-      (empty? @d/guests)
-      [[:p "Vendors must have at least one paid, adult admission"]
-
-       "No "]
+      (not (some #{:adult :staff :lugal :lugal+} (map (partial :ticket-type) @d/guests)))
+      [:p "Vendors must have at least one adult admission"]
 
       (not (:agreement @d/vending))
-      [[:h3 "Vendor agreement"]
+      [:div [:h3 "Vendor agreement"]
        [:p "Before you can become an vendor, you need to agree to the festival's vendor rules."]
-       [:a {:href "#/vendor-agreement"} [:button {:class "true"} "Vendor Rules"]]
-       "No "]
+       [:a {:href "/news/2015/04/vendor-faq"} [:button {:class "true"} "Vendor Rules"]]]
 
       true
       [text/text-input {:cursor d/vending
@@ -237,7 +105,7 @@
     " (" (if (< 1 (:qty @d/vending))
            [:strong (* 10 (:qty @d/vending))]
            10)
-    "′×10′) @ " (util/format-money (:vendor @d/prices)) " each"
+    "′×10′) @ " (util/format-money (:vendor @d/prices)) " each slip."
     (when (< 1 (:qty @d/vending))
       [:span {:class "hint"}
        " (total " (util/format-money (price-vendor)) ")"])]
@@ -258,7 +126,7 @@
                         :rows 3}]
       [text/text-input {:cursor d/vending
                         :keys :notes
-                        :label "Requests/Notes"
+                        :label "Requests/Notes (for Vendor Concierge)"
                         :placeholder ""
                         :rows 2}]])])
 
@@ -268,11 +136,10 @@
 
    (if (empty? @d/guests)
      [:div [:h4 "Getting Started"]
-      [:p "First, enter the (legal) name of your party's leader. Since
-                                      you're entering this, that's
-                                      probably you! This will be the
-                                      name that your registration will
-                                      be "
+      [:p "First, enter the (legal) name of your party's leader. Since you're
+                                      entering this, that's probably you! This
+                                      will be the name that your registration
+                                      will be "
        [:q "filed under"]
        " when you arrive at the Festival. Then, click (or tap) "
        [:strong "+ Add to Party"] "."]]
@@ -280,9 +147,6 @@
       [:h4 "Editing your Party"]
       [:p "For each person in your party, click the buttons under each
        column to fill in their complete details."]
-      [:p "The information you fill in for your party leader will
-       become the default for other party members, so check out your
-       options first."]
       [:p "You can add as many party members as you need to."]])
 
    (if (nil? (filter #(and (= :adult (:ticket-type %))
@@ -313,9 +177,10 @@
 
    (when-not (empty? @d/guests)
      (if (some (fn [guest-atom]
-                 (let [guest (deref guest-atom)] (or (:t-shirt guest)
-                                                     (:coffee? guest)
-                                                     (:tote? guest)))) @d/guests)
+                 (let [guest (deref guest-atom)] 
+                   (or (:t-shirt guest)
+                       (:coffee? guest)
+                       (:tote? guest)))) @d/guests)
        [:div
         [:h4 "Merchandise"]
         [:p
@@ -389,22 +254,23 @@
     [:section {:class "card"}
      [:h2 "Ready to check out?"]
      [:div {:class "buttonBox"}
-      " Total: " (util/format-money (+ (price-all-guests)
-                                       (price-all-merch)
+      " Total: " (util/format-money (+ (guest-list/price-all-guests)
+                                       (merch/price-all-merch)
                                        (price-vendor)
                                        (scholarship-donations-amount)))
-      [:button "Pay Now"]]]))
+      [:button "Don't Pay Yet"]
+      [:p {:class "hint"}
+       "This is a DEMONSTRATION only."]]]))
 
 (defn registration-page []
   [:div
-   [guest-list-box]
-   ;;  [merch-box]
+   [guest-list/guest-list-box]
+   [merch/merch-box]
    ;;  [vendor-box]
    [workshop-box]
    [scholarship-box]
    [assistant-box]
-   [check-out-box]
-   ])
+   [check-out-box]])
 
 
 (defn about-page []

@@ -7,7 +7,8 @@
 
 (def +staff-mail+ {"ama422@aol.com" :ann-marie,
                    "brpocock@star-hope.org" :brfp,
-                   "sage@star-hope.org" :sage})
+                   "sage@star-hope.org" :sage
+                   "suannegould@gmail.com" :mystral})
 
 (def +bod+ [:ann-marie :lady-rae :medea :teresa :paul])
 (def +div+ {:cauldron {:coord :alysia :name "Bubbling Cauldron"}
@@ -82,7 +83,8 @@
         :advisory-board)
       (when (get +elders+ staff-id)
         :elder)
-      (when (some (partial = staff-id) (map (partial :lugal) +departments+))
+      (when (some #(or (= % staff-id)
+                       ((set %) staff-id)) (map (partial :lugal) +departments+))
         :lugal)
       (when (get +guardians+ staff-id)
         :guardian)
@@ -100,6 +102,7 @@
 
 (defn lugal+? [person]
   (when-let [staff-id (staff-id person)]
+    (println "Lugal+ for staff ID " staff-id)
     (let [job (highest-job? staff-id)]
       (not (#{nil :staff :guardian :drummer} job)))))
 

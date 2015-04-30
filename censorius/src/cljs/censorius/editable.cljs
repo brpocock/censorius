@@ -7,8 +7,8 @@
   {:on-click (fn [_] 
                (reset! editing (not @editing))
                true)
-   :class (str (.substring (str tag) 1 (count (str tag)))
-               " "
+   :class (str (.substring (str label) 1 (count (str label)))
+               " editable-clickable "
                (if @editing
                  "editing"
                  "display"))})
