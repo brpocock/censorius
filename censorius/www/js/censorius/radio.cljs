@@ -13,40 +13,40 @@
   (:import [goog History]
            [goog.history EventType]))
 
-(defn write-select [cursor label korks tags size name]
+(defn write-select [cursor label key tags size name]
   [:select {:size size :name name
-            :value (get cursor korks)
+            :value (get @cursor key)
             :on-change (fn [event]
-                         (swap! cursor assoc korks (.-value (.-target event))))}
+                         (swap! cursor assoc key (.-value (.-target event))))}
    (map (fn [[tag name]]
           [:option {:value (str tag)} name]) 
      tags)])
 
-(defn radio-set [{:keys [cursor label korks tags]} children this]
+(defn radio-set [{:keys [cursor label key tags]} children this]
   (let [name (util/gensymreally label)
-        key-string (util/keyword->string korks)]
-    (fn [cursor {:keys [cursor label korks tags]}]
-      (cond
-        (> 15 (count tags))
-        [:fieldset [:legend [:label {:for name} label]]
-         (write-select cursor label korks tags 10 name)]
-        
-        (> 5 (count tags))
-        [:label label 
-         (write-select cursor label korks tags 1 name)]
-        
-        true
-        [:fieldset [:legend [:label label]]
-         (map (fn [[tag name]]
-                [:div [:label [:input {:name (str name "-" key-string)
-                                       :type "radio"
-                                       :value (str tag)
-                                       :on-click
-                                       (fn [event]
-                                         (let [node (.-target event)
-                                               checked (.-checked node)]
-                                           (if checked
-                                             (swap! cursor assoc korks tag))))
-                                       :checked (= tag (get cursor korks))}]
-                       name]]) 
-           tags)]))))
+        key-string (util/keyword->string key)]
+    (fn [{:keys [cursor label key tags]} kids self]
+      [:div
+       (cond
+         (< 15 (count tags))
+         [:fieldset [:legend [:label {:for name} label]]
+          (write-select cursor label key tags 10 name)]
+         
+         (< 5 (count tags))
+         [:label label 
+          (write-select cursor label key tags 1 name)]
+         
+         true
+         [:fieldset [:legend label]
+          (doall (map (fn [[tag name]]
+                        [:div {:key tag} 
+                         [:label [:input {:name (str name "-" key-string)
+                                          :type "radio"
+                                          :value (str tag)
+                                          :on-change
+                                          (fn [event]
+                                            (if (.-checked (.-target event))
+                                              (swap! cursor assoc key tag)))
+                                          :checked (= tag (get @cursor key))}]
+                          name]]) 
+                   tags))])])))

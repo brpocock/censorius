@@ -3,13 +3,21 @@
    [clojure.string :as string]
    [reagent.core :as reagent :refer [atom]]))
 
-(defn click-edit [editing tag]
-  {:on-click (fn [e] 
-               (js/alert (str "Edit " tag " toggle (was " @editing ")"))
-               (reset! editing (not @editing)))
+(defn click-edit [editing label]
+  {:on-click (fn [_] 
+               (reset! editing (not @editing))
+               true)
    :class (str (.substring (str tag) 1 (count (str tag)))
                " "
                (if @editing
                  "editing"
-                 "display"))}
-  (when @editing "EDIT* "))
+                 "display"))})
+
+(defn close [editing]
+  [:button {:class "close true"
+            :on-click #(reset! editing false)} 
+   "✓"])
+
+
+
+

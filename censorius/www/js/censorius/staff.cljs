@@ -17,8 +17,7 @@
             :site {:coord :doug :name "Site"}
             :staff {:coord :sandi :name "Staff Services"}
             :bod {:name "Board of Directors' Division"}})
-(def +service-leaders+ {:guardian :sqrl,
-                        :drums :nicole})
+
 (def +advisory+ [:scott-kelly :mystral])
 (def +elders+ [:roger :galan :thundar :guardian-bob :arachne])
 (def +departments+ {:community {:lugal :thor
@@ -75,22 +74,32 @@
 (def +guardians+ #{:sqrl :fox})
 
 (defn highest-job? [staff-id]
-  (or (and (get +bod+ staff-id) :bod)
-      (and (some #(= staff-id (:coord (+div+ %))) (keys +div+)) :dc)
-      (and (some #(= staff-id (+service-leaders+ %)) (keys +service-leaders+)) :service-leader)
-      (and (get +advisory+ staff-id) :advisory-board)
-      (and (get +elders+ staff-id) :elder)
-      (and (some #(= staff-id (:lugal (get +departments+ %))) (keys +departments+)) :lugal)
-      (and (get +guardians+ staff-id) :guardian)
-      (and (get +drummers+ staff-id) :drummer)
-      (and (some #(get (:staff (get +departments+ %)) staff-id) (keys +departments+)) :staff)
+  (or (when (get +bod+ staff-id)
+        :bod)
+      (when (some (partial = staff-id) (map (partial :coord) +div+))
+        :dc)
+      (when (get +advisory+ staff-id)
+        :advisory-board)
+      (when (get +elders+ staff-id)
+        :elder)
+      (when (some (partial = staff-id) (map (partial :lugal) +departments+))
+        :lugal)
+      (when (get +guardians+ staff-id)
+        :guardian)
+      (when (get +drummers+ staff-id)
+        :drummer)
+      (when (some #(get (:staff (get +departments+ %)) staff-id) (keys +departments+))
+        :staff)
       nil))
 
 (defn staff-id [person]
   (get +staff-mail+ person))
 
+(defn staff? [person]
+  (get +staff-mail+ (:e-mail person)))
+
 (defn lugal+? [person]
   (when-let [staff-id (staff-id person)]
     (let [job (highest-job? staff-id)]
-      (not (#{nil :staff} job)))))
+      (not (#{nil :staff :guardian :drummer} job)))))
 

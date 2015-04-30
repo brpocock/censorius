@@ -94,7 +94,7 @@
      [guests-thead]
      [:tbody
       (for [guest @d/guests]
-        [guest/guest-row @guest])
+        [guest/guest-row guest])
       ;; (doall (map #(guest/guest-row (deref %)) @d/guests))
       ]
      
@@ -187,21 +187,22 @@
              [:td [sum-merch-prices]]]]]])
 
 (defn workshop-box []
-  [:section {:class "card"}
-   [:h2 "Workshops"]
-   (when (pos? (count @d/workshops))
-     [:fieldset [:legend "Workshop Requests"]
-      [:table
-       [:thead [:tr [:th "Title"] [:th "Presenter"]]]
-       [:tbody
-        (for [workshop @d/workshops]
-          [:tr [:td [:a {:href (str "#/workshops/" (:id @workshop))}
-                     (:long-name @workshop)]]
-           [:td (:formal-name (:presenter @workshop))]])]]])
-   [:a {:href "#/add-workshop"} [:button {:class "true"}
-                                 (if (zero? (count @d/workshops))
-                                   "⁂ Present a workshop"
-                                   "+ Add another")]]])
+  (when-not (empty? @d/guests)
+    [:section {:class "card"}
+     [:h2 "Workshops"]
+     (when (pos? (count @d/workshops))
+       [:fieldset [:legend "Workshop Requests"]
+        [:table
+         [:thead [:tr [:th "Title"] [:th "Presenter"]]]
+         [:tbody
+          (for [workshop @d/workshops]
+            [:tr [:td [:a {:href (str "#/workshops/" (:id @workshop))}
+                       (:long-name @workshop)]]
+             [:td (:formal-name (:presenter @workshop))]])]]])
+     [:a {:href "#/add-workshop"} [:button {:class "true"}
+                                   (if (zero? (count @d/workshops))
+                                     "⁂ Present a workshop"
+                                     "+ Add another")]]]))
 
 (defn price-vendor []
   (* (:vendor @d/prices) (:qty @d/vending)))
@@ -265,7 +266,7 @@
   [:section {:id "assistant"}
    [:h2 "Assistant"]
 
-   (if (zero? (count @d/guests))
+   (if (empty? @d/guests)
      [:div [:h4 "Getting Started"]
       [:p "First, enter the (legal) name of your party's leader. Since
                                       you're entering this, that's
@@ -310,34 +311,35 @@
       [:p "To remove someone from your party, click on their name, then click the "
        [:strong "Remove from Party"] " button."]])
 
-   (if (some (fn [guest-atom]
-               (let [guest (deref guest-atom)] (or (:t-shirt guest)
-                                                   (:coffee? guest)
-                                                   (:tote? guest)))) @d/guests)
-     [:div
-      [:h4 "Merchandise"]
-      [:p
-       "You can purchase great merchandise for every member of your party, and order extra items to take home from the "
-       [:strong "Extras"]
-       " box as well. There are additional items, like general T-shirts, also available this way."]]
-     [:div
-      [:h4 "Merchandise"]
-      [:p
-       "Buy your festival T-shirts for every party member, or order more merchandise from the "
-       [:strong "Extras"] " box."]])
+   (when-not (empty? @d/guests)
+     (if (some (fn [guest-atom]
+                 (let [guest (deref guest-atom)] (or (:t-shirt guest)
+                                                     (:coffee? guest)
+                                                     (:tote? guest)))) @d/guests)
+       [:div
+        [:h4 "Merchandise"]
+        [:p
+         "You can purchase great merchandise for every member of your party, and order extra items to take home from the "
+         [:strong "Extras"]
+         " box as well. There are additional items, like general T-shirts, also available this way."]]
+       [:div
+        [:h4 "Merchandise"]
+        [:p
+         "Buy your festival T-shirts for every party member, or order more merchandise from the "
+         [:strong "Extras"] " box."]])
 
-   [:div
-    [:h4 "Vendors"]
-    [:p
-     "Set up your vending booth by picking the number of spaces you'll
+     [:div
+      [:h4 "Vendors"]
+      [:p
+       "Set up your vending booth by picking the number of spaces you'll
                                                      need, then put in
                                                      your booth's name
                                                      and description to
                                                      appear in
                                                      the handbook."]]
-   [:div
-    [:h4 "Workshops"]
-    [:p "If any members of your party want to present a workshop at FPG, just fill out the information here."]]])
+     [:div
+      [:h4 "Workshops"]
+      [:p "If any members of your party want to present a workshop at FPG, just fill out the information here."]])])
 
 (defn scholarship-box []
   [:section {:class "card"}
@@ -378,15 +380,20 @@
                              :size 6
                              :rows 0}]]]]]])
 
+(defn scholarship-donations-amount []
+  (reduce + (map util/just-decimal (vals @d/scholarships))))
+
 (defn check-out-box []
-  [:section {:class "card"}
-   [:h2 "Ready to check out?"]
-   [:div {:class "buttonBox"}
-    " Total: " (util/format-money (+ (price-all-guests)
-                                     (price-all-merch)
-                                     (price-vendor)
-                                     (reduce + (map util/just-decimal (vals @d/scholarships))))) " + scholarships "
-    [:button "Pay Now"]]])
+  (when (or (not (empty? @d/guests))
+            (pos? (scholarship-donations-amount)))
+    [:section {:class "card"}
+     [:h2 "Ready to check out?"]
+     [:div {:class "buttonBox"}
+      " Total: " (util/format-money (+ (price-all-guests)
+                                       (price-all-merch)
+                                       (price-vendor)
+                                       (scholarship-donations-amount)))
+      [:button "Pay Now"]]]))
 
 (defn registration-page []
   [:div

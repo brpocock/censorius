@@ -63,7 +63,8 @@
   ([event props suppress-prompt?]
    (let [text (:text @props)
          keys (:keys @props)
-         old-text (if keys (get @props keys) @props)]
+         cursor (:cursor @props)
+         old-text (if keys (get @cursor keys) @props)]
      (cond (= old-text text)  nil ;; (util/log "no change to " keys)
 
            (not (valid-submission? props text (not suppress-prompt?)))
@@ -76,8 +77,10 @@
                               text)]
              (when (not= text final-text)
                (swap! props assoc :text final-text))
-             ;; (util/log keys " ← “" final-text "”")
+             (util/log keys " ← “" final-text "”")
+             (swap! cursor (if (seq? keys) assoc-in assoc) keys final-text)
              (swap! props assoc :orig-text final-text))))
+   (.stopPropagation event)
    false))
 
 (defn mkfun-validity-submit [props]
@@ -94,7 +97,9 @@
   (when (and (string? new-text)
              (validate% props new-text))
     (swap! props assoc :text new-text)
-    (util/log "changed to " (:text @props))))
+    ;; (util/log "changed to " (:text @props))
+    )
+  true)
 
 (defn key-down [event props want-return?]
   (cond (#{+escape+ +clear+} (.-keyCode event))
@@ -127,18 +132,29 @@
                      :validated? false})]
     
     (reagent/create-class
-     {;; :component-will-receive-props (fn [this new-props]
-      ;;                                 (let [before (:orig-text @props)
-      ;;                                       current (:text @props)
-      ;;                                       after (:text new-props)]
-      ;;                                   (when (and (= before current)
-      ;;                                              (not= before after)
-      ;;                                              (string? after))
-      ;;                                     (do (util/log "Resetting " name " from " keys
-      ;;                                                   " ⇒ “" after
-      ;;                                                   "”")
-      ;;                                         (do-change props after)
-      ;;                                         (swap! props assoc :orig-text after)))))
+     {:component-will-receive-props 
+      (fn [this new-props]
+        (when (:placeholder new-props)
+          (swap! props assoc :placeholder (:placeholder new-props)))
+        
+        (when (:label new-props)
+          (swap! props assoc :label (:label new-props)))
+        (swap! props assoc 
+               :orig-text (accessor cursor keys) 
+               :text (accessor cursor keys))
+        ;; (let [before (:orig-text @props)
+        ;;       current (:text @props)
+        ;;       after (:text new-props)]
+        ;;   (if (and (= before current)
+        ;;            (not= before after)
+        ;;            (string? after))
+        ;;     (do (util/log "Resetting " name " from " keys
+        ;;                   " ⇒ “" after
+        ;;                   "”")
+        ;;         (do-change props after)
+        ;;         (swap! props assoc :orig-text after))
+        ;;     (util/log "ignoring new props value = " new-props)))
+        true)
       ;; :component-will-mount (fn [this]
       ;;                         (validate% props (:text props)))
       ;; :component-did-update (fn [this old-props old-children]
@@ -175,15 +191,15 @@
                                             :size (:size @props)
                                             :class (str "valid-" (:validity @props) " size-" (:size @props))
                                             :placeholder (or (:placeholder @props) "")
-                                            :on-blur #(submit % props true)
-                                            :on-change #(do-change props (.-value (.-target %)))
-                                            :on-key-down #(key-down % props true)
+                                            :on-blur (fn [ev] (submit ev props true) true)
+                                            :on-change (fn [ev] (do-change props (.-value (.-target ev))) true)
+                                            :on-key-down (fn [ev] (key-down ev props true) true)
                                             :title (:label @props)}]
                              (when (:ellipsis @props)
-                               [:button {:on-click #(apply (:ellipsis @props) (:keys @props))} "…"])
+                               [:button {:on-click (fn [_] (apply (:ellipsis @props) (:keys @props)) true)} "…"])
                              (when (:validate @props)
                                [:span {:class (str "marker valid-" validity)
-                                       :on-click (mkfun-validity-submit props)}
+                                       :on-click (fn [_] (apply (mkfun-validity-submit props)) true)}
                                 validity-sigil])]
                             
                             ;; text-entry box, single-row
@@ -192,29 +208,28 @@
                                    (if (empty? (:label @props)) "" (str (:label @props) ":"))
                                    [:input {:name (:name @props)
                                             :type (or (:input-type @props) "text")
-                                            :id name
-                                            :value (accessor props)
+                                            :id (:name @props)
+                                            :value (:text @props)
+                                            :size (:size @props)
                                             :class (str "valid-" (:validity @props) " size-" (:size @props))
                                             :placeholder (or (:placeholder @props) "")
-                                            :on-blur #(submit % props true)
-                                            :on-change #(do-change props (.-value (.-target %)))
-                                            :on-key-down #(key-down % props true)
-                                            :title (if (:placeholder @props)
-                                                     (str (:label @props) " (" (:placeholder @props) ")")
-                                                     (:label @props))}]
+                                            :on-blur (fn [ev] (submit ev props true) true)
+                                            :on-change (fn [ev] (do-change props (.-value (.-target ev))) true)
+                                            :on-key-down (fn [ev] (key-down ev props true) true)
+                                            :title (:label @props)}]
                                    (when (:ellipsis @props)
-                                     [:button {:on-click #(apply (:ellipsis @props) @props)} "…"])
+                                     [:button {:on-click (fn [_] (apply (:ellipsis @props) @props) true)} "…"])
                                    (when (:validate @props)
                                      [:span {:class (str "marker "
                                                          (str "valid-" (:validity @props)))
-                                             :on-click (mkfun-validity-submit props)}
+                                             :on-click (fn [] (apply (mkfun-validity-submit props)) true)}
                                       validity-sigil])]]
                             
                             ;; text-entry area, multi-row
                             true
                             [:fieldset [:legend [:label {:for (str "textarea-" (:name @props))} (:label @props)]
                                         (when (:ellipsis @props)
-                                          [:button {:on-click #(apply (:ellipsis @props) (:keys @props))} "…"])
+                                          [:button {:on-click (fn [_]  (apply (:ellipsis @props) (:keys @props)) true)} "…"])
                                         (when (:validate @props)
                                           [:span {:class (str "marker valid-" (:validity @props))}
                                            validity-sigil])]
@@ -226,9 +241,9 @@
                                          :title (str (:label @props) (if (:placeholder @props)
                                                                        (str " (" (:placeholder @props) ")")
                                                                        ""))
-                                         :on-blur #(submit % props true)
-                                         :on-change #(do-change props (.-value (.-target %)))
-                                         :on-key-down #(key-down % props false)
+                                         :on-blur (fn [ev] (submit ev props true) true)
+                                         :on-change (fn [ev] (do-change props (.-value (.-target ev))) true)
+                                         :on-key-down (fn [ev] (key-down ev props false) true)
                                          :value (:text @props)}]])))})))
 
 

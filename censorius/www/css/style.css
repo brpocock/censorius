@@ -728,7 +728,8 @@ abbr {
     box-shadow: 4pt 4pt 9pt green;
     padding: 1ex;
     max-width: 40em;
-    min-width: 20em
+    min-width: 20em;
+    left: 0;
 }
 
 .pop-out>button.close {
