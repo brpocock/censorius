@@ -126,12 +126,10 @@
                                    :tote-bag :tote?})
                 purchased (count (filter #(get (deref %) guest-tag) 
                                          @d/guests))] 
-            (when (or true ; ?? 
-                      (pos? purchased))
-              [:p {:class "hint"}
-               "Plus "  (util/counting purchased (:title @item)) " purchased for "
-               (if (= 1 purchased) " a guest " " guests ")
-               " (above)."])))]
+            [:p {:class "hint"}
+             "Plus "  (util/counting purchased (:title @item)) " purchased for "
+             (if (= 1 purchased) " a guest " " guests ")
+             " (above)."]))]
        [:td (util/format-money (* (reduce + (map :qty (:styles @item)))
                                   (:price @item)))]])))
 

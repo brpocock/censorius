@@ -1,4 +1,4 @@
-(ns censorius.guest
+(ns censorius.guest 
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:require
    [cljs.core.async :refer [put! chan <!]]
@@ -64,11 +64,12 @@
   (cond
     
     (staff/lugal+? guest-record) 
-    (println "Lugal ticket") 0
+    (do
+      (println "Lugal ticket") 0)
     
     (staff/staff? guest-record) 
-    (println "Staff ticket")
-    (:staff (:ticket @d/prices))
+    (do    (println "Staff ticket")
+           (:staff (:ticket @d/prices)))
     
     (= :child (:ticket-type guest-record))
     (:child (:ticket @d/prices))
@@ -349,6 +350,9 @@
                                  :tags tag-list}]
                (when (not= :baby (:ticket-type @guest))
                  [suggest-staff-apply guest])]))
+          
+          [:div "With currently-selected days, " (util/format-money (ticket-price @guest))]
+          
           ;; [marital-edit guest]
           (ed/close editing)]
          

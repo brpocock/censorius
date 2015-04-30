@@ -14,11 +14,15 @@
           [given surname] (cond (= 2 (count name-parts))
                                 [(first name-parts) (second name-parts)]
                                 
-                                (= 1 (count name-parts))
+                                (and (= 1 (count name-parts))
+                                     (not (empty? @d/guests)))
                                 [(first name-parts) (:surname (deref (first @d/guests)))]
                                 
+                                (= 1  (count name-parts))
+                                ["" ""]
+                                
                                 :else
-                                [(first name-parts) (apply str (rest name-parts))])]
+                                [(first name-parts) (string/join " " (rest name-parts))])]
       (if (and (not (empty? given))
                (not (empty? surname)))
         (let [num-given (count (filter #(and (= given (:given-name (deref %)))
@@ -32,11 +36,19 @@
             (do 
               (util/log "given " given " surname " surname)
               (reset! new-name {:new-name-entered ""})
-              (swap! d/guests conj (atom {:called-by nil :given-name given :surname surname
-                                          :e-mail nil :telephone nil
-                                          :adult? true :staff? false :lugal+? false
-                                          :sleep :tent :eat nil
-                                          :t-shirt nil :coffee false :tote false})))
+              (if (empty? @d/guests)
+                (do
+                  (js/alert "Welcome! Now that you've added someone, click each button next to their name to plan your Festival!")
+                  (reset! d/guests  [(atom {:called-by nil :given-name given :surname surname
+                                           :e-mail nil :telephone nil
+                                           :adult? true :staff? false :lugal+? false
+                                           :sleep :tent :eat nil
+                                           :t-shirt nil :coffee false :tote false})]))
+                (swap! d/guests conj (atom {:called-by nil :given-name given :surname surname
+                                            :e-mail nil :telephone nil
+                                            :adult? true :staff? false :lugal+? false
+                                            :sleep :tent :eat nil
+                                            :t-shirt nil :coffee false :tote false}))))
             (js/alert (str "We can't actually handle two party members with exactly the same given & surnames. For now, could you please put down the second “" 
                            given " " surname 
                            "” with a number or a Jr on their given name? Like: “" 
