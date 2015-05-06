@@ -15,18 +15,38 @@
 
 (defn fix-nil [value] (case value "∅" nil value))
 
-(defn write-select [cursor label key tags size name]
-  [:select {:size size :name name
+(defn write-option [cursor key [tag name]]
+  [:option {:value (or (and (nil? tag) "∅") 
+                       (str tag))
+            :key (str name "∈" (or tag "∞")) } 
+   name])
+
+(defn write-select [cursor label key key-string tags size name]
+  [:select {:size size :name key-string
             :value (let [tag (get @cursor key)]
                      (case tag nil "∅" tag))
             :on-change (fn [event]
-                         (swap! cursor assoc key (fix-nil (.-value (.-target event)))))}
-   (map (fn [[tag name]]
-          [:option {:value (or (and (nil? tag) "∅") 
-                               (str tag))
-                    :key (str name "∈" (or tag "∞"))} 
-           name]) 
-     tags)])
+                         (swap! cursor assoc key (fix-nil (.-value (.-target event))))
+                         nil)}
+   (map (partial write-option cursor key) tags)])
+
+(defn radio-button [key key-string cursor [tag name]]
+  [:div {:key (str name "∈" (or tag "∞"))} 
+   [:label 
+    [:input {:name key-string
+             :type "radio"
+             :value (or (and (nil? tag) "∅") 
+                        (str tag))
+             :on-change (fn [event]
+                          (when (.-checked (.-target event))
+                            (swap! cursor assoc key (fix-nil tag))
+                            nil))
+             :checked (= tag (get @cursor key))}]
+    name]])
+
+(defn write-radio-set [cursor label key key-string tags name] 
+  [:fieldset [:legend label]
+   (doall (map (partial radio-button key key-string cursor) tags))])
 
 (defn radio-set [{:keys [cursor label key tags]} children this]
   (let [name (util/gensymreally label)
@@ -36,24 +56,11 @@
        (cond
          (< 15 (count tags))
          [:fieldset [:legend [:label {:for name} label]]
-          (write-select cursor label key tags 10 name)]
+          [write-select cursor label key key-string tags 10 name]]
          
          (< 5 (count tags))
          [:label label 
-          (write-select cursor label key tags 1 name)]
+          [write-select cursor label key key-string tags 1 name]]
          
          true
-         [:fieldset [:legend label]
-          (doall (map (fn [[tag name]]
-                        [:div {:key (str name "∈" (or tag "∞"))} 
-                         [:label [:input {:name (str name "-" key-string)
-                                          :type "radio"
-                                          :value (or (and (nil? tag) "∅") 
-                                                     (str tag))
-                                          :on-change
-                                          (fn [event]
-                                            (if (.-checked (.-target event))
-                                              (swap! cursor assoc key tag)))
-                                          :checked (= tag (get @cursor key))}]
-                          name]]) 
-                   tags))])])))
+         [write-radio-set cursor label key key-string tags name])])))

@@ -10,13 +10,10 @@
                                 :t-shirt :xs :coffee? false :tote? false }) ]))
 
 (defonce extras (atom []))
-
 (defonce vending (atom {:title nil, :blurb nil, :notes nil, :qty 0, :agreement false}))
-
+(defonce general (atom {:note nil}))
 (defonce workshops (atom []))
-
 (defonce festival (atom {:season "Samhain" :year 2015}))
-
 (defonce scholarships (atom {:php 0 :seva 0 :baiardi 0}))
 (defonce prices (atom {:ticket { :adult 95
                                 :child 30
@@ -30,6 +27,7 @@
                                   :adult 65
                                   :child 30
                                   :under5 0}
+                       :salad-bar 35
                        :cabin {:regular 45 :staff 25}
                        :lodge {:regular 60 :staff 45}}))
 
@@ -54,7 +52,7 @@
                              :title "FPG Tote Bag"
                              :description "The tote bag with the FPG logo"
                              :image "/merch/tote-bag.jpeg"
-                             :price 35
+                             :price 10
                              :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 13}]})
                       :coffee
                       (atom {:id :coffee
@@ -75,7 +73,22 @@
                              :title "Festival T-Shirt"
                              :description "The new T-shirt for this festival"
                              :image "/merch/tshirt-fest.png"
-                             :price 75
+                             :price 15
+                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
+                                      {:id :s :title "Small" :qty 0 :inventory 999}
+                                      {:id :m :title "Medium" :qty 0 :inventory 999}
+                                      {:id :l :title "Large" :qty 0 :inventory 999}
+                                      {:id :xl :title "Extra-large" :qty 0 :inventory 999}
+                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 999}
+                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
+                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
+                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
+                      :general-fpg-shirt
+                      (atom {:id :general-fpg-shirt
+                             :title "General FPG T-Shirt"
+                             :description "The general T-shirt for FPG"
+                             :image "/merch/tshirt-general.png"
+                             :price 15
                              :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
                                       {:id :s :title "Small" :qty 0 :inventory 999}
                                       {:id :m :title "Medium" :qty 0 :inventory 999}

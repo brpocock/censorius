@@ -74,146 +74,200 @@
 (defn price-vendor []
   (* (:vendor @d/prices) (:qty @d/vending)))
 
-(defn vendor-box []
+(defn adults-needed []
+  (let [babies (count (filter #(= :baby (:ticket-type %)) @d/guests))
+        children (count (filter #(= :child (:ticket-type %)) @d/guests))
+        adults (count (filter #(= :adult (:ticket-type %)) @d/guests))]
+    [(+ babies (if (pos? children) 1 0)) adults children babies]))
+
+(defn vendor-agreement []
+  [:div [:h3 "Vendor agreement"]
+   [:p "Before you can become an vendor, you need to agree to the festival's vendor rules."]
+   [:a {:href "/news/2015/04/vendor-faq"
+        :target "VendorFAQ"} 
+    [:button {:class "true"} "Read Vendor Rules"]]
+   [:button {:on-click (fn [_] 
+                         (swap! d/vending assoc :agreement true))}
+    "✓ Accept the vendor agreement"]])
+
+(defn vendor-info []
+  [:div
+   [text/text-input {:cursor d/vending
+                     :keys :title
+                     :label "Vending Booth Name"
+                     :placeholder "Plonkee Plonkee Shoppe"
+                     :format util/name-case
+                     :validate util/name-like?
+                     :rows 1}]
+   [text/text-input {:cursor d/vending
+                     :keys :blurb
+                     :label "Description (Handbook/Web)"
+                     :placeholder "Come and have lots of fun with our widgets and doodads! You'll want to collect all nine."
+                     :validate #(> 250 (count %) 32)
+                     :rows 3}]
+   [text/text-input {:cursor d/vending
+                     :keys :notes
+                     :label "Requests/Notes (for Vendor Concierge)"
+                     :placeholder ""
+                     :rows 2}]])
+
+(defn vendor-slips []
+  [:div [text/text-input {:cursor d/vending
+                          :keys :qty
+                          :label "Quantity"
+                          :placeholder "0"
+                          :format util/just-number
+                          :validate util/just-digits?
+                          :rows 0
+                          :size 3}]
+   " vendor "
+   (if (= 1 (:qty @d/vending)) "slip" "slips")
+   " (" (if (< 1 (:qty @d/vending))
+          [:strong (* 10 (:qty @d/vending))]
+          10)
+   "′×10′) @ " (util/format-money (:vendor @d/prices)) " each slip."
+   (when (< 1 (:qty @d/vending))
+     [:span {:class "hint"}
+      " (total " (util/format-money (price-vendor)) ")"])
+   (when (pos? (:qty @d/vending))
+     [vendor-info])])
+
+(defn vendor-card [adults]
   [:section {:class "card"}
    [:h2 "Vending"]
    [:div
     (cond
-      (not (some #{:adult :staff :lugal :lugal+} (map (partial :ticket-type) @d/guests)))
+      (zero? adults)
       [:p "Vendors must have at least one adult admission"]
-
+      
       (not (:agreement @d/vending))
-      [:div [:h3 "Vendor agreement"]
-       [:p "Before you can become an vendor, you need to agree to the festival's vendor rules."]
-       [:a {:href "/news/2015/04/vendor-faq"} [:button {:class "true"} "Vendor Rules"]]]
-
+      [vendor-agreement]
+      
       true
-      [text/text-input {:cursor d/vending
-                        :keys :qty
-                        :label "Quantity"
-                        :placeholder "0"
-                        :format util/just-number
-                        :validate util/just-digits?
-                        :rows 0
-                        :size 3}])
-    " vendor "
-    (if (= 1 (:qty @d/vending)) "slip" "slips")
-    " (" (if (< 1 (:qty @d/vending))
-           [:strong (* 10 (:qty @d/vending))]
-           10)
-    "′×10′) @ " (util/format-money (:vendor @d/prices)) " each slip."
-    (when (< 1 (:qty @d/vending))
-      [:span {:class "hint"}
-       " (total " (util/format-money (price-vendor)) ")"])]
-   (when (pos? (:qty @d/vending))
-     [:div
-      [text/text-input {:cursor d/vending
-                        :keys :title
-                        :label "Vending Booth Name"
-                        :placeholder "Plonkee Plonkee Shoppe"
-                        :format util/name-case
-                        :validate util/name-like?
-                        :rows 1}]
-      [text/text-input {:cursor d/vending
-                        :keys :blurb
-                        :label "Description (Handbook/Web)"
-                        :placeholder "Come and have lots of fun with our widgets and doodads! You'll want to collect all nine."
-                        :validate #(> 250 (count %) 32)
-                        :rows 3}]
-      [text/text-input {:cursor d/vending
-                        :keys :notes
-                        :label "Requests/Notes (for Vendor Concierge)"
-                        :placeholder ""
-                        :rows 2}]])])
+      [vendor-slips])]])
+
+(defn vendor-box []
+  (let [[_ adults] (adults-needed)]
+    (when (or (pos? adults)
+              (pos? (:qty @d/vending)))
+      [vendor-card adults])))
 
 (defn need-adult-email []
   (empty? (filter #(and (= :adult (:ticket-type %))
-                        (not (nil? (:e-mail %)))) @d/guests)))
+                        (not (nil? (:e-mail %)))) 
+                  @d/guests)))
+
+(defn assistant-getting-started []
+  [:div 
+   [:h4 "Getting Started"]
+   [:p "First, enter the (legal) name of your party's leader. Since you're
+                                      entering this, that's probably you! This
+                                      will be the name that your registration
+                                      will be "
+    [:q "filed under"]
+    " when you arrive at the Festival. Then, click (or tap) "
+    [:strong "+ Add to Party"] "."]])
+
+(defn assistant-editing-party []
+  [:div
+   [:h4 "Editing your Party"]
+   [:p "For each person in your party, click the buttons under each
+       column to fill in their complete details."]
+   [:p "You can add as many party members as you need to."]])
+
+
+
+
+(defn assistant-need-adults []
+  (let [[adults-needed adults children babies] (adults-needed)]
+    [:div [:h4 {:class "warning"} (util/counting (- adults-needed adults) "Adult") " Required"]
+     [:p "At least "
+      (string/lower-case (util/counting adults-needed "adult"))
+      " must accompany "
+      (when (pos? babies) (str (string/lower-case (util/counting babies "child")) " under 5"
+                               (when (pos? children) " and")))
+      (when (pos? children) (str (string/lower-case (util/counting children "child"))
+                                 (when (pos? babies) " ages 5-17")))
+      "."]]))
+
+(defn assistant-need-adult-email []
+  [:div [:h4 {:class "warning"} "eMail Address Needed"]
+   [:p "The eMail address of at least one adult in the party must be provided."]])
+
+(defn assistant-can-remove []
+  [:div
+   [:h4 "Removing tickets"]
+   [:p "To remove someone from your party, click on their name, then click the "
+    [:strong "Remove from Party"] " button."]])
+
+
+(defn guest-bought-merch [guest-atom]
+  (let [guest (deref guest-atom)] 
+    (or (:t-shirt guest)
+        (:coffee? guest)
+        (:tote? guest))))
+
+(defn assistant-merch+ []
+  [:div
+   [:h4 "Merchandise"]
+   [:p
+    "You can purchase great merchandise for every member of your party,
+         and order extra items to take home from the "
+    [:strong "Extras"]
+    " box as well. There are additional items, like general T-shirts, also
+    available this way."]])
+
+(defn assistant-merch []
+  [:div
+   [:h4 "Merchandise"]
+   [:p
+    "Buy your festival T-shirts for every party member, or order more
+    merchandise from the "
+    [:strong "Extras"] " box."]])
+
+(defn assistant-vendors []
+  [:div
+   [:h4 "Vendors"]
+   [:p
+    "Set up your vending booth by picking the number of spaces you'll need,
+    then put in your booth's name and description to appear in
+    the handbook."]])
+
+(defn assistant-workshops []
+  [:div
+   [:h4 "Workshops"]
+   [:p "If any members of your party want to present a workshop at FPG, just
+   fill out the information here."]])
 
 (defn assistant-box [props children self]
   [:section {:id "assistant"}
    [:h2 "Assistant"]
-
    (if (empty? @d/guests)
-     [:div 
-      [:h4 "Getting Started"]
-      [:p "First, enter the (legal) name of your party's leader. Since you're
-                                      entering this, that's probably you! This
-                                      will be the name that your registration
-                                      will be "
-       [:q "filed under"]
-       " when you arrive at the Festival. Then, click (or tap) "
-       [:strong "+ Add to Party"] "."]]
-     [:div
-      [:h4 "Editing your Party"]
-      [:p "For each person in your party, click the buttons under each
-       column to fill in their complete details."]
-      [:p "You can add as many party members as you need to."]])
-
-   (if (need-adult-email)
-     [:div [:h4 {:class "warning"} "eMail Address Needed"]
-      [:p "The eMail address of at least one adult in the party must be provided."]])
-
-   (let [babies (count (filter #(= :baby (:ticket-type %)) @d/guests))
-         children (count (filter #(= :child (:ticket-type %)) @d/guests))
-         adults (count (filter #(= :adult (:ticket-type %)) @d/guests))
-         adults-needed (+ babies (if (pos? children) 1 0))]
-     (if (> adults-needed adults)
-       [:div [:h4 {:class "warning"} (util/counting (- adults-needed adults) "Adult") " Required"]
-        [:p "At least "
-         (string/lower-case (util/counting adults-needed "adult"))
-         " must accompany "
-         (when (pos? babies) (str (string/lower-case (util/counting babies "child")) " under 5"
-                                  (when (pos? children) " and")))
-         (when (pos? children) (str (string/lower-case (util/counting children "child"))
-                                    (when (pos? babies) " ages 5-17")))
-         "."]]))
-
-   (if (< 1 (count @d/guests))
-     [:div
-      [:h4 "Removing tickets"]
-      [:p "To remove someone from your party, click on their name, then click the "
-       [:strong "Remove from Party"] " button."]])
-
+     [assistant-getting-started]
+     [assistant-editing-party])
+   (when (need-adult-email)
+     [assistant-need-adult-email])
+   (let [[adults-needed adults ] (adults-needed)]
+     (when (> adults-needed adults) [assistant-need-adults]))
+   (when (< 1 (count @d/guests))
+     [assistant-can-remove])
    (when-not (empty? @d/guests)
-     (if (some (fn [guest-atom]
-                 (let [guest (deref guest-atom)] 
-                   (or (:t-shirt guest)
-                       (:coffee? guest)
-                       (:tote? guest)))) @d/guests)
-       [:div
-        [:h4 "Merchandise"]
-        [:p
-         "You can purchase great merchandise for every member of your party, and order extra items to take home from the "
-         [:strong "Extras"]
-         " box as well. There are additional items, like general T-shirts, also available this way."]]
-       [:div
-        [:h4 "Merchandise"]
-        [:p
-         "Buy your festival T-shirts for every party member, or order more merchandise from the "
-         [:strong "Extras"] " box."]])
-
-     [:div
-      [:h4 "Vendors"]
-      [:p
-       "Set up your vending booth by picking the number of spaces you'll
-                                                     need, then put in
-                                                     your booth's name
-                                                     and description to
-                                                     appear in
-                                                     the handbook."]]
-     [:div
-      [:h4 "Workshops"]
-      [:p "If any members of your party want to present a workshop at FPG, just fill out the information here."]])])
+     (if (some guest-bought-merch @d/guests)
+       [assistant-merch+]
+       [assistant-merch])
+     [assistant-vendors]
+     [assistant-workshops])])
 
 (defn scholarship-box []
   [:section {:class "card"}
    [:h2 "Scholarship Donations"]
+   [:p {:class "hint"} "Suggested donation: $5.00+"]
    [:table
     [:tbody
      [:tr [:th "Pagans Helping Pagans"
            [:span {:class "hint"}
-            "These funds are used to provide scholarships for guests who would like to attend FPG but need financial assistance."]]
+            "These funds are used to provide scholarships for guests who would
+            like to attend FPG but need financial assistance."]]
       [:td [text/text-input {:cursor d/scholarships
                              :keys :php
                              :label "Pagans Helping Pagans Fund"
@@ -224,7 +278,10 @@
                              :rows 0}]]]
      [:tr [:th "Robert Baiardi Memorial"
            [:span {:class "hint"}
-            "Named in remembrance of Robert Baiardi, the husband of a member of FPG staff who passed away shortly after FPG Samhain 2012. This fund has been set up to provide financial assistance for staff admissions."]]
+            "Named in remembrance of Robert Baiardi, the husband of a member
+            of FPG staff who passed away shortly after FPG Samhain 2012. This
+            fund has been set up to provide financial assistance for
+            staff admissions."]]
       [:td [text/text-input {:cursor d/scholarships
                              :keys :baiardi
                              :label "Robert Baiardi Memorial Fund"
@@ -254,42 +311,81 @@
      (price-vendor)
      (scholarship-donations-amount)))
 
+(defn try-check-out []
+  (js/alert "Try checkout"))
+
+(defn save-action []
+  (cond (empty? (:note @d/general))
+        (js/alert "Please supply a note for the Regsitration staff as to what
+        needs to be done.")
+        
+        (need-adult-email)
+        (js/alert "At least one adult's eMail address must be supplied.")
+        
+        :ok 
+        (js/alert "Save with note")))
+
+(defn check-out-invoice []
+  @d/guests @d/merch @d/vending
+  [:table {:style {:width "10em"}}
+   [:tbody 
+    [:tr [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))
+                         (map (fn [el] [:li el]) (map guest/price @d/guests))]]
+    [:tr [:th "Extras"] [:td (util/format-money (merch/price-all-merch))]]
+    [:tr [:th "Vending"] [:td (util/format-money (price-vendor))]]
+    [:tr [:th "Scholarships"] [:td (util/format-money (scholarship-donations-amount))]]]
+   [:tfoot
+    [:tr [:th [:big " Total: "]] [:td [:big (util/format-money (total-due))]]]]])
+
 (defn check-out-box []
   (let [pay (atom nil)]
     (fn []
-      (if (pos? (total-due))
-        [:section {:class "card"}
+      @d/guests @d/merch @d/vending
+      (if (or true (pos? (total-due)))
+        [:section {:class "card"
+                   :id "check-out"}
          [:h2 "Ready to check out?"]
-         [:table {:style {:width "auto"}}
-          [:tr [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))]]
-          [:tr [:th "Extras"] [:td (util/format-money (merch/price-all-merch))]]
-          [:tr [:th "Vending"] [:td (util/format-money (price-vendor))]]
-          [:tr [:th "Scholarships"] [:td (util/format-money (scholarship-donations-amount))]]]
-         [:div {:class "buttonBox"}
-          [:big " Total: " (util/format-money (total-due))]
-          [:br] " " [:br]
-          [:button
-           {:on-click (fn [ev]
-                        )}
-           "Ready, Check Out →"]
-          [:p {:class "hint"}
-           "This is a DEMONSTRATION only. Payments are NOT being accepted
-        yet. The amount above, however, is the amount you would be asked
-        to pay."]
-          
-          [:button
-           {:on-click (fn [ev]
-                        )}
-           "Wait; There's more…"]
-          [:p {:class "hint"}
-           "The "]]]
-        [:span]))))
+         [check-out-invoice]
+         (cond
+           (let [[adults-needed adults] (adults-needed)]
+             (> adults-needed adults))
+           [:p {:class "warning"}
+            "There are not enough adults registered. (Check the " [:strong [:q "Ticket"]] " column.)"]
+           
+           (need-adult-email)
+           [:p {:class "warning"}
+            "At least one adult eMail address is needed."]
+           
+           :ready
+           [:div {:class "buttonBox"}
+            [:button
+             {:on-click try-check-out}
+             "Ready, Check Out →"]])
+         
+         [:div
+          [text/text-input {:cursor d/general
+                            :keys :note
+                            :label "Notes or comments"
+                            :placeholder "Cabin assignment requests? Special discounts or notes?"
+                            :rows 3}]]
+         [:p {:class "hint"}
+          "If there's something else that you want to get sorted-out, enter a
+ note above, and your registration will be" [:em "suspended"] " and brought to
+ the attention of our Registration staff. " 
+          (when (need-adult-email)
+            [:big "You " [:em "must"] 
+             " have at least one adult's eMail address entered as well."])]
+         [:button {:on-click save-action
+                   :disabled (or (empty? (:note @d/general))
+                                 (need-adult-email))}
+          "Suspend registration and send to Reg. staff"]]
+        [:span {:id "check-out"}]))))
 
 (defn registration-page []
   [:div
    [guest-list/guest-list-box]
    [merch/merch-box]
-   ;;  [vendor-box]
+   [vendor-box]
    [workshop-box]
    [scholarship-box]
    [assistant-box]

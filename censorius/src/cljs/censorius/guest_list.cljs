@@ -40,15 +40,15 @@
                 (do
                   (js/alert "Welcome! Now that you've added someone, click each button next to their name to plan your Festival!")
                   (reset! d/guests  [(atom {:called-by nil :given-name given :surname surname
-                                           :e-mail nil :telephone nil
-                                           :adult? true :staff? false :lugal+? false
-                                           :sleep :tent :eat nil
-                                           :t-shirt nil :coffee false :tote false})]))
+                                            :e-mail nil :telephone nil
+                                            :ticket-type :adult :staff-department nil
+                                            :sleep :tent :eat nil
+                                            :t-shirt nil :coffee? false :tote? false})]))
                 (swap! d/guests conj (atom {:called-by nil :given-name given :surname surname
                                             :e-mail nil :telephone nil
-                                            :adult? true :staff? false :lugal+? false
+                                            :ticket-type :adult :staff-department nil
                                             :sleep :tent :eat nil
-                                            :t-shirt nil :coffee false :tote false}))))
+                                            :t-shirt nil :coffee? false :tote? false}))))
             (js/alert (str "We can't actually handle two party members with exactly the same given & surnames. For now, could you please put down the second “" 
                            given " " surname 
                            "” with a number or a Jr on their given name? Like: “" 

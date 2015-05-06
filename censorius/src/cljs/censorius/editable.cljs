@@ -16,7 +16,7 @@
 (defn close [editing]
   [:button {:class "close true"
             :on-click #(reset! editing false)} 
-   "✓"])
+   "✓ Close"])
 
 
 
