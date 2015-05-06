@@ -20,7 +20,7 @@
            [goog.history EventType]))
 
 (defn abbr* [short & more]
-  [:abbr {:title (str short (apply str more))}
+  [:abbr {:title (str short " " (string/join " " more))}
    short])
 
 (defn mmap [m f a] (->> m (f a) (into (empty m))))
@@ -43,70 +43,74 @@
        (= gender2 :f) "👭"
        true "👬"))))
 
-(defn cauldron-price [guest-record]
+(defn cauldron-price [guest]
   (cond 
-    (not= :cauldron (:eat guest-record))
+    (not= :cauldron (:eat @guest))
     0
     
-    (= :child (:ticket-type guest-record))
+    (= :child (:ticket-type @guest))
     (:child (:cauldron @d/prices))
     
-    (= :baby (:ticket-type guest-record))
+    (= :baby (:ticket-type @guest))
     (:under5 (:cauldron @d/prices))
     
     true                           ; adult
-    (case (:days guest-record)
+    (case (:days @guest)
       :day (:fri-sun (:cauldron @d/prices))
       :week-end (:fri-sun (:cauldron @d/prices))
       (:adult (:cauldron @d/prices)))))
 
-(defn ticket-price [guest-record]
+(defn ticket-price [guest]
   (cond
     
-    (staff/lugal+? guest-record) 
-    (do
-      (println "Lugal ticket") 0)
+    (staff/lugal+? @guest) 
+    0
     
-    (staff/staff? guest-record) 
-    (do    (println "Staff ticket")
-           (:staff (:ticket @d/prices)))
+    (staff/staff? @guest) 
+    (:staff (:ticket @d/prices))
     
-    (= :child (:ticket-type guest-record))
+    (= :child (:ticket-type @guest))
     (:child (:ticket @d/prices))
     
-    (= :baby (:ticket-type guest-record))
+    (= :baby (:ticket-type @guest))
     (:under5 (:ticket @d/prices))
     
     true                             ; adult
-    (case (:days guest-record)
+    (case (:days @guest)
       :day (:day-pass (:ticket @d/prices))
       :week-end (:week-end (:ticket @d/prices))
       (:adult (:ticket @d/prices)))))
 
-(defn cabin-price [guest-record]
-  (case (:sleep guest-record)
-    :cabin ((if (staff/staff? guest-record) :staff :regular)
-            (:cabin @d/prices))
-    :lodge ((if (staff/staff? guest-record) :staff :regular)
-            (:lodge @d/prices))
+(defn cabin-price [guest]
+  ((if (staff/staff? @guest) :staff :regular)
+   (:cabin @d/prices)))
+
+(defn lodge-price [guest]
+  ((if (staff/staff? @guest) :staff :regular)
+   (:lodge @d/prices)))
+
+(defn sleep-price [guest]
+  (case (:sleep @guest)
+    :cabin (cabin-price guest)
+    :lodge (lodge-price guest)
     0))
 
-(defn price [guest-record]
-  (+ (ticket-price guest-record)
+(defn price [guest]
+  (+ (ticket-price guest)
      
-     (cabin-price guest-record)
+     (sleep-price guest)
      
-     (cauldron-price guest-record)
+     (cauldron-price guest)
      
-     (if (:t-shirt guest-record)
+     (if (:t-shirt @guest)
        (merch/price-t-shirt)
        0)
      
-     (if (:coffee? guest-record)
+     (if (:coffee? @guest)
        (merch/price-coffee-mug)
        0)
      
-     (if (:tote? guest-record)
+     (if (:tote? @guest)
        (merch/price-tote)
        0)))
 
@@ -214,22 +218,121 @@
     (cond
       (:staff-apply? @guest)
       [:fieldset [:legend "Apply for a staff position"]
-       "The staff application is not online yet. Please send an eMail to "
+       "For questions about staff applications, send an eMail to "
        [:a {:href "mailto:staffing@flapagan.org&subject=Application+for+staff+position"}
         "staffing@flapagan.org"]
+       [:div
+        [:h3 "Staff Application"]
+        [text/text-input {:cursor guest
+                          :keys :address
+                          :rows 2
+                          :label "Street address"}]
+        [text/text-input {:cursor guest
+                          :keys :city
+                          :rows 1
+                          :format util/name-case
+                          :validate util/a-name?
+                          :label "City"}]
+        [:div "State, ZIP/Postal code, Country"
+         [text/text-input {:cursor guest
+                           :keys :state
+                           :rows 0
+                           :size 3
+                           :label "State"
+                           :placeholder "FL"}]
+         [text/text-input {:cursor guest
+                           :keys :postal-code
+                           :rows 0
+                           :size 6
+                           :label "ZIP/Postal Code"
+                           :placeholder "32109"}]
+         [text/text-input {:cursor guest
+                           :keys :country
+                           :rows 0
+                           :size 3
+                           :label "Country"
+                           :placeholder "US"}]]
+        [text/text-input {:cursor guest
+                          :keys :social-network
+                          :label "Social network info"
+                          :rows 3
+                          :placeholder "I camp with the Pillaging Spores"}]
+        [text/text-input {:cursor guest
+                          :keys :coven
+                          :label "Coven/group affiliations"
+                          :rows 3
+                          :placeholder "I worship with the Bitter Bunny Coven"}]
+        [text/text-input {:cursor guest
+                          :keys :spiritual-path
+                          :label "Spiritual path"
+                          :rows 1
+                          :placeholder "Standing Stones Wicca"}]
+        [text/text-input {:cursor guest
+                          :keys :staff-rec
+                          :label "Staff member(s) who recommended you"
+                          :rows 2}]
+        [text/text-input {:cursor guest
+                          :keys :why-staff
+                          :label "Why do you want to join the FPG Staff?"
+                          :rows 3}]
+        [text/text-input {:cursor guest
+                          :keys :staff-job-wanted
+                          :label "What staff job(s) would you like to do?"
+                          :rows 3}]
+        [text/text-input {:cursor guest
+                          :keys :physical-limits
+                          :label "List any physical limitations which might
+                          limit your ability to perform some staff jobs"
+                          :rows 3}]
+        [text/text-input {:cursor guest
+                          :keys :ksa
+                          :label "List any special knowlege, skills, or
+                          abilities that might be useful"
+                          :rows 3}]
+        [text/text-input {:cursor guest
+                          :keys :staff-wed-sun
+                          :label "All staff are expected to be on-site from
+                          Wednesday morning, until the entire camp is packed
+                          up Sunday afternoon/evening. Would this pose any
+                          problems for you?"
+                          :rows 1}]
+        [text/text-input {:cursor guest
+                          :keys :staff-tue-sun
+                          :label "Some staff are expected to be on-site
+                          starting Tuesday. Would this pose any problems
+                          for you?"
+                          :rows 1}]
+        [text/text-input {:cursor guest
+                          :keys :staff-notes
+                          :label "Any other notes you'd like to share with
+                          FPG Staffing?"
+                          :rows 3}]
+        [radio/radio-set {:cursor guest
+                          :keys :staff-submit
+                          :tags [[:yes "Yes, please submit my staff application"]
+                                 [:no "I've changed my mind. Disregard this."]]}]
+        [:p "Staff applications are submitted with your registration. Click ←
+        or ✓ to continue with you registration."]]
        [:button {:on-click (fn []
                              (swap! guest assoc :staff-apply? false)
                              true)}
         "←"]]
       
-      (:staff-verify? @guest)
+      (or (staff/staff? @guest)
+          (:staff-verify? @guest))
       [:fieldset [:legend "Already a staff member?"]
        "Please select the name of your department:"
        [radio/radio-set {:cursor guest
-                         :keys :staff-lugal
-                         :tags (map (fn [[dept-label {:keys [name]}]] 
-                                      [dept-label name])
-                                 staff/+departments+)}]]
+                         :keys :staff-department 
+                         :label "Department"
+                         :tags (conj (map (fn [[dept-label {:keys [name]}]] 
+                                            [dept-label name])
+                                       staff/+departments+)
+                                     [nil "I am not on staff"])}]
+       [:button {:on-click (fn []
+                             (swap! guest assoc :staff-verify? false)
+                             true)}
+        "←"]]
       
       :else
       [:fieldset [:legend "Join the Staff!"]
@@ -274,8 +377,8 @@
                               (or (:called-by @guest) "")
                               " "
                               (:surname @guest))}
-           (or (:called-by @guest)
-               (:given-name @guest)) ]])])))
+           [:big (or (:called-by @guest)
+                     (:given-name @guest))] ]])])))
 
 
 (defn email-cell [guest]
@@ -319,92 +422,102 @@
             (abbr* "📞" phone)
             (abbr* "⃠" "No telephone number"))])])))
 
+(defn edit-ticket-cell [guest editing]
+  [:div {:class "pop-out"}
+   (cond
+     (staff/lugal+? @guest)
+     [:p {:class "hint"} "As a lugal (or higher) staff member, your
+            admission is free. You may also admit your spouse at a
+            discounted rate."]
+     
+     (staff/staff? @guest)
+     [:p {:class "hint"} 
+      "Staff members receive discounted admission."]
+     
+     :else
+     (let [tag-list [[:adult (str "🎫" (person-icon guest) " Adult")]]
+           tag-list (if (nil? (:spouse @guest))
+                      (conj 
+                       (conj tag-list 
+                             [:child "🎫🚸 Child (ages 5→17)"])
+                       [:baby "🎫🚶 Child (birth→4 years)"])
+                      tag-list)]
+       [:div 
+        [radio/radio-set {:label "Ticket type"
+                          :cursor guest
+                          :key :ticket-type
+                          :tags tag-list}]
+        (when (not= :baby (:ticket-type @guest))
+          [suggest-staff-apply guest])]))
+   
+   [:div "With currently-selected days, " (util/format-money (ticket-price @guest))]
+   
+   ;; [marital-edit guest]
+   (ed/close editing)])
+
+(defn ticket-cell-icon [guest editing]
+  [:div (ed/click-edit editing :ticket-type)
+   (case (:ticket-type @guest)
+     :child (abbr* "🎫🚸" "Child" "Children from ages 5 through 17")
+     :baby (abbr* "🎫🚶" "Baby" "Children from birth to 4 years old")
+     (abbr* (str "🎫" (person-icon guest))
+            "Adult" "Adults (18+)"))
+   
+   " "
+   (cond
+     (staff/lugal+? guest)
+     (abbr* "𒈗" "Lugal" "Lugals head each department. This ticket type also
+     includes Division Coördinators or members of the Board of Directors.")
+     
+     (lugal+-spouse? guest) 
+     (abbr* (str "𒈗" (couple-icon @guest)) "Lugal spouse"
+            "Spouse of a lugal (or DC or board member)")
+     
+     (staff/staff? @guest) 
+     (abbr* "⛤" "Staff" "General staff members (not a lugal)"))])
+
 (defn ticket-cell [guest]
   (let [editing (atom false)]
     (fn [guest]
-      [:td 
-       (if @editing
-         [:div {:class "pop-out"}
-          (cond
-            (staff/lugal+? guest)
-            [:p {:class "hint"} "As a lugal (or higher) staff member, your
-            admission is free. You may also admit your spouse at a
-            discounted rate."]
-            
-            (staff/staff? @guest)
-            [:p {:class "hint"} 
-             "Staff members receive discounted admission."]
-            
-            :else
-            (let [tag-list [[:adult (str "🎫" (person-icon guest) " Adult")]]
-                  tag-list (if (nil? (:spouse @guest))
-                             (conj 
-                              (conj tag-list 
-                                    [:child "🎫🚸 Child (ages 5→17)"])
-                              [:baby "🎫🚶 Child (birth→4 years)"])
-                             tag-list)]
-              [:div 
-               [radio/radio-set {:label "Ticket type"
-                                 :cursor guest
-                                 :key :ticket-type
-                                 :tags tag-list}]
-               (when (not= :baby (:ticket-type @guest))
-                 [suggest-staff-apply guest])]))
-          
-          [:div "With currently-selected days, " (util/format-money (ticket-price @guest))]
-          
-          ;; [marital-edit guest]
-          (ed/close editing)]
-         
-         [:div (ed/click-edit editing :ticket-type)
-          (case (:ticket-type @guest)
-            :child (abbr* "🎫🚸" "Child" "Children from ages 5 through 17")
-            :baby (abbr* "🎫🚶" "Baby" "Children from birth to 4 years old")
-            (abbr* (str "🎫" (person-icon guest))
-                   "Adult"))
-          
-          " "
-          (cond
-            (staff/lugal+? guest)
-            (abbr* "𒈗" "Lugal" "Lugals head each department. This ticket type also includes Division Coördinators or members of the Board of Directors.")
-            
-            (lugal+-spouse? guest) 
-            (abbr* (str "𒈗" (couple-icon @guest)) "Lugal spouse" "Spouse of a lugal (or DC or board member)")
-            
-            (staff/staff? @guest) 
-            (abbr* "⛤" "Staff" "General staff members (not a lugal)"))])])))
+      [:td (if @editing
+             [edit-ticket-cell guest editing]
+             [ticket-cell-icon guest editing])])))
+
+(defn editing-days-cell [guest editing]
+  [:div {:class "pop-out"}
+   (if (staff/staff? @guest)
+     [:div "Tuesday→Sunday"
+      [:div {:class "hint"} "Staff members are always a full week admission"]]
+     [radio/radio-set {:label "Days attending"
+                       :key :days
+                       :cursor guest
+                       :tags [[nil "Wednesday→Sunday" ]
+                              [:week-end "Friday→Sunday"]
+                              [:day "Any one day"]]}])
+   (ed/close editing)])
+
+(defn fixed-days-cell [guest editing]
+  [:div (ed/click-edit editing :days)
+   (abbr* (case (:days @guest)
+            :day "Day"
+            :week-end "Fri-Sun"
+            nil (str (if (staff/staff? @guest)
+                       "Tue"
+                       "Wed") "-Sun"))
+          (case (:days @guest)
+            :day "Any one day"
+            :week-end "Week-end only, Friday→Sunday"
+            nil (str "Full week, "
+                     (if (staff/staff? @guest)
+                       "Tuesday"
+                       "Wednesday") "→Sunday")))])
 
 (defn days-cell [guest]
   (let [editing (atom false)]
     (fn [guest]
-      
-      [:td 
-       (if @editing
-         [:div {:class "pop-out"}
-          (if (staff/staff? @guest)
-            [:div "Tuesday→Sunday"
-             [:div {:class "hint"} "Staff members are always a full week admission"]]
-            [radio/radio-set {:label "Days attending"
-                              :key :days
-                              :cursor guest
-                              :tags [[nil "Wednesday→Sunday" ]
-                                     [:week-end "Friday→Sunday"]
-                                     [:day "Any one day"]]}])
-          (ed/close editing)]
-         [:div (ed/click-edit editing :days)
-          (abbr* (case (:days @guest)
-                   :day "Day"
-                   :week-end "Fri-Sun"
-                   nil (str (if (staff/staff? @guest)
-                              "Tue"
-                              "Wed") "-Sun"))
-                 (case (:days @guest)
-                   :day "Any one day"
-                   :week-end "Week-end only, Friday→Sunday"
-                   nil (str "Full week, "
-                            (if (staff/staff? @guest)
-                              "Tuesday"
-                              "Wednesday") "→Sunday")))])])))
+      [:td (if @editing
+             [editing-days-cell guest editing]
+             [fixed-days-cell guest editing])])))
 
 (defn lodging-cell [guest]
   (let [editing (atom false)]
@@ -418,12 +531,10 @@
                             :tags [ [:tent "⛺ Tent camping"]
                                     [:cabin (str "🏡 Cabin bunk (" 
                                                  (util/format-money 
-                                                  ((if (staff/staff? @guest) :staff :regular)
-                                                   (:cabin @d/prices))) ")")]
+                                                  (cabin-price guest)) ")")]
                                     [:lodge (str "🏠 Lodge bunk ("
                                                  (util/format-money 
-                                                  ((if (staff/staff? @guest) :staff :regular)
-                                                   (:cabin @d/prices))) ")")] ]}]
+                                                  (lodge-price guest)) ")")] ]}]
           (ed/close editing)]
          [:div (ed/click-edit editing :sleep)
           (case (:sleep @guest)
@@ -492,7 +603,7 @@
                             :key :tote?
                             :tags [[true "💼 Tote bag"]
                                    [false "⃠ No tote bag"]] }]
-          [:div (str "Price: " (util/format-money (merch/price-coffee-mug)))]
+          [:div (str "Price: " (util/format-money (merch/price-tote)))]
           [:p {:class "hint"}
            "Buy other merchandise below, under "
            [:q "Extras."]]

@@ -98,7 +98,8 @@
   (get +staff-mail+ person))
 
 (defn staff? [person]
-  (get +staff-mail+ (:e-mail person)))
+  (or (get +staff-mail+ (:e-mail person))
+      (:staff-department person)))
 
 (defn lugal+? [person]
   (when-let [staff-id (staff-id person)]

@@ -73,12 +73,15 @@
                          :border-radius "1ex"
                          :padding "8pt"}}
             (when (empty? @d/guests)
-              [:div "To get started: Enter your first and last name (or
-              the first and last name of the party's “leader.”) Your
-              registration will be “filed under” this person's
-              name. Please use your name as it appears on your ID. (If
-              you have two first names, enter them with a hyphen:
-              Bruce-Robert, Ann-Marie, Billy-Bob.)"])
+              [:div 
+               [:h3 "To get started:"]
+               [:p [:big "Enter your first and last name, "]
+                [:small "or the first and last name of the party's “leader.”
+                Your registration will be “filed under” this person's
+                name. "]]
+               [:p "Please use your name as it appears on your ID. " 
+                [:small "(If you have two first names, enter them with a
+               hyphen: Bruce-Robert, Ann-Marie, Billy-Bob.)"]]])
             
             ^{:key (str "add-person-" (inc (count @d/guests)))}
             [text/text-input {:cursor new-name
@@ -139,17 +142,18 @@
              ]
    [:section {:class "card"}
     [:h2 (if-let [leader (first @d/guests)]
-           (str (or (when-let [surname (:surname @leader)] (str surname " — "))
-                    "Unnamed")
+           (str (if-let [surname (:surname @leader)] 
+                  (str surname " — ")
+                  "Unnamed")
                 " Party of " (util/counting (count @d/guests) "Guest"))
            "New party")]
     
     [:table {:class "people"}
-     [guests-thead]
+     (when-not (empty? @d/guests) [guests-thead])
      [:tbody
       (doall (for [guest @d/guests]
-           ^{:key (str (:given-name @guest) "∈" (:surname @guest))}
-           [guest/guest-row guest]))]
+               ^{:key (str (:given-name @guest) "∈" (:surname @guest))}
+               [guest/guest-row guest]))]
      
      [:tfoot 
       [add-person-row]

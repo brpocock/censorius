@@ -713,8 +713,8 @@ abbr {
     cursor: -webkit-zoom-in; cursor: -moz-zoom-in;
 }
 
-.merch-rows::nth-child(even) {
-    background-color: red;
+.merch-rows:nth-child(even) {
+    background-color: #ccc;
 }
 
 .merch-price-col, .merch-subtotal-col {

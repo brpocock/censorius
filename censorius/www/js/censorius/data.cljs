@@ -34,42 +34,47 @@
                        :lodge {:regular 60 :staff 45}}))
 
 
-(defonce merch (atom {:general-shirt 
-                      (atom {:title "FPG General T-Shirt"
-                             :description "The FPG general T-shirt"
-                             :image "/merch/tshirt_Gen.png"
-                             :price 50
-                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                      {:id :s :title "Small" :qty 0 :inventory 2}
-                                      {:id :m :title "Medium" :qty 0 :inventory 0}
-                                      {:id :l :title "Large" :qty 0 :inventory 0}
-                                      {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
-                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 2}
-                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 2}]})
+(defonce merch (atom {
+                      ;; :general-shirt 
+                      ;; (atom {:title "FPG General T-Shirt"
+                      ;;        :description "The FPG general T-shirt"
+                      ;;        :image "/merch/tshirt_Gen.png"
+                      ;;        :price 50
+                      ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                      ;;                 {:id :s :title "Small" :qty 0 :inventory 2}
+                      ;;                 {:id :m :title "Medium" :qty 0 :inventory 0}
+                      ;;                 {:id :l :title "Large" :qty 0 :inventory 0}
+                      ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                      ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                      ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
+                      ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 2}
+                      ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 2}]})
                       :tote-bag 
-                      (atom {:title "FPG Tote Bag"
+                      (atom {:id :tote-bag
+                             :title "FPG Tote Bag"
                              :description "The tote bag with the FPG logo"
                              :image "/merch/tote-bag.jpeg"
                              :price 35
                              :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 13}]})
                       :coffee
-                      (atom {:title "FPG Coffee Mug"
+                      (atom {:id :coffee
+                             :title "FPG Coffee Mug"
                              :price 7
                              :description "The FPG thermal coffee mug is great for other beverages, too"
                              :image "/merch/tote-bag.jpeg"
-                             :styles [{:id :tote :title "Coffee mug" :qty 0 :inventory 140}]})
+                             :styles [{:id :mug :title "Coffee mug" :qty 0 :inventory 140}]})
                       :water
-                      (atom {:title "FPG Water Bottle"
+                      (atom {:id :water
+                             :title "FPG Water Bottle"
                              :price 25
                              :description "The FPG water bottle is great for other beverages, too"
                              :image "/merch/tote-bag.jpeg"
-                             :styles [{:id :tote :title "Water bottle" :qty 0 :inventory 62}]})
+                             :styles [{:id :water :title "Water bottle" :qty 0 :inventory 62}]})
                       :festival-shirt
-                      (atom {:title "Festival T-Shirt"
-                             :description "The new T-shirt for Beltane 2015"
-                             :image "/merch/tshirtS14.png"
+                      (atom {:id :festival-shirt
+                             :title "Festival T-Shirt"
+                             :description "The new T-shirt for this festival"
+                             :image "/merch/tshirt-fest.png"
                              :price 75
                              :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
                                       {:id :s :title "Small" :qty 0 :inventory 999}
@@ -80,78 +85,79 @@
                                       {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
                                       {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
                                       {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
-                      :shirt-b13
-                      (atom {:title "Beltane 2013 T-shirt"
-                             :description "The T-shirt from Beltane 2013"
-                             :image "/merch/tshirtB13.png"
-                             :price 798
-                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                      {:id :s :title "Small" :qty 0 :inventory 0}
-                                      {:id :m :title "Medium" :qty 0 :inventory 0}
-                                      {:id :l :title "Large" :qty 0 :inventory 0}
-                                      {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
-                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
-                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
-                      :shirt-s13
-                      (atom {:title "Samhain 2013 T-shirt"
-                             :description "The T-shirt from Samhain 2013"
-                             :image "/merch/tshirtS13.png"
-                             :price 798
-                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                      {:id :s :title "Small" :qty 0 :inventory 0}
-                                      {:id :m :title "Medium" :qty 0 :inventory 0}
-                                      {:id :l :title "Large" :qty 0 :inventory 0}
-                                      {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 3}
-                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 0}
-                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 1}
-                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
-                      :tank-s13
-                      (atom {:title "Samhain 2013 Tank top"
-                             :description "The Tank top shirt from Samhain 2013"
-                             :image "/merch/tshirtS13.png"
-                             :price 798
-                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                      {:id :s :title "Small" :qty 0 :inventory 1}
-                                      {:id :m :title "Medium" :qty 0 :inventory 3}
-                                      {:id :l :title "Large" :qty 0 :inventory 3}
-                                      {:id :xl :title "Extra-large" :qty 0 :inventory 3}
-                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 1}
-                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
-                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 0}]})}))
+                      ;; :shirt-b13
+                      ;; (atom {:title "Beltane 2013 T-shirt"
+                      ;;        :description "The T-shirt from Beltane 2013"
+                      ;;        :image "/merch/tshirtB13.png"
+                      ;;        :price 798
+                      ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                      ;;                 {:id :s :title "Small" :qty 0 :inventory 0}
+                      ;;                 {:id :m :title "Medium" :qty 0 :inventory 0}
+                      ;;                 {:id :l :title "Large" :qty 0 :inventory 0}
+                      ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                      ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                      ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
+                      ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
+                      ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
+                      ;; :shirt-s13
+                      ;; (atom {:title "Samhain 2013 T-shirt"
+                      ;;        :description "The T-shirt from Samhain 2013"
+                      ;;        :image "/merch/tshirtS13.png"
+                      ;;        :price 798
+                      ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                      ;;                 {:id :s :title "Small" :qty 0 :inventory 0}
+                      ;;                 {:id :m :title "Medium" :qty 0 :inventory 0}
+                      ;;                 {:id :l :title "Large" :qty 0 :inventory 0}
+                      ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                      ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 3}
+                      ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 0}
+                      ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 1}
+                      ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
+                      ;; :tank-s13
+                      ;; (atom {:title "Samhain 2013 Tank top"
+                      ;;        :description "The Tank top shirt from Samhain 2013"
+                      ;;        :image "/merch/tshirtS13.png"
+                      ;;        :price 798
+                      ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                      ;;                 {:id :s :title "Small" :qty 0 :inventory 1}
+                      ;;                 {:id :m :title "Medium" :qty 0 :inventory 3}
+                      ;;                 {:id :l :title "Large" :qty 0 :inventory 3}
+                      ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 3}
+                      ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                      ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 1}
+                      ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
+                      ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 0}]})
+                      }))
 
 
 
-(defonce people (atom {:brfp {:given-name ["Bruce-Robert"]
-                              :surname ["Pocock"]
-                              :dob {:year 1977 :month 10 :day 21}
-                              :e-mail [[:personal "brpocock@star-hope.org"]
-                                       [:personal "brpocock@gmail.com"]]
-                              :phone [[:mobile "321-396-2625"]]
-                              :rel [[:spouse :sage]]}
-                       :diane {:given-name ["Diane"]}
-                       :sage {:given-name ["John"]
-                              :surname ["Starkie"]
-                              :called-by ["Sage"]
-                              :rel [[:spouse :brfp]]}
-                       :annemarie {:given-name ["Ann Marie"]
-                                   :surname ["Augustino"]
-                                   :e-mail [[:personal "ama422@aol.com"]]}
-                       :mystral {:given-name ["Sue Anne"]
-                                 :surname ["Gould"]
-                                 :called-by ["Mystral"]
-                                 :rel [[:spouse :thor]
-                                       [:child :soren]]}
-                       :thor {:given-name ["John"]
-                              :surname ["Gould"]
-                              :called-by ["Thor"]
-                              :rel [[:spouse :mystral]
-                                    [:child :soren]]}
+;; (defonce people (atom {:brfp {:given-name ["Bruce-Robert"]
+;;                               :surname ["Pocock"]
+;;                               :dob {:year 1977 :month 10 :day 21}
+;;                               :e-mail [[:personal "brpocock@star-hope.org"]
+;;                                        [:personal "brpocock@gmail.com"]]
+;;                               :phone [[:mobile "321-396-2625"]]
+;;                               :rel [[:spouse :sage]]}
+;;                        :diane {:given-name ["Diane"]}
+;;                        :sage {:given-name ["John"]
+;;                               :surname ["Starkie"]
+;;                               :called-by ["Sage"]
+;;                               :rel [[:spouse :brfp]]}
+;;                        :annemarie {:given-name ["Ann Marie"]
+;;                                    :surname ["Augustino"]
+;;                                    :e-mail [[:personal "ama422@aol.com"]]}
+;;                        :mystral {:given-name ["Sue Anne"]
+;;                                  :surname ["Gould"]
+;;                                  :called-by ["Mystral"]
+;;                                  :rel [[:spouse :thor]
+;;                                        [:child :soren]]}
+;;                        :thor {:given-name ["John"]
+;;                               :surname ["Gould"]
+;;                               :called-by ["Thor"]
+;;                               :rel [[:spouse :mystral]
+;;                                     [:child :soren]]}
 
-                       :soren {:given-name ["Soren"]
-                               :surname ["Gould"]
-                               :rel [[:parent :mystral]
-                                     [:parent :thor]]}}))
+;;                        :soren {:given-name ["Soren"]
+;;                                :surname ["Gould"]
+;;                                :rel [[:parent :mystral]
+;;                                      [:parent :thor]]}}))

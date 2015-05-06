@@ -1,16 +1,12 @@
 (ns censorius.page
   (:require
-
-   ;; [cljs-uuid-utils :as uuid]
    [clojure.string :as string]
-   [datascript :as data]
    [goog.events :as events]
    [goog.history.EventType :as EventType]
    [reagent.core :as reagent :refer [atom]]
    [reagent.session :as session]
    [secretary.core :as secretary :refer-macros [defroute]]
 
-   ;; [censorius.address :as address]
    [censorius.data :as d]
    [censorius.guest :as guest]
    [censorius.merch :as merch]
@@ -47,7 +43,7 @@
                           (:given-name (:presenter @workshop)))]])]]])
          [:div "Disabled for now. Contact " [:a {:href "mailto:workshops@flapagan.org"}
                                              "workshops@flapagan.org"] ", please."]
-         #_
+         
          [:tfoot [:tr [:td {:col-span 2}
                        [text/text-input {:cursor new
                                          :keys :title 
@@ -130,12 +126,17 @@
                         :placeholder ""
                         :rows 2}]])])
 
+(defn need-adult-email []
+  (empty? (filter #(and (= :adult (:ticket-type %))
+                        (not (nil? (:e-mail %)))) @d/guests)))
+
 (defn assistant-box [props children self]
   [:section {:id "assistant"}
    [:h2 "Assistant"]
 
    (if (empty? @d/guests)
-     [:div [:h4 "Getting Started"]
+     [:div 
+      [:h4 "Getting Started"]
       [:p "First, enter the (legal) name of your party's leader. Since you're
                                       entering this, that's probably you! This
                                       will be the name that your registration
@@ -149,8 +150,7 @@
        column to fill in their complete details."]
       [:p "You can add as many party members as you need to."]])
 
-   (if (nil? (filter #(and (= :adult (:ticket-type %))
-                           (not (nil? (:e-mail %)))) @d/guests))
+   (if (need-adult-email)
      [:div [:h4 {:class "warning"} "eMail Address Needed"]
       [:p "The eMail address of at least one adult in the party must be provided."]])
 
@@ -248,19 +248,42 @@
 (defn scholarship-donations-amount []
   (reduce + (map util/just-decimal (vals @d/scholarships))))
 
+(defn total-due []
+  (+ (guest-list/price-all-guests)
+     (merch/price-all-merch)
+     (price-vendor)
+     (scholarship-donations-amount)))
+
 (defn check-out-box []
-  (when (or (not (empty? @d/guests))
-            (pos? (scholarship-donations-amount)))
-    [:section {:class "card"}
-     [:h2 "Ready to check out?"]
-     [:div {:class "buttonBox"}
-      " Total: " (util/format-money (+ (guest-list/price-all-guests)
-                                       (merch/price-all-merch)
-                                       (price-vendor)
-                                       (scholarship-donations-amount)))
-      [:button "Don't Pay Yet"]
-      [:p {:class "hint"}
-       "This is a DEMONSTRATION only."]]]))
+  (let [pay (atom nil)]
+    (fn []
+      (if (pos? (total-due))
+        [:section {:class "card"}
+         [:h2 "Ready to check out?"]
+         [:table {:style {:width "auto"}}
+          [:tr [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))]]
+          [:tr [:th "Extras"] [:td (util/format-money (merch/price-all-merch))]]
+          [:tr [:th "Vending"] [:td (util/format-money (price-vendor))]]
+          [:tr [:th "Scholarships"] [:td (util/format-money (scholarship-donations-amount))]]]
+         [:div {:class "buttonBox"}
+          [:big " Total: " (util/format-money (total-due))]
+          [:br] " " [:br]
+          [:button
+           {:on-click (fn [ev]
+                        )}
+           "Ready, Check Out →"]
+          [:p {:class "hint"}
+           "This is a DEMONSTRATION only. Payments are NOT being accepted
+        yet. The amount above, however, is the amount you would be asked
+        to pay."]
+          
+          [:button
+           {:on-click (fn [ev]
+                        )}
+           "Wait; There's more…"]
+          [:p {:class "hint"}
+           "The "]]]
+        [:span]))))
 
 (defn registration-page []
   [:div

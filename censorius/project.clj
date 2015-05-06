@@ -18,7 +18,6 @@
                  [com.facebook/react "0.12.2"]
                  [cljs-ajax "0.3.9"]
                  [compojure "1.3.1"]
-                 [datascript "0.7.2"]
                  [enlive "1.1.5"]
                  [environ "1.0.0"]
                  [figwheel "0.1.5-SNAPSHOT"]

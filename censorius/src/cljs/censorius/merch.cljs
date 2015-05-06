@@ -32,104 +32,93 @@
 (defn sum-merch-prices []
   [:span (util/format-money (price-all-merch))])
 
-(defn product-style [item index]
-  (let [style (get (:styles @item) index)]
-    [:div {:key (str (:id @item) "∋" (:id style))} 
-     ;; (println " style " style " for item " (:id @item))
-     (if (zero? (:inventory style))
-       [:div [:small (:title style) " — Sold out."]]
-       [:div [:strong (:qty style) " × " (.toUpperCase (str (:id style)))] " — "
-        [:button {:on-click #(swap! item assoc-in [:styles index :qty] 
-                                    (max 0 
-                                         (dec (get-in @item [:styles index :qty]))))
-                  :class (when (pos? (:qty style)) "false")
-                  :disabled (zero? (:qty style))}
-         "-"]
-        (util/counting (get-in @item [:styles index :qty]) (:title style))
-        [:button {:on-click #(swap! item assoc-in [:styles index :qty] 
-                                    (min (get-in @item [:styles index :inventory]) 
-                                         (inc (get-in @item [:styles index :qty]))))
-                  :class (when (< (:qty style) (:inventory style)) "true")
-                  :disabled (>= (:qty style) (:inventory style))}
-         "+"]
-        #_
-        [text/text-input {:cursor item
-                          :keys [:styles index :qty]
-                          :label (:title style)
-                          :placeholder "0"
-                          :size 3
-                          :format util/just-digits
-                          :validate util/just-digits?}]
-        (when (> 10 (:inventory style))
-          [:div {:class "hint"} (util/counting (:inventory style) "item") " left"])])]))
+(defn purchased-for-guests [id]
+  (if (#{:festival-shirt :coffee :tote-bag} id)
+    (let [guest-tag (get id {:festival-shirt :t-shirt
+                             :coffee :coffee?
+                             :tote-bag :tote?})]
+      (count (filter #(get (deref %) guest-tag) 
+                     @d/guests)))
+    0))
 
-#_ (defn product-style-1 [item]
-     (let [style (first (:styles @item))]
-       [:div {:key (str (:id @item) "∋" (:id style))} 
-        (if (zero? (:inventory style))
-          [:div {:class "hint"} "Sold out."]
-          [:div (when (< (:inventory style) (:qty style))
-                  [:p [:strong {:class "warning"}
-                       "Please change your order."]
-                   " Only " (string/lower-case (util/counting (:inventory style) "item"))
-                   " of this style remain. You'll need to remove "
-                   (string/lower-case (util/counting (- (:qty style) (:inventory style))
-                                                     "item"))
-                   " from your order."
-                   (let [left (:inventory style)]
-                     [:button {:class "false" :on-click #(swap! style assoc :qty left)}
-                      "😦 Change to " left])])
-           [text/text-input {:cursor item
-                             :keys [:styles 0 :qty]
-                             :placeholder "0"
-                             :rows 0 :size 3
-                             :format util/just-digits
-                             :validate util/just-digits?}]
-           (when (> 10 (:inventory style))
-             [:div {:class "hint"}
-              (util/counting (:inventory style) "item") " left"])
-           (when (< (:inventory style) (:qty style))
-             [running-out-style style])])]))
+(defn product-style [item index monostyle?]
+  (let [style (get (:styles @item) index)
+        sold (+ (:qty style)
+                (purchased-for-guests item))]
+    (if (zero? (:inventory style))
+      [:tr {:key (str (:id @item) "∋" (:id style))} 
+       [:td {:col-span 4}
+        [:small (:title style) " — Sold out."]]]
+      (let [can< (> (:qty style) (purchased-for-guests item))
+            can> (< sold (:inventory style))]
+        [:tr {:key (str (:id @item) "∋" (:id style))} 
+         [:td [:strong sold "×"  
+               (if monostyle?
+                 (.toUpperCase (str (:id style))))]]
+         [:td [:button {:on-click #(swap! item assoc-in [:styles index :qty] 
+                                          (max 0
+                                               (dec (get-in @item [:styles index :qty]))))
+                        :class (when can< "false")
+                        :disabled (not can<)}
+               "-"]]
+         [:td (util/counting sold (:title style))]
+         [:td [:button {:on-click #(swap! item assoc-in [:styles index :qty] 
+                                          (min (get-in @item [:styles index :inventory]) 
+                                               (inc (:qty style))))
+                        :class (when can> "true")
+                        :disabled (not can>)}
+               "+"]]])
+      (when (> (max 10 (- sold 5)) (:inventory style))
+        [:tr {:key (str (:id @item) "∋" (:id style) "⚠")} 
+         [:td ""]
+         [:td {:col-span 3 :class "hint"} (util/counting (:inventory style) "item") " left"]]))))
+
+(defn available-styles [item]
+  (map :title (filter #(not (zero? (:inventory %))) (:styles @item))))
+
+(defn style-names-string [styles]
+  (if (< 3 (count styles))
+    (flatten [(take 3 styles)
+              (str "and "
+                   (.toLowerCase (util/counting (- (count styles) 4) "other")))])
+    styles))
+
+(defn product-style-hidden [item open?]
+  (if (and (zero? (reduce + (map :qty (:styles @item))))
+           (not @open?)) 
+    [:td {:key (:id @item)
+          :on-click (fn [_] (swap! open? (fn [_] true)) nil)
+          :class "zoom"}
+     [:strong "Styles: "] 
+     [:small (string/join ", " (style-names-string (available-styles item)))]
+     [:button "⍐"]]
+    [:td {:key (:id @item)}
+     [:table
+      (doall (map (fn [style-index] [product-style item style-index true]) 
+               (range (count (:styles @item)))))]
+     (when (zero? (reduce + (map :qty (:styles @item))))
+       (censorius.editable/close open?))]))
 
 (defn product-row [[id item]]
   (let [open? (atom false)]
     (fn [[id item]]
       [:tr {:key (str "merch-" id)
             :class "merch-rows"}
-       [:th [:img {:src (:image @item)
-                   :class "merch-thumb"}] (:title @item)
+       [:th ;; [:img {:src (:image @item)
+        ;;        :class "merch-thumb"}]
+        (:title @item)
         [:p {:class "hint"} (:description @item)]]
        [:td (util/format-money (:price @item))]
-       [:td (if (= 1 (count (:styles @item)))
-              [product-style item 0]
-              (if (and (zero? (reduce + (map :qty (:styles @item))))
-                       (not @open?)) 
-                [:div {:on-click (fn [_] (swap! open? (fn [_] true)) nil)
-                       :class "zoom"}
-                 [:strong "Styles: "] 
-                 [:small 
-                  (let [styles (map :title (filter #(not (zero? (:inventory %))) (:styles @item)))
-                        styles (if (< 3 (count styles))
-                                 (flatten [(take 3 styles)
-                                           (str "and "
-                                                (.toLowerCase (util/counting (- (count styles) 4) "other")))])
-                                 styles)]
-                    (string/join ", " styles))]
-                 [:button "⍐"]]
-                [:div
-                 (doall (map #(product-style item %) (range (count (:styles @item)))))
-                 (when (zero? (reduce + (map :qty (:styles @item))))
-                   (censorius.editable/close open?))]))
-        (when (#{:festival-shirt :coffee :tote-bag} id)
-          (let [guest-tag (get id {:festival-shirt :t-shirt
-                                   :coffee :coffee?
-                                   :tote-bag :tote?})
-                purchased (count (filter #(get (deref %) guest-tag) 
-                                         @d/guests))] 
-            [:p {:class "hint"}
-             "Plus "  (util/counting purchased (:title @item)) " purchased for "
-             (if (= 1 purchased) " a guest " " guests ")
-             " (above)."]))]
+       (if (= 1 (count (:styles @item)))
+         [:td [:table [product-style item 0 false]]]
+         [product-style-hidden item open?])
+
+       (let [purchased (purchased-for-guests id)]
+         (if (pos? purchased)
+           [:p {:class "hint"}
+            "Plus " (util/counting purchased (:title @item)) " purchased for "
+            (if (= 1 purchased) " a guest " " guests ")
+            " (above)."]))
        [:td (util/format-money (* (reduce + (map :qty (:styles @item)))
                                   (:price @item)))]])))
 
@@ -146,7 +135,7 @@
                [:th {:class "merch-item-col"} "Item"] 
                [:th {:class "merch-price-col"} "Price"] 
                [:th {:class "merch-wide-col"} "Style / Qty."] 
-               [:th {:class "merch-subtotal-col"} ""]]]
+               [:th {:class "merch-subtotal-col"} "Sum"]]]
       [:tbody (doall (map (fn [item] [product-row item]) @d/merch))]
       [:tfoot [:tr [:th {:col-span 3} "Subtotal"]
                [:td [sum-merch-prices]]]]]]))
