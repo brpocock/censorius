@@ -1,0 +1,13 @@
+#!/bin/sh
+PATH=~/bin:$PATH
+buildapp --output herald \
+	--logfile herald.buildapp.log \
+	--load ~/quicklisp/setup.lisp \
+	--asdf-path $(pwd) \
+	--eval '(mapcar (quote ql:quickload) (quote (:alexandria  #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi :cl-ppcre :trivial-backtrace  :clsql-sqlite :cl-paypal :split-sequence :flexi-streams :cl-sendmail :memoize)))' \
+	--load herald-fcgi \
+	--dispatched-entry herald.cgi/herald-fcgi::exec-cgi \
+	--dispatched-entry herald.fcgi/herald-fcgi::exec-fcgi \
+	--dispatched-entry /herald-fcgi::exec-cgi \
+&& ln -f ./herald ../fpgrocks.org/herald.cgi \
+&& echo 'Victory is mine.'
