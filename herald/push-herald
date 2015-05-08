@@ -1,0 +1,6 @@
+#!/bin/sh
+cd ~/Projects/censorius
+rsync -r -essh ./censorius/www/*  fpgrocks@fpgrocks.org:fpgrocks.org/reg/
+rsync -essh ./herald/herald-fcgi.lisp fpgrocks@fpgrocks.org:herald/
+ssh -l fpgrocks fpgrocks.org /home/fpgrocks/herald/build-herald
+

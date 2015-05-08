@@ -483,6 +483,7 @@
 ;; need to run this after routes have been defined
 
 (defn init! []
+  (cljs.reader/read-string )
   (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))
 
 

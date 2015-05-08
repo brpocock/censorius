@@ -33,9 +33,9 @@
   :test #'equal)
 
 
+;; compile-time constants
 
-(define-constant +compile-time+ #.(- (get-universal-time) 3639900000)
-                 :test '=)
+(defvar +compile-time+ (- (get-universal-time) 3639900000))
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
 
@@ -140,26 +140,77 @@ the external format EXTERNAL-FORMAT."
       (second (first sets))
       (mapcar #'second sets)))
 
-(org.tfeb.hax.memoize:def-memoized-function field (field-name)
+(defparameter *read-post-max* 4000000
+  "The maximum number of characters to allow to be read from a POST")
+
+(defparameter *read-post-buffer-start* 4000)
+(defparameter *read-post-buffer-grow* 4000)
+
+(defun read-post-data ()
+  (let ((read-amount 0)
+        (read-buffer (make-array *read-post-buffer-start* 
+                                 :element-type 'character
+                                 :adjustable t :fill-pointer 0)))
+    (tagbody 
+     read-loop
+       (let* ((the-end (array-dimension read-buffer 0))
+              (input-end (read-sequence read-buffer *standard-input* 
+                                        :start read-amount
+                                        :end the-end)))
+         (when (= input-end (1- the-end))
+           (setf read-amount input-end)
+           (adjust-array read-buffer (+ the-end *read-post-buffer-grow*))
+           (go read-loop))))
+    (setf (getf *request* :post-data) (copy-array read-buffer))))
+
+(defun query-params ()
+  (if-let ((query-params (getf *request* :query-params)))
+    query-params
+    (setf (getf *request* :query-params)
+          (mapcar (lambda (pair)
+                    (split-sequence #\= pair))
+                  (split-sequence
+                   #\& 
+                   (if (equal "POST" (getf *request* :request-method)) 
+                       (progn (unless (getf *request* :post-data)
+                                (read-post-data))
+                              (getf *request* :post-data))
+                       (uiop/os:getenv "QUERY_STRING")))))))
+
+(defun field (field-name)
   (etypecase field-name
     (symbol (field (string-downcase (string field-name))))
     (string 
      (ecase *cgi*
-       (:fast (fcgx-getparam field-name *request*))
-       (:cgi (first-or-only-second
-              (mapcar (curry #'mapcar #'url-decode)
-                      (remove-if-not (curry #'equal field-name) 
-                                     (mapcar (lambda (pair)
-                                               (split-sequence #\= pair))
-                                             (split-sequence #\& 
-                                                             (uiop/os:getenv "QUERY_STRING")))
-                                     :key #'first))))))))
+       (:fast
+        (fcgx-getparam field-name *request*))
+       (:cgi
+        (first-or-only-second
+         (mapcar (curry #'mapcar #'url-decode)
+                 (remove-if-not
+                  (curry #'equal field-name) 
+                  (query-params)
+                  :key #'first))))))))
 
 (defun reply-error/text (conditions)
   (reply (list :raw
                (format nil "Status: ~d~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}"
                        (first conditions) 
                        (mapcar #'princ-to-string (rest conditions))))))
+
+(defun sql-escape (string)
+  (regex-replace-all "\\'" string "''"))
+
+(defun cl-user::sql (stream object colonp atp &rest parameters)
+  (assert (not colonp))
+  (assert (not atp))
+  (assert (null parameters))
+  (etypecase object
+    (string (princ #\' stream)
+            (princ (sql-escape object) stream)
+            (princ #\' stream))
+    (integer (princ object stream))
+    (real (princ (* 1.0 object) stream))))
 
 (defun html-escape (string)
   (regex-replace-all "\\<" 
@@ -286,6 +337,12 @@ be reached at: ~a </p>
 
 (defun next-invoice-number () 
   (clsql:query "select 1 + max(id) from invoices"))
+
+(defun create-invoice () 
+  (clsql:execute-command 
+   (apply #'format nil "insert into invoices (created, \"festival-season\", \"festival-year\")
+values (date('now'),~/sql/,~/sql/)" (next-festival)))
+  (caar (clsql:query "select last_insert_rowid()")))
 
 
 (defun mail-registrar-completed-invoice (invoice)
@@ -453,10 +510,50 @@ cookie says “~36r.”
             (recall-link invoice)
             +compile-time+))
 
+(defun accept-general (invoice)
+  (clsql:execute-command
+   (format nil "update invoices set note=~/sql/ where id=~/sql/"
+           (field "note")
+           invoice)))
+
+(defmacro sql-insert-invoice-fields 
+    ((table) (&body columns))
+  `(clsql:execute-command
+    (format nil
+            "insert into \"invoice-~(~a~)\" (invoice, ~{\"~(~a~)\"~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
+            ',table
+            ,(loop for column in columns
+                collecting (list 'quote column))
+            invoice
+            ,(loop for column in columns
+                collecting `(field ,(intern (concatenate 'string
+                                                         table "∋" column)
+                                            :keyword))))))
+
+(defun accept-guests (invoice)
+  (sql-insert-invoice-fields (guests)
+                             (called-by given-name surname formal-name
+                                        presenter-bio presenter-requests
+                                        e-mail telephone
+                                        sleep eat day gender
+                                        t-shirt coffeep totep ticket-type)))
+(defun accept-extras (invoice)
+  )
+(defun accept-vendor (invoice))
+(defun accept-workshops (invoice))
+(defun accept-scholarships (invoice))
+
+(defun accept-state-from-form ()
+  (let ((invoice (next-invoice-number)))
+    (list :general (accept-general invoice)
+          :guests (accept-guests invoice)
+          :extras (accept-extras invoice)
+          :vendor (accept-vendor invoice)
+          :workshops (accept-workshops invoice)
+          :scholarships (accept-scholarships invoice))))
+
 (defun suspend-registration ()
-  (let ((to-save (mapcar (lambda (field-name)
-                           (list field-name (field field-name))) 
-                         +save-fields+)))
+  (let ((to-save (accept-state-from-form)))
     (format t "Content-Type: text/plain; charset=utf-8~2%")
     (princ "Imagine this just saved the thing and eMailed Bobbi Jo.")
     (format t "~&~{~{ Field ~:(~a~) = “~a” ~2%~}~}" to-save)
@@ -494,13 +591,20 @@ cookie says “~36r.”
     ((equal "pay" (field "verb"))
      (format t "Content-Type: text/plain; charset=utf-8~2%")
      (princ "Imagine this just asked for a payment."))
+    
     ((equal "test-pay" (field "verb"))
      (format t "Content-Type: text/plain; charset=utf-8~2%")
      (princ "Imagine I just tested PayPal with this."))
+    
     ((equal "recall" (field "verb"))
      (handle-recall))
+    
     ((equal "save" (field "verb"))
      (suspend-registration))
+    
+    ((equal "data" (field "get"))
+     (GET-data.clj))
+    
     (t (reply '(:error 404)))))
 
 (defun admin-key (invoice)
@@ -556,6 +660,16 @@ cookie says “~36r.”
 
 (defun herald-cgi ()
   (let ((*cgi* :cgi)
+        (*request* (mapcan (lambda (env-var)
+                             (list env-var
+                                   (uiop/os:getenv (substitute #\_ #\- (string env-var)))))
+                           '(:document-root :http-cookie :http-host
+                             :http-referer :http-user-agent :https
+                             :path :query-string :remote-addr
+                             :remote-host :remote-port :remote-user
+                             :request-method :request-uri :script-filename
+                             :script-name :server-admin :server-name
+                             :server-port :server-software)))
         (*trace-output* *error-output*))
     (block cgi
       (handler-case
@@ -574,11 +688,11 @@ cookie says “~36r.”
                                :database-type #+sbcl :sqlite3 #+ccl :sqlite)
      ,@body))
 
-(defun read-vending (&optional invoice))
+(defun read-vending (&optional invoice)) ; TODO
 
-(defun read-workshops (&optional invoice))
+(defun read-workshops (&optional invoice)) ; TODO
 
-(defun read-general (&optional invoice))
+(defun read-general (&optional invoice)) ; TODO
 
 (defun read-invoice (invoice)
   (list
@@ -601,7 +715,7 @@ cookie says “~36r.”
 where invoice=~d" 
                           invoice))))
     (loop for item in (remove-duplicates (mapcar #'first ordered))
-       collecting (loop for (item style qty) 
+       collecting (loop for (nil style qty) 
                      in (remove-if-not (lambda (row)
                                          (equal (first row) item)) ordered)
                      appending (list style qty)))))
@@ -732,12 +846,14 @@ where (starting is null or starting <= date('now'))
 
 (defun exec-repl (command-line)
   (ql:quickload :prepl)
-  (with-sql (eval (intern "REPL" :prepl))))
+  (with-sql 
+    (mapcar (compose #'eval #'read-from-string) command-line)
+    (funcall (intern "REPL" :prepl))))
 
 (defun init-db ()
   (with-sql
     (mapcar (lambda (expr) 
-              (handler-case  
+              (handler-case
                   (let* ((query-words (split-sequence #\Space expr)) 
                          (gerund (ecase (make-keyword (nth 0 query-words))
                                    (:|create| :creating)
