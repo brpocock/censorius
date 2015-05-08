@@ -2,7 +2,7 @@
 (require #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
 (require :cl-ppcre)
 (require :trivial-backtrace)
-(require :clsql-sqlite)
+(require #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite)
 (require :cl-paypal)
 (require :split-sequence)
 (require :flexi-streams)
@@ -38,6 +38,8 @@
                  :test '=)
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
+
+
 
 (defmacro upgrade-vector (vector new-type &key converter)
   "Returns a vector with the same length and the same elements as
@@ -105,10 +107,28 @@ the external format EXTERNAL-FORMAT."
 
 
 
+
+(defmacro interleave (&rest sets)
+  (let ((gensyms (loop for i below (length sets)
+                    collecting (gensym (or (and (consp (elt sets i))
+                                                (princ-to-string (car (elt sets i))))
+                                           (princ-to-string (elt sets i)))))))
+    `(loop 
+        ,@(loop for i below (length sets)
+             appending (list 'for (elt gensyms i) 'in (elt sets i)))
+        ,@(loop for i below (length sets)
+             appending (list 'collect (elt gensyms i))))))
+
+(defun interleave2 (set1 set2)
+  (interleave set1 set2))
+
+
 ;;;
 
 (defvar *cgi*)
 (defvar *request*)
+(defvar *sql*)
+
 
 (defun accept-type (content-type)
   (ecase *cgi*
@@ -148,26 +168,6 @@ the external format EXTERNAL-FORMAT."
                                         "&amp;")
                      "&lt;"))
 
-
-(defun print-condition/html (c)
-  (format nil "<section class=\"error\">
-<h2> A condition of type ~a was signaled. </h2>
-<h3>~a</h3>
-<ol class=\"backtrace\">
-~{~%<li>~a</li>~}
-</ol>
-</section>"
-          (html-escape (type-of c))
-          (html-escape c)
-          (let ((accumulator ())
-                (depth 0))
-            (trivial-backtrace:map-backtrace
-             (lambda (frame)
-               (when (> (incf depth) 3)
-                 (appendf accumulator
-                          (format nil "~s" frame)))))
-            accumulator)))
-
 (defun cl-user::html (stream object colonp atp &rest parameters)
   (assert (not colonp))
   (assert (not atp))
@@ -195,6 +195,25 @@ the external format EXTERNAL-FORMAT."
                  (real (prin1 (* 1.0 object) stream))
                  (vector (format stream "[~{~/edn/~^ ~}]" (coerce object 'list)))
                  (list (format stream "{~{~/edn/ ~/edn/~^, ~}}" object))))))
+
+(defun print-condition/html (c)
+  (format nil "<section class=\"error\">
+<h2> A condition of type ~a was signaled. </h2>
+<h3>~a</h3>
+<ol class=\"backtrace\">
+~{~%<li>~a</li>~}
+</ol>
+</section>"
+          (html-escape (type-of c))
+          (html-escape c)
+          (let ((accumulator ())
+                (depth 0))
+            (trivial-backtrace:map-backtrace
+             (lambda (frame)
+               (when (> (incf depth) 3)
+                 (appendf accumulator
+                          (format nil "~s" frame)))))
+            accumulator)))
 
 (defun reply-error/html (conditions)
   (reply (list :raw
@@ -230,7 +249,7 @@ be reached at: ~a </p>
                        (mapcar (lambda (c)
                                  (typecase c
                                    (condition (print-condition/html c))
-                                   (t (format "<div>~/html/</div>" c)))) (rest conditions))
+                                   (t (format nil "<div>~/html/</div>" c)))) (rest conditions))
                        *cgi*
                        +compile-time+
                        +sysop-mail+))))
@@ -265,8 +284,8 @@ be reached at: ~a </p>
     (apply (curry #'format mail-reg) message-fmt+args)))
 
 
-(defun next-invoice-number () ;; FIXME
-  )
+(defun next-invoice-number () 
+  (clsql:query "select 1 + max(id) from invoices"))
 
 
 (defun mail-registrar-completed-invoice (invoice)
@@ -549,21 +568,25 @@ cookie says “~36r.”
           (reply `(:error 500 ,c))
           (return-from cgi nil))))))
 
-(defvar *sql*)
-
 (defmacro with-sql (&body body)
-  `(clsql:with-database (*sql* '(,+db-filename+)
+  `(clsql:with-database (*sql* '(,(princ-to-string +db-filename+))
                                :make-default t
                                :database-type #+sbcl :sqlite3 #+ccl :sqlite)
      ,@body))
 
+(defun read-vending (&optional invoice))
+
+(defun read-workshops (&optional invoice))
+
+(defun read-general (&optional invoice))
+
 (defun read-invoice (invoice)
   (list
-   :guests
-   :merch
-   :vending
-   :workshops
-   :general))
+   :guests (read-guests invoice)
+   :merch (read-merch invoice)
+   :vending (read-vending invoice)
+   :workshops (read-workshops invoice)
+   :general (read-general invoice)))
 
 (defmacro select ((query) &body body)
   `(multiple-value-bind (rows columns)
@@ -571,19 +594,6 @@ cookie says “~36r.”
      (let ((columns (mapcar (compose #'make-keyword #'string-upcase) columns)))
        ,@body)))
 
-(defmacro interleave (&rest sets)
-  (let ((gensyms (loop for i below (length sets)
-                    collecting (gensym (or (and (consp (elt sets i))
-                                                (princ-to-string (car (elt sets i))))
-                                           (princ-to-string (elt sets i)))))))
-    `(loop 
-        ,@(loop for i below (length sets)
-             appending (list 'for (elt gensyms i) 'in (elt sets i)))
-        ,@(loop for i below (length sets)
-             appending (list 'collect (elt gensyms i))))))
-
-(defun interleave2 (set1 set2)
-  (interleave set1 set2))
 
 (defun read-merch-ordered (invoice)
   (let ((ordered (clsql:query
@@ -611,7 +621,7 @@ from \"invoice-guests\" where invoice=~:d
 
 (defun guests->edn (&optional invoice)
   (format nil "(defonce guests (atom ~/edn/))"
-          (coerce (read-guests) 'vector)))
+          (coerce (read-guests invoice) 'vector)))
 
 (defun merch->edn (&optional invoice)
   (format nil "(defonce merch (atom {~{:~(~a~) (atom ~/edn/)~}}))"
@@ -720,6 +730,10 @@ where (starting is null or starting <= date('now'))
 (defun exec-fcgi (command-line)
   (with-sql (herald-fcgi (first command-line))))
 
+(defun exec-repl (command-line)
+  (ql:quickload :prepl)
+  (with-sql (eval (intern "REPL" :prepl))))
+
 (defun init-db ()
   (with-sql
     (mapcar (lambda (expr) 
@@ -747,10 +761,10 @@ where (starting is null or starting <= date('now'))
                                                    ";"))
                            (go again))
                          (continue ())))))) 
-            '("create table prices \(starting date, ending date, price decimal (6,2), item);"
+            '("create table prices \(starting date, ending date, price decimal (6,2), item)"
               "create table invoices \(id integer primary key, created datetime, 
 closed datetime, \"closed-by\" text, \"old-system-p\" boolean, \"festival-season\" varchar(20),
- \"festival-year\" integer, note text, memo text);"
+ \"festival-year\" integer, note text, memo text)"
               "create table merch \(id varchar(20), title varchar(100),
 description text, image varchar(100), price decimal(6,2));"
               "create table \"merch-styles\" \(item varchar(20) references merch\(label),
@@ -763,8 +777,8 @@ qty integer not null default 1);"
 telephone varchar(30), sleep varchar(10), eat varchar(10), day varchar(10),
 gender char(1), \"t-shirt\" varchar(8), coffeep boolean, totep boolean)"
               "create table \"invoice-scholarships\" (invoice integer, scholarship varchar(10),
-amount decimal(6,2))"
-              "create table \"invoice-vending\" (invoice integer, title varchar(72),
+amount decimal(6,2), primary key(invoice, scholarship))"
+              "create table \"invoice-vending\" (invoice integer primary key, title varchar(72),
 blurb text, notes text, qty integer not null default 1, \"agreement-p\" boolean)"
               "create table payments (invoice integer, via varchar(100), source varchar(200),
 amount decimal(6,2), confirmation text, note text)"
