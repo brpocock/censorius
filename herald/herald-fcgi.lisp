@@ -510,38 +510,73 @@ cookie says “~36r.”
             (recall-link invoice)
             +compile-time+))
 
-(defun accept-general (invoice)
-  (clsql:execute-command
-   (format nil "update invoices set note=~/sql/ where id=~/sql/"
-           (field "note")
-           invoice)))
-
 (defmacro sql-insert-invoice-fields 
     ((table) (&body columns))
   `(clsql:execute-command
     (format nil
-            "insert into \"invoice-~(~a~)\" (invoice, ~{\"~(~a~)\"~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
-            ',table
-            ,(loop for column in columns
-                collecting (list 'quote column))
+            "insert into \"invoice~@[-~(~a~)~]\" (invoice, ~{\"~(~a~)\"~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
+            ,(when table `',table)
+            (list ,@(loop for column in columns
+                       collecting (string column)))
             invoice
-            ,(loop for column in columns
-                collecting `(field ,(intern (concatenate 'string
-                                                         table "∋" column)
-                                            :keyword))))))
+            (list ,@(loop for column in columns
+                       collecting `(field ,(intern
+                                            (concatenate 'string
+                                                         (if table
+                                                             (concatenate 'string 
+                                                                          (string table) "∋")
+                                                             "") 
+                                                         (string column))
+                                            :keyword)))))))
+
+(defmacro sql-insert-invoice-array 
+    ((table) (&body columns))
+  `(loop for row in (split-sequence #\,
+                                    (field ,(intern (concatenate 
+                                                     'string
+                                                     (string table) "∋#")
+                                                    :keyword)))
+      do
+        (clsql:execute-command
+         (format nil
+                 "insert into \"invoice-~(~a~)\" (invoice, ~{\"~(~a~)\"~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
+                 ',table
+                 (list ,@(loop for column in columns
+                            collecting (string column)))
+                 invoice
+                 (list ,@(loop for column in columns
+                            collecting `(field (intern
+                                                (concatenate 'string
+                                                             ,(string table) "∋" 
+                                                             (string row)
+                                                             (string ',column))
+                                                :keyword))))))))
+
+(defun accept-general (invoice)
+  (sql-insert-invoice-fields (nil)
+                             (note signature-p)))
 
 (defun accept-guests (invoice)
-  (sql-insert-invoice-fields (guests)
-                             (called-by given-name surname formal-name
-                                        presenter-bio presenter-requests
-                                        e-mail telephone
-                                        sleep eat day gender
-                                        t-shirt coffeep totep ticket-type)))
+  (sql-insert-invoice-array (guests)
+                            (called-by given-name surname formal-name
+                                       presenter-bio presenter-requests
+                                       e-mail telephone
+                                       sleep eat day gender
+                                       t-shirt coffeep totep ticket-type)))
 (defun accept-extras (invoice)
-  )
-(defun accept-vendor (invoice))
-(defun accept-workshops (invoice))
-(defun accept-scholarships (invoice))
+  (sql-insert-invoice-array (merch)
+                            (item style qty)))
+
+(defun accept-vendor (invoice)
+  (let ((qty (field :|vending∋qty|)))
+    (when (and qty (plusp qty))
+      (sql-insert-invoice-fields (vending)
+                                 (total blurb notes qty agreement-p)))))
+(defun accept-workshops (invoice)
+  (declare (ignore invoice)))           ; TODO
+(defun accept-scholarships (invoice)
+  (sql-insert-invoice-array (scholarships)
+                            (scholarship amount)))
 
 (defun accept-state-from-form ()
   (let ((invoice (next-invoice-number)))
@@ -688,11 +723,26 @@ cookie says “~36r.”
                                :database-type #+sbcl :sqlite3 #+ccl :sqlite)
      ,@body))
 
-(defun read-vending (&optional invoice)) ; TODO
+(defmacro select ((query &rest q-args) &body body)
+  `(multiple-value-bind (rows columns)
+       (clsql:query (format nil ,query ,@q-args))
+     (let ((columns (mapcar (compose #'make-keyword #'string-upcase) columns)))
+       ,@body)))
 
-(defun read-workshops (&optional invoice)) ; TODO
+(defmacro select-1-plist (query &rest q-args)
+  `(select (,query ,@q-args)
+     (when rows
+       (assert (=  1 (length rows)))
+       (mapcan #'interleave2 columns (first rows)))))
 
-(defun read-general (&optional invoice)) ; TODO
+(defun read-vending (&optional invoice)
+  (select-1-plist "select * from \"invoice-vending\" where invoice=~/sql/" invoice))
+
+(defun read-workshops (&optional invoice)
+  (declare (ignore invoice)))                         ; TODO
+
+(defun read-general (&optional invoice)
+  (select-1-plist "select * from \"invoices\" where invoice=~/sql/" invoice))
 
 (defun read-invoice (invoice)
   (list
@@ -702,17 +752,11 @@ cookie says “~36r.”
    :workshops (read-workshops invoice)
    :general (read-general invoice)))
 
-(defmacro select ((query) &body body)
-  `(multiple-value-bind (rows columns)
-       (clsql:query ,query)
-     (let ((columns (mapcar (compose #'make-keyword #'string-upcase) columns)))
-       ,@body)))
-
 
 (defun read-merch-ordered (invoice)
   (let ((ordered (clsql:query
                   (format nil "select item, style, qty from \"invoice-merch\"
-where invoice=~d" 
+where invoice=~/sql/" 
                           invoice))))
     (loop for item in (remove-duplicates (mapcar #'first ordered))
        collecting (loop for (nil style qty) 
@@ -878,9 +922,9 @@ where (starting is null or starting <= date('now'))
                            (go again))
                          (continue ())))))) 
             '("create table prices \(starting date, ending date, price decimal (6,2), item)"
-              "create table invoices \(id integer primary key, created datetime, 
+              "create table invoices \(invoice integer primary key, created datetime, 
 closed datetime, \"closed-by\" text, \"old-system-p\" boolean, \"festival-season\" varchar(20),
- \"festival-year\" integer, note text, memo text)"
+ \"festival-year\" integer, note text, \"signature-p\" varchar(60), memo text)"
               "create table merch \(id varchar(20), title varchar(100),
 description text, image varchar(100), price decimal(6,2));"
               "create table \"merch-styles\" \(item varchar(20) references merch\(label),

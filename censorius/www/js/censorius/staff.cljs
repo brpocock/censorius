@@ -105,5 +105,5 @@
   (when-let [staff-id (staff-id person)]
     (println "Lugal+ for staff ID " staff-id)
     (let [job (highest-job? staff-id)]
-      (not (#{nil :staff :guardian :drummer} job)))))
+      (#{:lugal :elder :advisory-board :dc :bod} job))))
 

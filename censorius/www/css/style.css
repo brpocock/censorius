@@ -31,7 +31,7 @@
 }
 
 @import url(http://fonts.googleapis.com/css?family=Cantarell:400,400italic,700,700italic);
-
+@import url(http://fonts.googleapis.com/css?family=Herr+Von+Muellerhoff);
 
 html {
     background: #4c4c4c; /* Old browsers */
@@ -1045,3 +1045,8 @@ input.size-6 { width: 6em }
 center.centerboth {
     margin: auto auto auto auto;
 }
+
+.signature {
+    font-family: 'Herr Von Muellerhoff', cursive;
+}
+
