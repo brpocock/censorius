@@ -123,6 +123,7 @@
 
 (defn unmarried-lugal+? [guest]
   (and (= :adult (:ticket-type @guest))
+       (staff/lugal+? @guest)
        (nil? (:spouse @guest))))
 
 (defn married-line [{:keys [from to]} children self]
@@ -155,34 +156,56 @@
 
 
 (defn marital-edit [guest]
-  (if (= :adult (:ticket-type @guest))
-    (let [bachelors (filter unmarried-lugal+? @d/guests)
-          spouse (:spouse @guest)]
-      [:fieldset [:legend "Lugal Spouse?"]
-       (cond (and spouse (staff/lugal+? spouse))
-             [:p {:class "hint"} "As a spouse to a lugal (or
-            higher) staff member, you receive discounted admission."]
-
-             (and (not spouse)
-                  (not (empty? bachelors)))
-             [:p {:class "hint"} "A lugal (or higher) staff member's
-                 spouse receives a discounted admission."])
+  (let [bachelors (filter #(and (nil? (:spouse %))
+                                (= :adult (:ticket-type %))
+                                (not= guest %)) @d/guests)
+        spouse (:spouse @guest)]
+    ;; (println "spouse " spouse "; bachelors " bachelors)
+    
+    (cond 
+      
+      (not= :adult (:ticket-type @guest))
+      [:div
+       (if (some (partial staff/lugal+?) @d/guests)
+         (str "Are you my mommy? If you're a lugal, I should get a discount on
+       cabins or lodge bunks. TODO")
+         
+         (str "TODO remove — ticket type is: «" (:ticket-type @guest) "»"))]
+      
+      (and (not spouse)
+           (empty? bachelors))
+      "Lonely"
+      
+      (and spouse
+           (staff/lugal+? spouse))
+      [:p {:class "hint"} "As a spouse to a Lugal (or DC/BoD) staff member, "
+       (or (:called-by @guest) (:given-name @guest))
+       " receives discounted admission."]
+      
+      spouse
+      [:div
        [:label [:input {:type "checkbox"
                         :on-change #(divorce! guest spouse)
                         :name (str name "/spouse")
                         :checked true}]
-        [married-line {:from guest :to spouse}]]
-       (when (not (empty? bachelors))
-         (doall
-          (map (fn [bachelor]
-                 [:label {:key (str (:given-name bachelor) " " (:surname bachelor))}
-                  [:input {:type "checkbox"
-                           :on-change #(marry! guest bachelor)
-                           :name (util/gensymreally (str name "/marry"))
-                           :checked false}]
-                  [married-line {:from guest :to (atom bachelor)}]]) bachelors)))])
-    ;; else…
-    [:div (str "TODO remove — ticket type is: «" (:ticket-type @guest) "»")]))
+        [married-line {:from guest :to spouse}]]]
+      
+      :true
+      [:fieldset [:legend "Spouse?"]
+       (when (some (partial staff/lugal+?) bachelors)
+         [:p {:class "hint"} "A Lugal (or DC/BoD) staff member's spouse
+                 receives a discounted admission."])
+       (doall
+        (map (fn [bachelor]
+               [:div
+                [:label {:key (str (or (:called-by @bachelor)
+                                       (:given-name @bachelor)) " " (:surname @bachelor))}
+                 [:input {:type "checkbox"
+                          :on-change #(marry! guest bachelor)
+                          :name (util/gensymreally (str name "/marry"))
+                          :checked false}]
+                 [married-line {:from guest :to bachelor}]]]) 
+          bachelors))])))
 
 (defn name-edit-box [guest children this]
   [:div
@@ -204,7 +227,7 @@
    [text/text-input {:cursor guest
                      :keys :called-by
                      :label "Called by"
-                     :placeholder "Fuzzy Oywl"
+                     :placeholder "Fuzzy Owl"
                      :format util/name-case
                      :validate util/a-name?
                      :rows 1}]
@@ -436,9 +459,10 @@
   [:div {:class "pop-out"}
    (cond
      (staff/lugal+? @guest)
-     [:p {:class "hint"} "As a lugal (or higher) staff member, your
-            admission is free. You may also admit your spouse at a
-            discounted rate."]
+     [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
+            is free. You may also admit your spouse at a discounted rate, and
+            apply discounted rates to spouse and children's cabin or
+            lodge bunks."]
      
      (staff/staff? @guest)
      [:div 
@@ -453,7 +477,7 @@
       [:button {:on-click (fn [_]
                             (swap! guest assoc :staff-department nil))
                 :class "false"}
-       "✗ Not a staff member"]]
+       " ✗ Not a staff member"]]
      
      :else
      (let [tag-list [[:adult (str "🎫" (person-icon guest) " Adult")]]
@@ -461,7 +485,7 @@
                       (conj 
                        (conj tag-list 
                              [:child "🎫🚸 Child (ages 5→17)"])
-                       [:baby "🎫🚶 Child (birth→4 years)"])
+                       [:baby "🎫👶 Child (birth→4 years)"])
                       tag-list)]
        [:div 
         [radio/radio-set {:label "Ticket type"
@@ -474,14 +498,14 @@
    [:div "With currently-selected days, " 
     (util/format-money (ticket-price guest))]
    
-   ;; [marital-edit guest]
+   [marital-edit guest]
    (ed/close editing)])
 
 (defn ticket-cell-icon [guest editing]
   [:div (ed/click-edit editing :ticket-type)
    (case (:ticket-type @guest)
      :child (abbr* "🎫🚸" "Child" "Children from ages 5 through 17")
-     :baby (abbr* "🎫🚶" "Baby" "Children from birth to 4 years old")
+     :baby (abbr* "🎫👶" "Baby" "Children from birth to 4 years old")
      (abbr* (str "🎫" (person-icon guest))
             "Adult" "Adults (18+)"))
    
@@ -663,7 +687,7 @@
 (defn guest-row [guest]
   (let [name (util/gensymreally "guest")]
     (fn [guest]
-      (println "guest row for " @guest)
+      ;; (println "guest row for " @guest)
       [:tr
        [name-cell guest]
        [email-cell guest]

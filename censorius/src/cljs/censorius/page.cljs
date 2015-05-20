@@ -26,7 +26,6 @@
 
 
 
-
 (defn workshop-box []
   (let [new (atom {:title "" :presenter nil})]
     (fn [] 
@@ -69,17 +68,22 @@
                                              (swap! new assoc :titie ""))}
                         (if (zero? (count @d/workshops))
                           "⁂ Present a workshop"
-                          "+ Add another")]]]]]
-        ))))
+                          "+ Add another")]]]]]))))
+
+
 
 (defn price-vendor []
   (* (:vendor @d/prices) (:qty @d/vending)))
+
+
 
 (defn adults-needed []
   (let [babies (count (filter #(= :baby (:ticket-type %)) @d/guests))
         children (count (filter #(= :child (:ticket-type %)) @d/guests))
         adults (count (filter #(= :adult (:ticket-type %)) @d/guests))]
     [(+ babies (if (pos? children) 1 0)) adults children babies]))
+
+
 
 (defn vendor-agreement []
   [:div [:h3 "Vendor agreement"]
@@ -153,10 +157,13 @@
               (pos? (:qty @d/vending)))
       [vendor-card adults])))
 
+
 (defn need-adult-email []
   (empty? (filter #(and (= :adult (:ticket-type %))
                         (not (nil? (:e-mail %)))) 
                   @d/guests)))
+
+
 
 (defn assistant-getting-started []
   [:div 
@@ -259,6 +266,8 @@
      [assistant-vendors]
      [assistant-workshops])])
 
+
+
 (defn scholarship-box []
   [:section {:class "card"}
    [:h2 "Scholarship Donations"]
@@ -302,6 +311,8 @@
                              :validate util/money?
                              :size 6
                              :rows 0}]]]]]])
+
+
 
 (defn scholarship-donations-amount []
   (reduce + (map util/just-decimal (vals @d/scholarships))))
@@ -357,7 +368,8 @@
            [:p {:class "warning"}
             "At least one adult eMail address is needed."]
            
-           (and pay? signature?)
+           (and @pay? signature?)
+           "Signed. sealed, delivered"
            
            @pay?
            [:div 
@@ -469,7 +481,7 @@ that continued religious events may be held in the future."]
 (Florida Statute 668.004 provides that your electronic signature is
 legally binding.)"]
             
-            [text/text-input {:cursor 
+            [text/text-input {:cursor d/vending
                               :keys :title 
                               :label "Workshop title"
                               :placeholder "Underwater basket weaving"
@@ -502,6 +514,8 @@ legally binding.)"]
           "Suspend registration and send to Reg. staff"]]
         ;; nothing to pay:
         [:span {:id "check-out"}]))))
+
+
 
 (defn registration-page []
   [:div

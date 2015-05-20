@@ -1,20 +1,22 @@
 (require :alexandria)
-(require #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
-(require :cl-ppcre)
-(require :trivial-backtrace)
-(require #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite)
 (require :cl-paypal)
-(require :split-sequence)
-(require :flexi-streams)
+(require :cl-paypal)
+(require :cl-ppcre)
 (require :cl-sendmail)
+(require :flexi-streams)
 (require :memoize)
+(require :split-sequence)
+(require :trivial-backtrace)
+
+(require #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite)
+(require #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
+
 (defpackage :herald-fcgi
   (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
         :cl-ppcre :split-sequence)
   (:export :herald-cgi :herald-fcgi))
 
 (in-package :herald-fcgi)
-
 
 ;; control cards
 
@@ -39,6 +41,23 @@
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
 
+
+(eval-when (:compile-toplevel)
+  (format *trace-output* "~&Compiling Herald with baked-in configuration:
+User home directory: ~a
+DB filename: ~a
+Host name: ~a
+Sysop mail: ~a
+Herald mail: ~a
+Registrar mail: ~a
+Compile-time version marker: ~36r"
+          (user-homedir-pathname)
+          +db-filename+
+          +host-name+
+          +sysop-mail+
+          +herald-mail+
+          +registrar-mail+
+          +compile-time+))
 
 
 (defmacro upgrade-vector (vector new-type &key converter)
