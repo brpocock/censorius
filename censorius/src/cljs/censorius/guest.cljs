@@ -159,53 +159,56 @@
   (let [bachelors (filter #(and (nil? (:spouse %))
                                 (= :adult (:ticket-type %))
                                 (not= guest %)) @d/guests)
-        spouse (:spouse @guest)]
-    ;; (println "spouse " spouse "; bachelors " bachelors)
+        spouse (:spouse @guest)] 
     
-    (cond 
+    (fn [guest]
       
-      (not= :adult (:ticket-type @guest))
-      [:div
-       (if (some (partial staff/lugal+?) @d/guests)
-         (str "Are you my mommy? If you're a lugal, I should get a discount on
+      (println "spouse " spouse "; bachelors " bachelors)
+      
+      (cond 
+        
+        (not= :adult (:ticket-type @guest))
+        [:div
+         (if (some (partial staff/lugal+?) @d/guests)
+           (str "Are you my mommy? If you're a lugal, I should get a discount on
        cabins or lodge bunks. TODO")
-         
-         (str "TODO remove — ticket type is: «" (:ticket-type @guest) "»"))]
-      
-      (and (not spouse)
-           (empty? bachelors))
-      "Lonely"
-      
-      (and spouse
-           (staff/lugal+? spouse))
-      [:p {:class "hint"} "As a spouse to a Lugal (or DC/BoD) staff member, "
-       (or (:called-by @guest) (:given-name @guest))
-       " receives discounted admission."]
-      
-      spouse
-      [:div
-       [:label [:input {:type "checkbox"
-                        :on-change #(divorce! guest spouse)
-                        :name (str name "/spouse")
-                        :checked true}]
-        [married-line {:from guest :to spouse}]]]
-      
-      :true
-      [:fieldset [:legend "Spouse?"]
-       (when (some (partial staff/lugal+?) bachelors)
-         [:p {:class "hint"} "A Lugal (or DC/BoD) staff member's spouse
+           
+           (str "TODO remove — ticket type is: «" (:ticket-type @guest) "»"))]
+        
+        (and (not spouse)
+             (empty? bachelors))
+        "Lonely"
+        
+        (and spouse
+             (staff/lugal+? spouse))
+        [:p {:class "hint"} "As a spouse to a Lugal (or DC/BoD) staff member, "
+         (or (:called-by @guest) (:given-name @guest))
+         " receives discounted admission."]
+        
+        spouse
+        [:div
+         [:label [:input {:type "checkbox"
+                          :on-change #(divorce! guest spouse)
+                          :name (str name "/spouse")
+                          :checked true}]
+          [married-line {:from guest :to spouse}]]]
+        
+        :true
+        [:fieldset [:legend "Spouse?"]
+         (when (some (partial staff/lugal+?) bachelors)
+           [:p {:class "hint"} "A Lugal (or DC/BoD) staff member's spouse
                  receives a discounted admission."])
-       (doall
-        (map (fn [bachelor]
-               [:div
-                [:label {:key (str (or (:called-by @bachelor)
-                                       (:given-name @bachelor)) " " (:surname @bachelor))}
-                 [:input {:type "checkbox"
-                          :on-change #(marry! guest bachelor)
-                          :name (util/gensymreally (str name "/marry"))
-                          :checked false}]
-                 [married-line {:from guest :to bachelor}]]]) 
-          bachelors))])))
+         (doall
+          (map (fn [bachelor]
+                 [:div
+                  [:label {:key (str (or (:called-by @bachelor)
+                                         (:given-name @bachelor)) " " (:surname @bachelor))}
+                   [:input {:type "checkbox"
+                            :on-change #(marry! guest bachelor)
+                            :name (util/gensymreally (str name "/marry"))
+                            :checked false}]
+                   [married-line {:from guest :to bachelor}]]]) 
+            bachelors))]))))
 
 (defn name-edit-box [guest children this]
   [:div

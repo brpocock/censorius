@@ -72,8 +72,9 @@
                  :style {:border "2pt solid black"
                          :border-radius "1ex"
                          :padding "8pt"}}
-            (when (empty? @d/guests)
-              [:div 
+            (when (or (nil? @d/guests) (empty? @d/guests))
+              [:div :key (str "add-person-" (inc (or (and (nil? @d/guests) 0)
+                                                     (count @d/guests))))
                [:h3 "To get started:"]
                [:p [:big "Enter your first and last name, "]
                 [:small "or the first and last name of the party's “leader.”
@@ -82,42 +83,43 @@
                [:p "Please use your name as it appears on your ID. " 
                 [:small "(If you have two first names, enter them with a
                hyphen: Bruce-Robert, Ann-Marie, Billy-Bob.)"]]])
-            
-            ^{:key (str "add-person-" (inc (count @d/guests)))}
             [text/text-input {:cursor new-name
                               :keys :new-name-entered
                               :label (if (empty? @d/guests) "Start with this person" "Add this person")
                               :placeholder 
-                              (str 
-                               (or (first 
-                                    (first 
-                                     (map (complement empty?)
-                                       (map (partial filter (fn [name]
-                                                              (not (some #(= (:given-name %)
-                                                                             name) @d/guests)))) 
-                                         (list
-                                          (map #(case (:given-name (deref %))
-                                                  "John" "Jane"
-                                                  "Adam" "Yves"
-                                                  "Jennifer" "Eric"
-                                                  "Eric" "Jennifer"
-                                                  "Suanne" "John"
-                                                  "Paul" "Ann-Marie"
-                                                  "Ann-Marie" "Paul"
-                                                  "John")
-                                            @d/guests)
-                                          (list
-                                           "Amy" "Brian" "Charlie" "David" "Elizabeth"
-                                           "Frank" "Gerri" "Harry" "Ingrid" "Jack"
-                                           "Kyle" "Laurel" "Michael" "Nancy" "Oscar"
-                                           "Peter" "Quentin" "Rose" "Sharon" "Tyler"
-                                           "Uma" "Vladimir" "Wilmena" "Xavier" "Zach"))))))
-                                   "John") 
-                               " "
-                               (if (or (empty? @d/guests)
-                                       (empty? (:surname (deref (first @d/guests)))))
-                                 "Doe"
-                                 (:surname (deref (first @d/guests)))))
+                              (or "John Doe"
+                                  ;; TODO — this bit should ought to work…
+                                  (str 
+                                   (or (first 
+                                        (first 
+                                         (map (complement empty?)
+                                           (map (partial filter (fn [name]
+                                                                  (not (some #(= (:given-name %)
+                                                                                 name) 
+                                                                             (or @d/guests []))))) 
+                                             (list
+                                              (map #(case (:given-name (deref %))
+                                                      "John" "Jane"
+                                                      "Adam" "Yves"
+                                                      "Jennifer" "Eric"
+                                                      "Eric" "Jennifer"
+                                                      "Suanne" "John"
+                                                      "Paul" "Ann-Marie"
+                                                      "Ann-Marie" "Paul"
+                                                      "John")
+                                                (or @d/guests []))
+                                              (list
+                                               "Amy" "Brian" "Charlie" "David" "Elizabeth"
+                                               "Frank" "Gerri" "Harry" "Ingrid" "Jack"
+                                               "Kyle" "Laurel" "Michael" "Nancy" "Oscar"
+                                               "Peter" "Quentin" "Rose" "Sharon" "Tyler"
+                                               "Uma" "Vladimir" "Wilmena" "Xavier" "Zach"))))))
+                                       "John") 
+                                   " "
+                                   (if (or (empty? @d/guests)
+                                           (empty? (:surname (deref (first @d/guests)))))
+                                     "Doe"
+                                     (:surname (deref (first @d/guests))))))
                               :format util/name-case
                               :validate (fn [new-name] 
                                           (reagent/force-update-all)
@@ -154,7 +156,7 @@
     [:th (util/abbr "🍺" "Mug" "FPG 20th Anniversary hot & cold beverage mugs. (Buy more mugs in the “Extras” box)")]]])
 
 (defn guest-list-box []
-  ;; (util/log "Guests = " @d/guests)
+  (util/log "Guests = " @d/guests)
   [:section [:h1 "Registration for " (:season @d/festival) " " (:year @d/festival)
              ;; [:a {:href "#/load"} [:button {:title "Load a previous registration"} "📂"]]
              ]
