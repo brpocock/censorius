@@ -106,11 +106,14 @@
             :class "merch-rows"}
        [:th ;; [:img {:src (:image @item)
         ;;        :class "merch-thumb"}]
+        {:key (str "merch-" id "-title")}
         (:title @item)
         [:p {:class "hint"} (:description @item)]]
-       [:td (util/format-money (:price @item))]
+       [:td {:key (str "merch-" id "-price")}
+        (util/format-money (:price @item))]
        (if (= 1 (count (:styles @item)))
-         [:td [:table [product-style item 0 false]]]
+         [:td {:key (str "merch-" id "-styles")} 
+          [:table [product-style item 0 false]]]
          [product-style-hidden item open?])
 
        (let [purchased (purchased-for-guests id)]
@@ -119,8 +122,9 @@
             "Plus " (util/counting purchased (:title @item)) " purchased for "
             (if (= 1 purchased) " a guest " " guests ")
             " (above)."]))
-       [:td (util/format-money (* (reduce + (map :qty (:styles @item)))
-                                  (:price @item)))]])))
+       [:td {:key (str "merch-" id "-subtotal")}
+        (util/format-money (* (reduce + (map :qty (:styles @item)))
+                              (:price @item)))]])))
 
 (defn price-t-shirt [] (:price (deref (:festival-shirt @d/merch))))
 (defn price-coffee-mug [] (:price (deref (:coffee @d/merch))))
@@ -131,7 +135,7 @@
     [:section {:class "card"}
      [:h2 "Extras"]
      [:table {:class "extras"}
-      [:thead [:tr 
+      [:thead [:tr {:key "merch-box-headers"}
                [:th {:class "merch-item-col"} "Item"] 
                [:th {:class "merch-price-col"} "Price"] 
                [:th {:class "merch-wide-col"} "Style / Qty."] 

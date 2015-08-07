@@ -1,20 +1,22 @@
-#+ (or) 
-(mapcar #'ql:quickload '(:alexandria
-                         :cl-paypal
-                         :cl-ppcre
-                         :cl-sendmail
-                         :flexi-streams
-                         :memoize
-                         :split-sequence
-                         :trivial-backtrace
-                         
-                         #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite
-                         #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (mapcar #'ql:quickload '(:alexandria
+                           :cl-paypal
+                           :cl-ppcre
+                           :cl-sendmail
+                           :com.informatimago.common-lisp.rfc2822
+                           :flexi-streams
+                           :memoize
+                           :split-sequence
+                           :trivial-backtrace
+
+                           #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite
+                           #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)))
 
 (require :alexandria)
 (require :cl-paypal)
 (require :cl-ppcre)
 (require :cl-sendmail)
+(require :com.informatimago.common-lisp.rfc2822)
 (require :flexi-streams)
 (require :memoize)
 (require :split-sequence)
@@ -35,6 +37,8 @@
 (define-constant +db-filename+
     (merge-pathnames #p"work/Herald.persist.db" (user-homedir-pathname))
   :test #'equalp)
+
+(ensure-directories-exist +db-filename+)
 
 (define-constant +host-name+ "http://fpgrocks.org"
   :test #'equal)
@@ -61,7 +65,6 @@
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
 
-
 (eval-when (:compile-toplevel)
   (format *trace-output* "~&Compiling Herald with baked-in configuration:
  • User home directory: ~a
@@ -80,11 +83,19 @@
           +compile-time+))
 
 
-(defvar *paypal-currency-code* "USD")
+(defvar *accepted-currency* "USD")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (load (make-pathname :name "paypal-secrets"
                        :defaults (user-homedir-pathname))))
+
+
+(defparameter *read-post-max* 4000000
+  "The maximum number of characters to allow to be read from a POST")
+
+(defparameter *read-post-buffer-start* 4000)
+(defparameter *read-post-buffer-grow* 4000)
+
 
 
 (defmacro upgrade-vector (vector new-type &key converter)
@@ -152,7 +163,7 @@ the external format EXTERNAL-FORMAT."
                 (advance))))))
     (cond (unicodep
            (upgrade-vector vector 'character :converter #'code-char))
-          (t (flexi-streams:octets-to-string vector 
+          (t (flexi-streams:octets-to-string vector
                                              :external-format external-format)))))
 
 (defun url-encode (string)
@@ -191,31 +202,36 @@ the external format EXTERNAL-FORMAT."
 (defun interleave2 (set1 set2)
   (interleave set1 set2))
 
-
-;;;
-
-(defvar *cgi*)
-(defvar *request*)
-(defvar *sql*)
-
-
-(defun accept-type (content-type)
-  (ecase *cgi*
-    (:fast (search content-type (fcgx-getparam "HTTP_ACCEPT" *request*)))
-    (:cgi (search content-type (uiop/os:getenv "HTTP_ACCEPT")))))
-
 (defun first-or-only-second (sets)
+  "Return the  second element  of the singular  list passed-in,  or, the
+second of  every one of  a list of  lists passed in.  Effectively: Given
+a list  of pairs (which  are, themselves,  lists), return the  second of
+each of them; but if given only one, return it as an atom."
   (if (= 1 (length sets))
       (second (first sets))
       (mapcar #'second sets)))
 
-(defparameter *read-post-max* 4000000
-  "The maximum number of characters to allow to be read from a POST")
+
+;;; The  environment  surrounding  each  query is  stashed  into  these;
+;;; they're unbound at the top-level SO THAT trying to access them will
+;;; signal an error.
 
-(defparameter *read-post-buffer-start* 4000)
-(defparameter *read-post-buffer-grow* 4000)
+(defvar *cgi*)
+(defvar *request*)
+(defvar *sql*)
+
+
+
+;;; Asking questions of the user
+
+(defun accept-type-p (content-type)
+  "Does the UA accept the named content-type?"
+  (ecase *cgi*
+    (:fast (search content-type (fcgx-getparam "HTTP_ACCEPT" *request*)))
+    (:cgi (search content-type (uiop/os:getenv "HTTP_ACCEPT")))))
 
 (defun read-post-data ()
+  "Parse POST data from the user"
   (let ((read-amount 0)
         (read-buffer (make-array *read-post-buffer-start*
                                  :element-type 'character
@@ -233,10 +249,15 @@ the external format EXTERNAL-FORMAT."
     (setf (getf *request* :post-data) (copy-array read-buffer))))
 
 (defun query-params ()
+  "Obtain all of the dominant* parameters submitted for a request.
+
+Currently, “dominant*”  means: If the  request is  a POST, then  any URI
+parameters are  ignored. For  a GET request,  URI parameters  are parsed
+from the query string and path-info."
   (if-let ((query-params (getf *request* :query-params)))
     query-params
     (setf (getf *request* :query-params)
-          (mapcar 
+          (mapcar
            (lambda (pair)
              (split-sequence #\= pair))
            (split-sequence
@@ -253,6 +274,10 @@ the external format EXTERNAL-FORMAT."
                       path))))))))
 
 (defun field (field-name)
+  "Get the  contents of  the named form-field.  (Accepted as  a keyword,
+which  will  be downcased,  or  a  string,  which will  be  searched-for
+literally. Thus,  to get a field  with capital letters in  the name, you
+must use a string.)"
   (etypecase field-name
     (symbol (field (string-downcase (string field-name))))
     (string
@@ -268,15 +293,22 @@ the external format EXTERNAL-FORMAT."
                   :key #'first))))))))
 
 (defun reply-error/text (conditions)
+  "Replies with a plain-text error report. The first element of the list
+must be the numeric HTTP status code."
   (reply (list :raw
-               (format nil "Status: ~d~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}"
+               (format nil
+                       "Status: ~d~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}"
                        (first conditions)
                        (mapcar #'princ-to-string (rest conditions))))))
 
 (defun sql-escape (string)
+  "Simply replaces  ' with  '' in  strings (that's  paired/escape single
+quotes)"
   (regex-replace-all "\\'" string "''"))
 
 (defun cl-user::sql (stream object colonp atp &rest parameters)
+  "FORMAT ~/SQL/ printer. Handles  strings, integers, and floating-point
+real numbers."
   (assert (not colonp))
   (assert (not atp))
   (assert (null parameters))
@@ -288,6 +320,7 @@ the external format EXTERNAL-FORMAT."
     (real (princ (* 1.0 object) stream))))
 
 (defun html-escape (string)
+  "Escapes < and & from strings for safe printing as HTML (text node) content."
   (regex-replace-all "\\<"
                      (regex-replace-all "\\&"
                                         (typecase string
@@ -342,9 +375,9 @@ the external format EXTERNAL-FORMAT."
                  (appendf
                   accumulator
                   (cons
-                   (format 
+                   (format
                     nil
-                    "ƒ~:(~a~)⋅(~{~{~:(~a~)=<tt>~s</tt>~}~^, ~}) (~a~@[, form ~a~])" 
+                    "ƒ~:(~a~)⋅(~{~{~:(~a~)=<tt>~s</tt>~}~^, ~}) (~a~@[, form ~a~])"
                     (trivial-backtrace::frame-func frame)
                     (mapcar
                      (lambda (var)
@@ -400,15 +433,15 @@ be reached at: ~a </p>
                        *cgi*
                        +compile-time+
                        (first
-                        (split-sequence 
+                        (split-sequence
                          #\>
-                         (second (split-sequence 
+                         (second (split-sequence
                                   #\<
                                   +sysop-mail+))))))))
 
 (defun reply-error (conditions)
   (cond
-    ((accept-type "text/html") (reply-error/html conditions))
+    ((accept-type-p "text/html") (reply-error/html conditions))
     (t (reply-error/text conditions))))
 
 (defun reply (structure)
@@ -646,12 +679,12 @@ cookie says “~36r.”
                             collecting (string column)))
                  invoice
                  (list ,@(loop for column in columns
-                            collecting `(field (intern
-                                                (concatenate 'string
-                                                             ,(string table) "∋"
-                                                             (string row)
-                                                             (string ',column))
-                                                :keyword))))))))
+                            collecting `(field (intern (string-upcase
+                                                        (concatenate 'string
+                                                                     ,(string table) "∋"
+                                                                     (string row) "∋"
+                                                                     (string ',column)))
+                                                       :keyword))))))))
 
 (defun accept-general (invoice)
   (sql-insert-invoice-fields (nil)
@@ -697,9 +730,9 @@ cookie says “~36r.”
     (format t "~&~{~{ Field ~:(~a~) = “~a” ~2%~}~}" to-save)
     (let ((invoice (next-invoice-number)))
       (format t "~2% Invoice # ~:d" invoice)
-      
-      (error "TODO")
-      
+
+      (accept-state-from-form)
+
       (mail-registrar-suspended-invoice invoice)
       (mail-user-suspended-invoice invoice))))
 
@@ -799,6 +832,13 @@ cookie says “~36r.”
           (reply `(:error 500 ,c))
           (return-from fastcgi nil))))))
 
+(defun remote-user ()
+  (format nil "~{~@[~a~]@~{~a=~a:~a~}~}"
+          (let ((env (cgi-environment)))
+            (list (let ((user (getf env :remote-user)))
+                    (when (and user (plusp (length user))) user))
+                  (mapcar (curry #'getf env) '(:remote-host :remote-addr :remote-port))))))
+
 (defun cgi-environment ()
   (mapcan (lambda (env-var)
             (list env-var
@@ -870,13 +910,35 @@ cookie says “~36r.”
 
 (defun add-payment-request (token amount currency-code ip)
   (clsql:execute-command
-   (apply #'format nil "insert into payments
- \(invoice, via, source, amount, confirmation, note)
-values (~/sql/, 'PayPal', 'ip://~a', 0, null, 'requested: ~a¤ ~:d (not yet received)')"
-          (token->invoice token)
-          ip
-          currency-code
-          amount)))
+   (format nil "insert into payments
+ \(invoice, via, source, amount, confirmation, note. cleared)
+values (~/sql/, 'PayPal', 'ip://~a', ~d, null, 'requested: ~a ~a ~:d (not yet received)', now())"
+           (token->invoice token)
+           ip
+           (- amount)
+           currency-code
+           (currency-symbol currency-code)
+           amount)))
+
+(defun add-payment (token amount currency-code confirmation
+                    &optional (via "PayPal") note)
+  (assert (string-equal currency-code *accepted-currency*)
+          (currency-code amount)
+          "Payment is only accepted in ~a" *accepted-currency*)
+  (clsql:execute-command
+   (format nil "insert into payments
+ \(invoice, via, source, amount, confirmation, note, cleared)
+values (~/sql/, ~/sql/, ~/sql/, ~/sql/, ~/sql/, ~/sql/, now())"
+           (token->invoice token)
+           via
+           (remote-user)
+           amount
+           confirmation
+           (or note
+               (format nil "requested: ~a ~a ~:d (not yet received)"
+                       currency-code
+                       (currency-symbol currency-code)
+                       amount)))))
 
 (defun make-self-url (verb &rest more)
   (format nil "~a/~a?verb=~a~@[?~{~a=~a~^&~}~]"
@@ -892,8 +954,7 @@ values (~/sql/, 'PayPal', 'ip://~a', 0, null, 'requested: ~a¤ ~:d (not yet rece
        (return-url (make-self-url "paypal-return"))
        (cancel-url (make-self-url "paypal-cancel"))
        (user-action "Sale")
-       (currency-code (or *paypal-currency-code*
-                          "USD"))
+       (currency-code *accepted-currency*)
        (sandbox t)
        (hostname (if sandbox
                      "www.sandbox.paypal.com"
@@ -912,19 +973,19 @@ values (~/sql/, 'PayPal', 'ip://~a', 0, null, 'requested: ~a¤ ~:d (not yet rece
             (url-encode token)
             (url-encode user-action))))
 
-(defun register-payment-confirmed (token amount ip result)
-  (clsql:execute-command
-   (format nil "update payments
-set via='PayPal', source=~/sql/, amount=~f, 
-     confirmation=~/sql/, note=~/sql/
-where invoice=~d"
-           ip
-           amount
-           (format nil "PayPal Express Checkout results:
-\(~{~:(~32s~) ~s~^~% ~})"
-                   result)
-           "Paid via PayPal"
-           (token->invoice token))))
+;; (defun register-payment-confirmed (token amount ip result)
+;;   (clsql:execute-command
+;;    (format nil "update payments
+;; set via='PayPal', source=~/sql/, amount=~f,
+;;      confirmation=~/sql/, note=~/sql/
+;; where invoice=~d"
+;;            ip
+;;            amount
+;;            (format nil "PayPal Express Checkout results:
+;; \(~{~:(~32s~) ~s~^~% ~})"
+;;                    result)
+;;            "Paid via PayPal"
+;;            (token->invoice token))))
 
 (defun paypal-get-and-do-express-checkout (token
                                            success failure)
@@ -956,7 +1017,9 @@ where invoice=~d"
   (cond
     ((equal currency-code "USD") "$")
     ((equal currency-code "EUR") "€")
-    (t "")))
+    ((equal currency-code "JPY") "¥")
+    ((equal currency-code "UKP") "£")
+    (t "¤")))
 
 (defun print-receipt-happy (amount currency-code token result)
   (format t "Content-Type: text/html
@@ -989,8 +1052,8 @@ where invoice=~d"
   (check-type number real)
   (cond
     ((< 9 number) (* 10 number))
-    ((> 100 number) 
-     (checksum (reduce #'+ (map 'vector #'digit-char-p 
+    ((> 100 number)
+     (checksum (reduce #'+ (map 'vector #'digit-char-p
                                 (princ-to-string number)))))
     (t number)))
 
@@ -1006,8 +1069,38 @@ where invoice=~d"
   (format nil "Herald/~d/~d" invoice (checksum invoice)))
 
 (defun send-mail-about-payment-with-bad-currency
-    (amount currency-code token result)
-  (error "TODO"))
+    (destination amount currency-code token result)
+  (cl-sendmail:with-email
+      (mail destination
+            :cc +registrar-mail+
+            :bcc +sysop-mail+
+            :subject (format nil "Invoice ~a: Incorrect Currency" token)
+            :from +herald-mail+
+            :other-headers (list (list "References" (concatenate 'string (string token) "." +herald-mail+))
+                                 '("Organization" "Temple of Earth Gathering, Inc."))
+            :charset :utf-8
+            :type "text" :subtype "plain")
+    (format nil  "Hi! This  is the Censorius Herald  program. I'm the software  agent that
+helps  out with  Festival registrations.  I was  trying to  process your
+payment, but  there's a problem; we  got your money, but  it's kinda the
+wrong color.
+
+See, I'm only  set up for US  Dollars, and somehow or other,  I got your
+payment confirmation  back from  PayPal as ~a ~a ~:d.  I'm not  really sure
+what a “~a” is,  but our Registration staff will probably  want to talk to
+you to get this all sorted out.
+
+I've sent  a courtesy copy of  this to Registration, so,  hopefully this
+can all get sorted out quickly?
+
+FIXME —  This wasn't sent to  the person trying to  register; you should
+look up the invoice to see who it is.
+
+Details: Invoice token ~s;
+  result code from PayPal ~s"
+            currency-code (currency-symbol currency-code) amount
+            currency-code
+            token result)))
 
 (defun paypal-return.cgi ()
   (cgi-call
@@ -1016,9 +1109,10 @@ where invoice=~d"
       (token->invoice (field :invoice))
       (lambda (&key amount currency-code token result)
         (if (string-equal "USD" currency-code)
-            (add-payment amount token)
+            (add-payment token amount currency-code result)
             (send-mail-about-payment-with-bad-currency
-             amount currency-code token result))
+             #+ (or fixme) payer-email
+             +registrar-mail+ amount currency-code token result))
         (print-receipt-happy amount currency-code token result))
       (lambda (&rest _)
         (declare (ignore _)))))))
@@ -1046,19 +1140,19 @@ where invoice=~d"
 
 (defmacro select-1-plist (query &rest q-args)
   `(select (,query ,@q-args)
-     (when rows
-       (assert (=  1 (length rows)))
-       (mapcan #'interleave2 columns (first rows)))))
+           (when rows
+             (assert (=  1 (length rows)))
+             (mapcan #'interleave2 columns (first rows)))))
 
 (defun read-vending (&optional invoice)
-  (select-1-plist "select * from \"invoice-vending\" where invoice=~/sql/" 
+  (select-1-plist "select * from \"invoice-vending\" where invoice=~/sql/"
                   invoice))
 
 (defun read-workshops (&optional invoice)
   (declare (ignore invoice)))           ; TODO
 
 (defun read-general (&optional invoice)
-  (select-1-plist "select * from \"invoices\" where invoice=~/sql/" 
+  (select-1-plist "select * from \"invoices\" where invoice=~/sql/"
                   invoice))
 
 (defun read-invoice (invoice)
@@ -1149,48 +1243,48 @@ from \"invoice-guests\" where invoice=~:d
   (select ("select * from prices
 where (starting is null or starting <= date('now'))
    and (ending is null or ending >= date('now'));")
-    (let ((rows-plist (mapcar (curry #'interleave2 columns)
-                              rows)))
-      (macrolet
-          ((with-prices ((&rest symbols) &body body)
-             `(let* (,@(mapcar
-                        (lambda (symbol)
-                          `(,symbol (or (getf (find
-                                               (string-downcase
-                                                (string ',symbol))
-                                               rows-plist
-                                               :test #'equal
-                                               :key (rcurry #'getf :item))
-                                              :price)
-                                        ,(when (not (eql symbol
-                                                         (car symbols)))
-                                               (car symbols))
-                                        1000)))
-                        symbols))
-                ,@body)))
-        (with-prices (adult-ticket
-                      child-ticket week-end-ticket day-pass
-                      lugal-so-ticket staff-ticket vendor
-                      cauldron-fri-sun cauldron-adult
-                      cauldron-child cauldron-under5
-                      salad-bar
-                      cabin staff-cabin
-                      lodge staff-lodge)
-          (list :ticket
-                (list :adult adult-ticket
-                      :child child-ticket
-                      :week-end week-end-ticket
-                      :day-pass day-pass
-                      :lugal-so lugal-so-ticket
-                      :staff staff-ticket)
-                :vendor vendor
-                :cauldron (list  :fri-sun cauldron-fri-sun
-                                 :adult cauldron-adult
-                                 :child cauldron-child
-                                 :under5 cauldron-under5)
-                :salad-bar salad-bar
-                :cabin (list :regular cabin :staff staff-cabin)
-                :lodge (list :regular lodge :staff staff-lodge)))))))
+          (let ((rows-plist (mapcar (curry #'interleave2 columns)
+                                    rows)))
+            (macrolet
+                ((with-prices ((&rest symbols) &body body)
+                   `(let* (,@(mapcar
+                              (lambda (symbol)
+                                `(,symbol (or (getf (find
+                                                     (string-downcase
+                                                      (string ',symbol))
+                                                     rows-plist
+                                                     :test #'equal
+                                                     :key (rcurry #'getf :item))
+                                                    :price)
+                                              ,(when (not (eql symbol
+                                                               (car symbols)))
+                                                     (car symbols))
+                                              1000)))
+                              symbols))
+                      ,@body)))
+              (with-prices (adult-ticket
+                            child-ticket week-end-ticket day-pass
+                            lugal-so-ticket staff-ticket vendor
+                            cauldron-fri-sun cauldron-adult
+                            cauldron-child cauldron-under5
+                            salad-bar
+                            cabin staff-cabin
+                            lodge staff-lodge)
+                (list :ticket
+                      (list :adult adult-ticket
+                            :child child-ticket
+                            :week-end week-end-ticket
+                            :day-pass day-pass
+                            :lugal-so lugal-so-ticket
+                            :staff staff-ticket)
+                      :vendor vendor
+                      :cauldron (list  :fri-sun cauldron-fri-sun
+                                       :adult cauldron-adult
+                                       :child cauldron-child
+                                       :under5 cauldron-under5)
+                      :salad-bar salad-bar
+                      :cabin (list :regular cabin :staff staff-cabin)
+                      :lodge (list :regular lodge :staff staff-lodge)))))))
 
 (defun next-festival ()
   (car (clsql:query "select season, year from festivals order by starting limit 1")))
@@ -1220,57 +1314,57 @@ where (starting is null or starting <= date('now'))
 (defun exec-repl (command-line)
   (ql:quickload :prepl)
   (with-sql
-    (mapcar (compose #'eval #'read-from-string) command-line)
+      (mapcar (compose #'eval #'read-from-string) command-line)
     (funcall (intern "REPL" :prepl))))
 
 (defun init-db ()
   (with-sql
-    (mapcar (lambda (expr)
-              (handler-case
-                  (let* ((query-words (split-sequence #\Space expr))
-                         (gerund (ecase (make-keyword (nth 0 query-words))
-                                   (:|create| :creating)
-                                   (:|insert| :inserting-into)))
-                         (table-name (nth 2 query-words)))
-                    (tagbody again
-                       (restart-case
-                           (progn
-                             (format t "~&~(~a~) table ~a"
-                                     gerund table-name)
-                             (clsql:execute-command expr))
-                         (drop-table ()
-                           :report (lambda (s)
-                                     (format s "Drop table ~a and retry" table-name))
-                           :test (lambda ()
-                                   (eql gerund :creating))
-                           (format t "~&Dropping table ~a" table-name)
-                           (clsql:execute-command (concatenate
-                                                   'string "drop table "
-                                                   table-name
-                                                   ";"))
-                           (go again))
-                         (continue ()))))))
-            '("create table prices \(starting date, ending date, price decimal (6,2), item)"
-              "create table invoices \(invoice integer primary key, created datetime,
+      (mapcar (lambda (expr)
+                (handler-case
+                    (let* ((query-words (split-sequence #\Space expr))
+                           (gerund (ecase (make-keyword (nth 0 query-words))
+                                     (:|create| :creating)
+                                     (:|insert| :inserting-into)))
+                           (table-name (nth 2 query-words)))
+                      (tagbody again
+                         (restart-case
+                             (progn
+                               (format t "~&~(~a~) table ~a"
+                                       gerund table-name)
+                               (clsql:execute-command expr))
+                           (drop-table ()
+                             :report (lambda (s)
+                                       (format s "Drop table ~a and retry" table-name))
+                             :test (lambda ()
+                                     (eql gerund :creating))
+                             (format t "~&Dropping table ~a" table-name)
+                             (clsql:execute-command (concatenate
+                                                     'string "drop table "
+                                                     table-name
+                                                     ";"))
+                             (go again))
+                           (continue ()))))))
+              '("create table prices \(starting date, ending date, price decimal (6,2), item)"
+                "create table invoices \(invoice integer primary key, created datetime,
 closed datetime, \"closed-by\" text, \"old-system-p\" boolean, \"festival-season\" varchar(20),
  \"festival-year\" integer, note text, \"signature-p\" varchar(60), memo text)"
-              "create table merch \(id varchar(20), title varchar(100),
+                "create table merch \(id varchar(20), title varchar(100),
 description text, image varchar(100), price decimal(6,2));"
-              "create table \"merch-styles\" \(item varchar(20) references merch\(label),
+                "create table \"merch-styles\" \(item varchar(20) references merch\(label),
 id varchar(6), title varchar(100), inventory integer not null default 0)"
-              "create table \"invoice-merch\" \(invoice integer, item varchar(20), style varchar(6),
+                "create table \"invoice-merch\" \(invoice integer, item varchar(20), style varchar(6),
 qty integer not null default 1);"
-              "create table \"invoice-guests\" \(invoice integer, \"called-by\" varchar(50),
+                "create table \"invoice-guests\" \(invoice integer, \"called-by\" varchar(50),
 \"given-name\" varchar(50), surname varchar(50), \"formal-name\" varchar(72),
 \"presenter-bio\" text, \"presenter-requests\" text, \"e-mail\" varchar(200),
 telephone varchar(30), sleep varchar(10), eat varchar(10), day varchar(10),
 gender char(1), \"t-shirt\" varchar(8), coffeep boolean, totep boolean)"
-              "create table \"invoice-scholarships\" (invoice integer, scholarship varchar(10),
+                "create table \"invoice-scholarships\" (invoice integer, scholarship varchar(10),
 amount decimal(6,2), primary key(invoice, scholarship))"
-              "create table \"invoice-vending\" (invoice integer primary key, title varchar(72),
+                "create table \"invoice-vending\" (invoice integer primary key, title varchar(72),
 blurb text, notes text, qty integer not null default 1, \"agreement-p\" boolean)"
-              "create table payments (invoice integer, via varchar(100), source varchar(200),
-amount decimal(6,2), confirmation text, note text)"
-              "create table festivals (starting date, ending date,
+                "create table payments (invoice integer, via varchar(100), source varchar(200),
+amount decimal(6,2), confirmation text, note text, cleared datetime)"
+                "create table festivals (starting date, ending date,
 season varchar(20), year integer)"))))
 

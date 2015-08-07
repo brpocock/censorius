@@ -2,8 +2,7 @@
   (:require
    [clojure.string :as string]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
-   ))
+   [reagent.session :as session]))
 
 (def +staff-mail+ {"ama422@aol.com" :ann-marie,
                    "brpocock@star-hope.org" :brfp,

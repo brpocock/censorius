@@ -2,8 +2,6 @@
 (defproject censorius "0.1.0-SNAPSHOT"
   :description "Festival management program"
   :url "http://star-hope.org/censurius"
-  :license {:name "Gnu Affero General Public License"
-            :url "http://www.gnu.org/licenses/agpl/"}
 
   :jar-exclusions [#"\.cljx\.swp|\.swo|\.DS_Store|~"]
   
@@ -36,7 +34,6 @@
                  ]
 
   :plugins [ ;; --- (sorted, to make life easier)
-            [cider/cider-nrepl "0.8.2-SNAPSHOT"]
             [lein-asset-minifier "0.2.0"]
             [lein-cljsbuild "1.0.5"]
             [lein-environ "1.0.0"]

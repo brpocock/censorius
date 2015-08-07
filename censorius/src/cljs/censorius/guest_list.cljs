@@ -73,8 +73,8 @@
                          :border-radius "1ex"
                          :padding "8pt"}}
             (when (or (nil? @d/guests) (empty? @d/guests))
-              [:div :key (str "add-person-" (inc (or (and (nil? @d/guests) 0)
-                                                     (count @d/guests))))
+              [:div {:key (str "add-person-" (inc (or (and (nil? @d/guests) 0)
+                                                      (count @d/guests))))}
                [:h3 "To get started:"]
                [:p [:big "Enter your first and last name, "]
                 [:small "or the first and last name of the party's “leader.”
