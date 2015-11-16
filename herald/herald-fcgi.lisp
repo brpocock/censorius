@@ -9,7 +9,7 @@
                            :split-sequence
                            :trivial-backtrace
 
-                           #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite
+                           :dbd-mysql
                            #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)))
 
 (require :alexandria)
@@ -17,12 +17,12 @@
 (require :cl-ppcre)
 (require :cl-sendmail)
 (require :com.informatimago.common-lisp.rfc2822)
-(require :flexi-streams)
+(require :flexi-streams)1
 (require :memoize)
 (require :split-sequence)
 (require :trivial-backtrace)
 
-(require #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite)
+(require :dbd-mysql)
 (require #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
 
 (defpackage :herald-fcgi
@@ -34,12 +34,6 @@
 
 ;; control cards
 
-(define-constant +db-filename+
-    (merge-pathnames #p"work/Herald.persist.db" (user-homedir-pathname))
-  :test #'equalp)
-
-(ensure-directories-exist +db-filename+)
-
 (define-constant +host-name+ "http://fpgrocks.org"
   :test #'equal)
 
@@ -47,16 +41,20 @@
   :test #'equal)
 
 (define-constant +sysop-mail+
-    "Bruce-Robert Fenn Pocock <brpocock@star-hope.org>"
+  "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
   :test #'equal)
 
 (define-constant +herald-mail+
-    "Censorius Herald for TEG FPG <herald@flapagan.org>"
+  "\"Censorius Herald for TEG FPG\" <herald@flapagan.org>"
   :test #'equal)
 
 (define-constant +registrar-mail+
-    "Bruce-Robert Fenn Pocock <brpocock@star-hope.org>"
+  "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
   :test #'equal)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (load (make-pathname :name "herald-mysql"
+                       :defaults (user-homedir-pathname))))
 
 
 ;; compile-time constants
@@ -68,14 +66,22 @@
 (eval-when (:compile-toplevel)
   (format *trace-output* "~&Compiling Herald with baked-in configuration:
  • User home directory: ~a
- • DB filename: ~a
+ • DB: ~:[Unknown/incorrect type~;MariaDB/MySQL~] database
+    • host: ~a 
+    • database name: ~a 
+    • user name: ~a
+    • password: ~:[(missing)~;(set)~]
  • Host name: ~a
  • Sysop mail: ~a
  • Herald mail: ~a
  • Registrar mail: ~a
  • Compile-time version marker: ~36r~2%"
           (user-homedir-pathname)
-          +db-filename+
+          herald-db-config:+mysql+ 
+          (getf herald-db-config:+params+ :host)
+          (getf herald-db-config:+params+ :database-name)
+          (getf herald-db-config:+params+ :username)
+          (getf herald-db-config:+params+ :password)
           +host-name+
           +sysop-mail+
           +herald-mail+
@@ -218,7 +224,7 @@ each of them; but if given only one, return it as an atom."
 
 (defvar *cgi*)
 (defvar *request*)
-(defvar *sql*)
+(defvar *db*)
 
 
 
@@ -309,15 +315,16 @@ quotes)"
 (defun cl-user::sql (stream object colonp atp &rest parameters)
   "FORMAT ~/SQL/ printer. Handles  strings, integers, and floating-point
 real numbers."
-  (assert (not colonp))
-  (assert (not atp))
-  (assert (null parameters))
+  (assert (not colonp) () "The colon modifier is not used for ~~/SQL/")
+  (assert (not atp) () "The @ modifier is not used for ~~/SQL/")
+  (assert (null parameters) () "~~/SQL/ does not accept parameters; saw ~s" parameters)
   (etypecase object
     (string (princ #\' stream)
-            (princ (sql-escape object) stream)
-            (princ #\' stream))
+     (princ (sql-escape object) stream)
+     (princ #\' stream))
     (integer (princ object stream))
-    (real (princ (* 1.0 object) stream))))
+    (real (princ (* 1.0 object) stream))
+    (cons (format stream "(~{~/sql/~^, ~})" object))))
 
 (defun html-escape (string)
   "Escapes < and & from strings for safe printing as HTML (text node) content."
@@ -469,14 +476,16 @@ be reached at: ~a </p>
     (apply (curry #'format mail-reg) message-fmt+args)))
 
 
+(defun db-query (query &rest args)
+  (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *db* query) args)))
+
 (defun next-invoice-number ()
-  (clsql:query "select 1 + max(id) from invoices"))
+  (db-query "select 1 + max(id) from invoices"))
 
 (defun create-invoice ()
-  (clsql:execute-command
-   (apply #'format nil "insert into invoices (created, \"festival-season\", \"festival-year\")
-values (date('now'),~/sql/,~/sql/)" (next-festival)))
-  (caar (clsql:query "select last_insert_rowid()")))
+  (caar (db-query
+         "insert into invoices (created, `festival-season`, `festival-year`)
+values (date('now'),?,?)" (next-festival-season) (next-festival-year))))
 
 
 (defun mail-registrar-completed-invoice (invoice)
@@ -646,22 +655,22 @@ cookie says “~36r.”
 
 (defmacro sql-insert-invoice-fields
     ((table) (&body columns))
-  `(clsql:execute-command
+  `(db-query
     (format nil
-            "insert into \"invoice~@[-~(~a~)~]\" (invoice, ~{\"~(~a~)\"~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
+            "insert into `invoice~@[-~(~a~)~]` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
             ,(when table `',table)
             (list ,@(loop for column in columns
-                       collecting (string column)))
+                          collecting (string column)))
             invoice
             (list ,@(loop for column in columns
-                       collecting `(field ,(intern
-                                            (concatenate 'string
-                                                         (if table
-                                                             (concatenate 'string
-                                                                          (string table) "∋")
-                                                             "")
-                                                         (string column))
-                                            :keyword)))))))
+                          collecting `(field ,(intern
+                                               (concatenate 'string
+                                                            (if table
+                                                                (concatenate 'string
+                                                                             (string table) "∋")
+                                                                "")
+                                                            (string column))
+                                               :keyword)))))))
 
 (defmacro sql-insert-invoice-array
     ((table) (&body columns))
@@ -670,21 +679,21 @@ cookie says “~36r.”
                                                      'string
                                                      (string table) "∋#")
                                                     :keyword)))
-      do
-        (clsql:execute-command
-         (format nil
-                 "insert into \"invoice-~(~a~)\" (invoice, ~{\"~(~a~)\"~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
-                 ',table
-                 (list ,@(loop for column in columns
-                            collecting (string column)))
-                 invoice
-                 (list ,@(loop for column in columns
-                            collecting `(field (intern (string-upcase
-                                                        (concatenate 'string
-                                                                     ,(string table) "∋"
-                                                                     (string row) "∋"
-                                                                     (string ',column)))
-                                                       :keyword))))))))
+         do
+            (db-query
+             (format nil
+                     "insert into `invoice-~(~a~)` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
+                     ',table
+                     (list ,@(loop for column in columns
+                                   collecting (string column)))
+                     invoice
+                     (list ,@(loop for column in columns
+                                   collecting `(field (intern (string-upcase
+                                                               (concatenate 'string
+                                                                            ,(string table) "∋"
+                                                                            (string row) "∋"
+                                                                            (string ',column)))
+                                                              :keyword))))))))
 
 (defun accept-general (invoice)
   (sql-insert-invoice-fields (nil)
@@ -723,7 +732,12 @@ cookie says “~36r.”
           :workshops (accept-workshops invoice)
           :scholarships (accept-scholarships invoice))))
 
-(defun suspend-registration ()
+(defgeneric handle-verb (verb))
+
+(defmethod handle-verb ((verb t))
+  (reply '(:error 404)))
+
+(defmethod handle-verb ((verb (eql :save)))
   (let ((to-save (accept-state-from-form)))
     (format t "Content-Type: text/plain; charset=utf-8~2%")
     (princ "Imagine this just saved the thing and eMailed Bobbi Jo.")
@@ -740,7 +754,7 @@ cookie says “~36r.”
   (apply #'format *trace-output* format+args)
   (apply #'mail-reg +sysop-mail+ "Whining from Herald" (get-universal-time) format+args))
 
-(defun handle-recall ()
+(defmethod handle-verb ((verb (eql :recall)))
   (let ((invoice (or (ignore-errors (parse-integer (field :invoice))) -1))
         (admin-key (field :admin-key))
         (user-key (field :verify)))
@@ -750,36 +764,26 @@ cookie says “~36r.”
       (whine "Recall refused; mismatched user-key (got ~a) for invoice ~:d" user-key invoice)
       (reply '(:error 403 "Authorization refused. You cannot view the requested resource."
                "Please ensure that you copied and pasted the entire link, without spaces."))
-      (return-from handle-recall nil))
+      (return-from handle-verb nil))
     (when admin-key
       (unless (equal admin-key (admin-key invoice))
         (whine "Recall refused; mismatched admin-key (got ~a) for invoice ~:d" admin-key invoice)
         (reply '(:error 403 "Authorization refused. You cannot view the requested resource."
                  "Please ensure that you copied and pasted the entire link, without spaces."))
-        (return-from handle-recall nil)))
+        (return-from handle-verb nil)))
     (format t "Content-Type:text/plain; charset=utf-8~2%Imagine seeing invoice ~a here" invoice)))
+
+(defmethod handle-verb ((verb (eql :pay)))
+  (format t "Content-Type: text/plain; charset=utf-8~2%")
+  (error "Imagine this just asked for a payment."))
+
+(defmethod handle-verb ((verb (eql :test-pay)))
+  (format t "Content-Type: text/plain; charset=utf-8~2%")
+  (error "Imagine I just tested PayPal with this."))
 
 (defun dispatch ()
   (format *trace-output* "~& → verb = ~a~%" (field :verb))
-  (cond
-    ((equal "pay" (field :verb))
-     (format t "Content-Type: text/plain; charset=utf-8~2%")
-     (error "Imagine this just asked for a payment."))
-
-    ((equal "test-pay" (field :verb))
-     (format t "Content-Type: text/plain; charset=utf-8~2%")
-     (error "Imagine I just tested PayPal with this."))
-
-    ((equal "recall" (field :verb))
-     (handle-recall))
-
-    ((equal "save" (field :verb))
-     (suspend-registration))
-
-    ((equal "data" (field :get))
-     (GET-data.clj))
-
-    (t (reply '(:error 404)))))
+  (handle-verb (make-keyword (string-upcase (field :verb)))))
 
 (defun admin-key (invoice)
   (let ((numberish (format nil "~36r" (logxor invoice #x872))))
@@ -789,8 +793,8 @@ cookie says “~36r.”
                                    "/" (subseq numberish 1))))
     (let ((half (floor (length numberish) 2)))
       (coerce (loop for i from half downto 0
-                 collect (char numberish (- (length numberish) i 1))
-                 collect (char numberish i))
+                    collect (char numberish (- (length numberish) i 1))
+                    collect (char numberish i))
               'string))))
 
 (defun user-key (invoice)
@@ -909,7 +913,7 @@ cookie says “~36r.”
       response)))
 
 (defun add-payment-request (token amount currency-code ip)
-  (clsql:execute-command
+  (db-query
    (format nil "insert into payments
  \(invoice, via, source, amount, confirmation, note. cleared)
 values (~/sql/, 'PayPal', 'ip://~a', ~d, null, 'requested: ~a ~a ~:d (not yet received)', now())"
@@ -925,20 +929,20 @@ values (~/sql/, 'PayPal', 'ip://~a', ~d, null, 'requested: ~a ~a ~:d (not yet re
   (assert (string-equal currency-code *accepted-currency*)
           (currency-code amount)
           "Payment is only accepted in ~a" *accepted-currency*)
-  (clsql:execute-command
-   (format nil "insert into payments
+  (db-query
+   "insert into payments
  \(invoice, via, source, amount, confirmation, note, cleared)
-values (~/sql/, ~/sql/, ~/sql/, ~/sql/, ~/sql/, ~/sql/, now())"
-           (token->invoice token)
-           via
-           (remote-user)
-           amount
-           confirmation
-           (or note
-               (format nil "requested: ~a ~a ~:d (not yet received)"
-                       currency-code
-                       (currency-symbol currency-code)
-                       amount)))))
+values (?,?,?,?,?,?, now())"
+   (token->invoice token)
+   via
+   (remote-user)
+   amount
+   confirmation
+   (or note
+       (format nil "requested: ~a ~a ~:d (not yet received)"
+               currency-code
+               (currency-symbol currency-code)
+               amount))))
 
 (defun make-self-url (verb &rest more)
   (format nil "~a/~a?verb=~a~@[?~{~a=~a~^&~}~]"
@@ -973,19 +977,18 @@ values (~/sql/, ~/sql/, ~/sql/, ~/sql/, ~/sql/, ~/sql/, now())"
             (url-encode token)
             (url-encode user-action))))
 
-;; (defun register-payment-confirmed (token amount ip result)
-;;   (clsql:execute-command
-;;    (format nil "update payments
-;; set via='PayPal', source=~/sql/, amount=~f,
-;;      confirmation=~/sql/, note=~/sql/
-;; where invoice=~d"
-;;            ip
-;;            amount
-;;            (format nil "PayPal Express Checkout results:
-;; \(~{~:(~32s~) ~s~^~% ~})"
-;;                    result)
-;;            "Paid via PayPal"
-;;            (token->invoice token))))
+(defun register-payment-confirmed (token amount ip result)
+  (db-query "update payments
+set via='PayPal', source=?, amount=?,
+     confirmation=?, note=?
+where invoice=~d"
+            ip
+            amount
+            (format nil "PayPal Express Checkout results:
+\(~{~:(~32s~) ~s~^~% ~})"
+                    result)
+            "Paid via PayPal"
+            (token->invoice token)))
 
 (defun paypal-get-and-do-express-checkout (token
                                            success failure)
@@ -1126,14 +1129,12 @@ Details: Invoice token ~s;
   (cgi-call #'dispatch))
 
 (defmacro with-sql (&body body)
-  `(clsql:with-database (*sql* '(,(princ-to-string +db-filename+))
-                               :make-default t
-                               :database-type #+sbcl :sqlite3 #+ccl :sqlite)
+  `(dbi:with-connection (*db* :mysql ,@herald-db-config:+params+)
      ,@body))
 
 (defmacro select ((query &rest q-args) &body body)
   `(multiple-value-bind (rows columns)
-       (clsql:query (format nil ,query ,@q-args))
+       (db-query ,query ,@q-args)
      (let ((columns (mapcar (compose #'make-keyword #'string-upcase)
                             columns)))
        ,@body)))
@@ -1152,7 +1153,7 @@ Details: Invoice token ~s;
   (declare (ignore invoice)))           ; TODO
 
 (defun read-general (&optional invoice)
-  (select-1-plist "select * from \"invoices\" where invoice=~/sql/"
+  (select-1-plist "select * from `invoices` where invoice=~/sql/"
                   invoice))
 
 (defun read-invoice (invoice)
@@ -1165,15 +1166,15 @@ Details: Invoice token ~s;
 
 
 (defun read-merch-ordered (invoice)
-  (let ((ordered (clsql:query
-                  (format nil "select item, style, qty from \"invoice-merch\"
-where invoice=~/sql/"
-                          invoice))))
+  (let ((ordered (db-query
+                  "select item, style, qty from `invoice-merch`
+where invoice=?"
+                  invoice)))
     (loop for item in (remove-duplicates (mapcar #'first ordered))
-       collecting (loop for (nil style qty)
-                     in (remove-if-not (lambda (row)
-                                         (equal (first row) item)) ordered)
-                     appending (list style qty)))))
+          collecting (loop for (nil style qty)
+                             in (remove-if-not (lambda (row)
+                                                 (equal (first row) item)) ordered)
+                           appending (list style qty)))))
 
 (defun read-guests (&optional invoice)
   (when invoice
@@ -1181,13 +1182,12 @@ where invoice=~/sql/"
                                    :formal-name :presenter-bio :presenter-requests
                                    :e-mail :telephone :sleep :eat :day
                                    :gender :t-shirt :coffeep :totep))
-            (clsql:query (format nil
-                                 "select \"called-by\", \"given-name\", \"surname\",
-\"formal-name \", \"presenter-bio\", \"presenter-requests\", \"e-mail \", \"telephone sleep\",
-\"eat\", \"day \", \"gender t\",-\"shirt\", \"coffeep\", \"totep\"
-from \"invoice-guests\" where invoice=~:d
+            (db-query "select `called-by`, `given-name`, `surname`,
+`formal-name `, `presenter-bio`, `presenter-requests`, `e-mail `, `telephone sleep`,
+`eat`, `day `, `gender`, `t-shirt`, `coffeep`, `totep`
+from `invoice-guests` where invoice=~:d
 "
-                                 invoice)))))
+                      invoice))))
 
 (defun guests->edn (&optional invoice)
   (format nil "(defonce guests (atom ~/edn/))"
@@ -1213,27 +1213,25 @@ from \"invoice-guests\" where invoice=~:d
 (defun read-merch (&optional invoice)
   (let ((ordered-qty (when invoice (read-merch-ordered invoice))))
     (loop for (id title description image price)
-       in (clsql:query "select id, title, description, image, price from merch")
-       collect id
-       collect
-         (list :id (make-keyword id)
-               :title title :description description :image image :price price
-               :styles
-               (coerce
-                (loop for (style-id style-title inventory)
-                   in (clsql:query (format
-                                    nil
-                                    "select id, title, inventory from \"merch-styles\" where item='~a'"
-                                    id))
-                   collect
-                     (list :id (make-keyword style-id)
-                           :title style-title
-                           :inventory inventory
-                           :qty (or (and invoice
-                                         (when-let ((item-ordered (getf ordered-qty id)))
-                                           (getf item-ordered style-id)))
-                                    0)))
-                'vector)))))
+            in (db-query "select id, title, description, image, price from merch")
+          collect id
+          collect
+          (list :id (make-keyword id)
+                :title title :description description :image image :price price
+                :styles
+                (coerce
+                 (loop for (style-id style-title inventory)
+                         in (db-query "select id, title, inventory from `merch-styles` where item=?"
+                                      id)
+                       collect
+                       (list :id (make-keyword style-id)
+                             :title style-title
+                             :inventory inventory
+                             :qty (or (and invoice
+                                           (when-let ((item-ordered (getf ordered-qty id)))
+                                             (getf item-ordered style-id)))
+                                      0)))
+                 'vector)))))
 
 (defun prices->edn ()
   (format t "~%(defonce prices (atom ~/edn/))"
@@ -1241,60 +1239,66 @@ from \"invoice-guests\" where invoice=~:d
 
 (defun read-prices ()
   (select ("select * from prices
-where (starting is null or starting <= date('now'))
-   and (ending is null or ending >= date('now'));")
-          (let ((rows-plist (mapcar (curry #'interleave2 columns)
-                                    rows)))
-            (macrolet
-                ((with-prices ((&rest symbols) &body body)
-                   `(let* (,@(mapcar
-                              (lambda (symbol)
-                                `(,symbol (or (getf (find
-                                                     (string-downcase
-                                                      (string ',symbol))
-                                                     rows-plist
-                                                     :test #'equal
-                                                     :key (rcurry #'getf :item))
-                                                    :price)
-                                              ,(when (not (eql symbol
-                                                               (car symbols)))
-                                                     (car symbols))
-                                              1000)))
-                              symbols))
-                      ,@body)))
-              (with-prices (adult-ticket
-                            child-ticket week-end-ticket day-pass
-                            lugal-so-ticket staff-ticket vendor
-                            cauldron-fri-sun cauldron-adult
-                            cauldron-child cauldron-under5
-                            salad-bar
-                            cabin staff-cabin
-                            lodge staff-lodge)
-                (list :ticket
-                      (list :adult adult-ticket
-                            :child child-ticket
-                            :week-end week-end-ticket
-                            :day-pass day-pass
-                            :lugal-so lugal-so-ticket
-                            :staff staff-ticket)
-                      :vendor vendor
-                      :cauldron (list  :fri-sun cauldron-fri-sun
-                                       :adult cauldron-adult
-                                       :child cauldron-child
-                                       :under5 cauldron-under5)
-                      :salad-bar salad-bar
-                      :cabin (list :regular cabin :staff staff-cabin)
-                      :lodge (list :regular lodge :staff staff-lodge)))))))
+where (`starting` is null or `starting` <= date(now()))
+   and (ending is null or ending >= date(now()));")
+    (let ((rows-plist (mapcar (curry #'interleave2 columns)
+                              rows)))
+      (macrolet
+          ((with-prices ((&rest symbols) &body body)
+             `(let* (,@(mapcar
+                         (lambda (symbol)
+                           `(,symbol (or (getf (find
+                                                (string-downcase
+                                                 (string ',symbol))
+                                                rows-plist
+                                                :test #'equal
+                                                :key (rcurry #'getf :item))
+                                               :price)
+                                         ,(when (not (eql symbol
+                                                          (car symbols)))
+                                            (car symbols))
+                                         1000)))
+                         symbols))
+                ,@body)))
+        (with-prices (adult-ticket
+                      child-ticket week-end-ticket day-pass
+                      lugal-so-ticket staff-ticket vendor
+                      cauldron-fri-sun cauldron-adult
+                      cauldron-child cauldron-under5
+                      salad-bar
+                      cabin staff-cabin
+                      lodge staff-lodge)
+          (list :ticket
+                (list :adult adult-ticket
+                      :child child-ticket
+                      :week-end week-end-ticket
+                      :day-pass day-pass
+                      :lugal-so lugal-so-ticket
+                      :staff staff-ticket)
+                :vendor vendor
+                :cauldron (list  :fri-sun cauldron-fri-sun
+                                 :adult cauldron-adult
+                                 :child cauldron-child
+                                 :under5 cauldron-under5)
+                :salad-bar salad-bar
+                :cabin (list :regular cabin :staff staff-cabin)
+                :lodge (list :regular lodge :staff staff-lodge)))))))
 
 (defun next-festival ()
-  (car (clsql:query "select season, year from festivals order by starting limit 1")))
+  (car (db-query "select season, year from festivals where `starting` > now()  order by `starting` limit 1")))
+
+(defun next-festival-season ()
+  (car (db-query "select season from festivals where `starting` > now() order by `starting` limit 1")))
+
+(defun next-festival-year ()
+  (car (db-query "select year from festivals where `starting` > now() order by `starting`  limit 1")))
 
 (defun festival->edn ()
   (format nil "(defonce festival (atom ~{{:season ~s :year ~s}~}))"
           (next-festival)))
 
-(defun GET-data.clj ()
-  ())
+(defmethod handle-verb ((verb (eql :data)))
+  (format t "Content-Type: "))
 
 (defun exec-paypal-return.cgi (command-line)
   (declare (ignore command-line))
@@ -1314,57 +1318,129 @@ where (starting is null or starting <= date('now'))
 (defun exec-repl (command-line)
   (ql:quickload :prepl)
   (with-sql
-      (mapcar (compose #'eval #'read-from-string) command-line)
+    (mapcar (compose #'eval #'read-from-string) command-line)
     (funcall (intern "REPL" :prepl))))
+
 
 (defun init-db ()
   (with-sql
-      (mapcar (lambda (expr)
-                (handler-case
-                    (let* ((query-words (split-sequence #\Space expr))
-                           (gerund (ecase (make-keyword (nth 0 query-words))
-                                     (:|create| :creating)
-                                     (:|insert| :inserting-into)))
-                           (table-name (nth 2 query-words)))
-                      (tagbody again
-                         (restart-case
-                             (progn
-                               (format t "~&~(~a~) table ~a"
-                                       gerund table-name)
-                               (clsql:execute-command expr))
-                           (drop-table ()
-                             :report (lambda (s)
-                                       (format s "Drop table ~a and retry" table-name))
-                             :test (lambda ()
-                                     (eql gerund :creating))
-                             (format t "~&Dropping table ~a" table-name)
-                             (clsql:execute-command (concatenate
-                                                     'string "drop table "
-                                                     table-name
-                                                     ";"))
-                             (go again))
-                           (continue ()))))))
-              '("create table prices \(starting date, ending date, price decimal (6,2), item)"
-                "create table invoices \(invoice integer primary key, created datetime,
-closed datetime, \"closed-by\" text, \"old-system-p\" boolean, \"festival-season\" varchar(20),
- \"festival-year\" integer, note text, \"signature-p\" varchar(60), memo text)"
-                "create table merch \(id varchar(20), title varchar(100),
-description text, image varchar(100), price decimal(6,2));"
-                "create table \"merch-styles\" \(item varchar(20) references merch\(label),
-id varchar(6), title varchar(100), inventory integer not null default 0)"
-                "create table \"invoice-merch\" \(invoice integer, item varchar(20), style varchar(6),
-qty integer not null default 1);"
-                "create table \"invoice-guests\" \(invoice integer, \"called-by\" varchar(50),
-\"given-name\" varchar(50), surname varchar(50), \"formal-name\" varchar(72),
-\"presenter-bio\" text, \"presenter-requests\" text, \"e-mail\" varchar(200),
+    (dolist (expr '("create table festivals (`starting` date not null unique key, 
+ending date not null unique key, season varchar(8) not null, year year not null, primary key(season, year))"
+                    "create table invoices (invoice serial primary key, created datetime,
+closed datetime, `closed-by` text, `old-system-p` boolean not null default false, `festival-season` varchar(8),
+ `festival-year` year not null, note text, `signature-p` varchar(60), memo text,
+foreign key (`festival-season`,`festival-year`) references festivals(season,year) on delete restrict)"
+                    "create table merch (id varchar(20) primary key, title varchar(100) unique key,
+description text, image varchar(100), price decimal(6,2) not null default 9999.99)"
+                    "create table `merch-styles` (item varchar(20),
+id varchar(6) not null, title varchar(100) not null, inventory integer unsigned  not null default 0, 
+constraint itemstyle unique(item,id), constraint itemstylename unique(item, title),
+foreign key (item) references merch(id) on delete restrict)"
+                    "create table prices (`starting` date default null, ending date default null, price decimal (6,2), item varchar(20) not null,
+constraint itemstart unique(item, `starting`), constraint itemend unique key(item, ending),
+ foreign key  (item) references merch(id) on delete restrict)"
+                    "create table `invoice-merch` (invoice bigint unsigned not null,
+ item varchar(20), style varchar(6), qty integer unsigned not null default 1,
+unique key(invoice, item, style),
+foreign key (invoice) references invoices (invoice))"
+                    "create table `invoice-guests` (invoice bigint unsigned not null,
+`called-by` varchar(50),
+`given-name` varchar(50), surname varchar(50) not null, `formal-name` varchar(100) not null,
+`presenter-bio` text, `presenter-requests` text, `e-mail` varchar(200),
 telephone varchar(30), sleep varchar(10), eat varchar(10), day varchar(10),
-gender char(1), \"t-shirt\" varchar(8), coffeep boolean, totep boolean)"
-                "create table \"invoice-scholarships\" (invoice integer, scholarship varchar(10),
-amount decimal(6,2), primary key(invoice, scholarship))"
-                "create table \"invoice-vending\" (invoice integer primary key, title varchar(72),
-blurb text, notes text, qty integer not null default 1, \"agreement-p\" boolean)"
-                "create table payments (invoice integer, via varchar(100), source varchar(200),
-amount decimal(6,2), confirmation text, note text, cleared datetime)"
-                "create table festivals (starting date, ending date,
-season varchar(20), year integer)"))))
+gender char(1), `t-shirt` varchar(8), coffeep boolean, totep boolean,
+primary key(invoice,`given-name`,`called-by`,surname),
+foreign key (invoice) references invoices (invoice))"
+                    "create table people (`given-name` varchar(50), `called-by` varchar(50),
+surname varchar(50) not null, `formal-name` varchar(100) not null,
+dob date, primary key(surname, `called-by`))"
+                    "create table `people-href` (surname varchar(50) not null,
+`called-by` varchar(50) not null, rel varchar(8), href varchar(255),
+foreign key (surname,`called-by`) references people (surname, `called-by`))"
+                    "create table `people-phone` (surname varchar(50) not null,
+`called-by` varchar(50) not null, rel varchar(8), phone varchar(255),
+foreign key (surname,`called-by`) references people (surname, `called-by`))"
+                    "create table `people-email` (surname varchar(50) not null,
+`called-by` varchar(50) not null, rel varchar(8), email varchar(255),
+foreign key (surname,`called-by`) references people (surname, `called-by`))"
+                    "create table `people-rel` (`from-surname` varchar(50) not null,
+`from-called-by` varchar(50) not null, rel varchar(8), `to-surname` varchar(50) not null,
+ `to-called-by` varchar(50) not null,
+foreign key (`from-surname`,`from-called-by`) references people (surname, `called-by`),
+foreign key (`to-surname`,`to-called-by`) references people (surname, `called-by`),
+constraint relates unique  (`from-surname`,`from-called-by`,rel,`to-surname`,`to-called-by`))"
+                    "create table `invoice-scholarships` (invoice bigint unsigned not null,
+scholarship varchar(10),
+amount decimal(6,2), primary key(invoice, scholarship),
+foreign key (invoice) references invoices (invoice))"
+                    "create table `invoice-vending` (invoice bigint unsigned not null primary key,
+title varchar(72),
+blurb text, notes text, qty integer unsigned not null default 1, `agreement-p` boolean,
+foreign key (invoice) references invoices (invoice))"
+                    "create table payments (invoice bigint unsigned not null,
+via varchar(100), source varchar(200),
+amount decimal(6,2), confirmation text, note text, cleared datetime,
+ foreign key (invoice) references invoices (invoice) on delete restrict)"))
+      (handler-case
+          (let* ((query-words (split-sequence #\Space expr))
+                 (table-name (nth 2 query-words)))
+            (tagbody again
+               (restart-case
+                   (progn
+                     (format t "~&Creating table ~a" table-name)
+                     (format t "~& ⇒ ~a" (db-query expr)))
+                 (drop-table ()
+                   :report (lambda (s)
+                             (format s "Drop table ~a and retry" table-name))
+                   (format t "~&Dropping table ~a" table-name)
+                   (format t "~& ⇒ ~a"
+                           (db-query (concatenate 'string "drop table "
+                                                  table-name)))
+                   (go again))
+                 (continue ()))))))
+    (loop for year from 2000 upto 2016
+          do (loop for (season month) in '(("Beltane" 5)
+                                           ("Samhain" 11))
+                   do (db-query (format nil "insert into festivals (season, year, `starting`,ending) values (?,?,'~a-~d-1','~a-~d-1')"
+                                        year month year month)
+                                season year)))
+    (db-query "alter table invoices auto_increment=4000")
+    (loop for (id title description image price styles)
+            in '(("general-shirt" "FPG general T-shirt"
+                  "The FPG general T-shirt" "/merch/tshirt_Gen.png" 175
+                  (("XS" "Extra-small" 0)
+                   ("S" "Small" 2)
+                   ("M" "Medium" 0)
+                   ("L" "Large" 0)
+                   ("XL" "Extra-large" 0)
+                   ("X2L" "Double extra-large" 1)
+                   ("X3L" "Triple extra-large" 3)
+                   ("X4L" "Quadruple extra-large" 2)
+                   ("X5L" "Quintuple extra-large" 2)))
+                 ("tote-bag" "FPG Tote Bag"
+                  "FPG Tote Bag" "/merch/tote-bag.jpeg" 325
+                  (("tote" "Tote Bag" 13)))
+                 ("coffee" "FPG Coffee Mug"
+                  "The FPG thermal coffee mug is great for other beverages, too" 325
+                  (("coffee" "Coffee mug" 140)))
+                 ("water" "FPG Water bottle"
+                  "FPG Water bottle" 325
+                  (("water" "Water bottle" 62)))
+                 ("festival-shirt" "Festival T-shirt"
+                  "The new T-shirt for the next festival" "/merch/tshirt_next.png" 798
+                  (("XS" "Extra-small" 999)
+                   ("S" "Small" 999)
+                   ("M" "Medium" 999)
+                   ("L" "Large" 999)
+                   ("XL" "Extra-large" 999)
+                   ("X2L" "Double extra-large" 999)
+                   ("X3L" "Triple extra-large" 999)
+                   ("X4L" "Quadruple extra-large" 999)
+                   ("X5L" "Quintuple extra-large" 999))))
+          do (db-query "insert into merch (id, title, description, image) values (?,?,?,?)"
+                       id title description image)
+          do (db-query "insert into prices (item, price) values (?,?)" id price)
+          do (loop for (style-id style-title inventory) in styles
+                   do (db-query "insert into `merch-styles` (item, id, title, inventory) values (?,?,?,?)"
+                                id style-id style-title inventory)))))
 
