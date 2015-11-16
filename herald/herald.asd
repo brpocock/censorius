@@ -1,5 +1,5 @@
 (require :asdf)
-(asdf:defsystem "HERALD"
+(asdf:defsystem "HERALD-FCGI"
   :description "Censorius Herald, a registration-management system"
   :version "0.0.1"
   :author "Bruce-Robert Fenn Pocock <brpocock@star-hope.org>"
@@ -8,5 +8,8 @@
                #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
                :cl-ppcre
                :trivial-backtrace
-               :clsql-sqlite)
+               :dbd-mysql)
   :components ((:file "herald-fcgi")))
+
+
+
