@@ -118,6 +118,21 @@ Add other members of your party, and watch the Assistant box for advice.")
                                             :gender (guess-gender given)
                                             :t-shirt nil :coffee? false :tote? false}))))))))))
 
+(defn suggest-partner-name [guest]
+  (case (:given-name @guest)
+    "John" "Jane"
+    "Adam" "Yves"
+    "Jennifer" "Eric"
+    "Eric" "Jennifer"
+    "Paul" "Ann-Marie"
+    "Ann-Marie" "Paul"
+    "Theresa" "James"
+    "Orianna" "James"
+    "James" "Theresa"
+    "Dawn" "Scott"
+    "Scott" "Dawn"
+    "John"))
+
 (defn add-person-row [_ children this]
   (let [new-name (atom  {:new-name-entered ""})]
     (reagent/create-class
@@ -128,13 +143,14 @@ Add other members of your party, and watch the Assistant box for advice.")
               named? (and name$
                           (string? name$)
                           (not (string/blank? name$)))]
-          [:tr {:key (if (empty @d/guests) "☠|add-first|" "☠|add-next|")}
+          [:tr {:key (if (empty @d/guests) "☠|add-first|" "☠|add-next|")
+                :class "no-print"}
            [:td {:col-span 10
                  :style {:border "2pt solid black"
                          :border-radius "1ex"
                          :padding "8pt"}}
             (when (empty? @d/guests)
-              [:div {:key (str "add-person-1")}
+              [:div {:key (str "add-person-1") :class "no-print"}
                #_ (util/log " • first person intro")
                [:h3 "To get started:"]
                [:p [:big "Enter your first and last name, "]
@@ -156,32 +172,19 @@ Add other members of your party, and watch the Assistant box for advice.")
                                                          (not (some #(= name %) 
                                                                     (map #(:given-name @%) @d/guests)))) 
                                                        (concat
-                                                        (map #(case (:given-name @%)
-                                                      "John" "Jane"
-                                                      "Adam" "Yves"
-                                                      "Jennifer" "Eric"
-                                                      "Eric" "Jennifer"
-                                                      "Paul" "Ann-Marie"
-                                                      "Ann-Marie" "Paul"
-                                                                "Theresa" "James"
-                                                                "Orianna" "James"
-                                                                "James" "Theresa"
-                                                                "Dawn" "Scott"
-                                                                "Scott" "Dawn"
-                                                      "John")
-                                                          @d/guests)
+                                                        (map suggest-partner-name @d/guests)
                                                         (list "John"
-                                               "Amy" "Brian" "Charlie" "David" "Elizabeth"
-                                               "Frank" "Gerri" "Harry" "Ingrid" "Jack"
-                                               "Kyle" "Laurel" "Michael" "Nancy" "Oscar"
-                                               "Peter" "Quentin" "Rose" "Sharon" "Tyler"
+                                                              "Amy" "Brian" "Charlie" "David" "Elizabeth"
+                                                              "Frank" "Gerri" "Harry" "Ingrid" "Jack"
+                                                              "Kyle" "Laurel" "Michael" "Nancy" "Oscar"
+                                                              "Peter" "Quentin" "Rose" "Sharon" "Tyler"
                                                               "Uma" "Vladimir" "Wilmena" "Xavier" "Zach"))))
-                                       "John") 
-                                   " "
-                                   (if (or (empty? @d/guests)
-                                           (empty? (:surname (deref (first @d/guests)))))
-                                     "Doe"
-                                     (:surname (deref (first @d/guests))))))
+                                              "John") 
+                                          " "
+                                          (if (or (empty? @d/guests)
+                                                  (empty? (:surname (deref (first @d/guests)))))
+                                            "Doe"
+                                            (:surname (deref (first @d/guests))))))
                               :format util/name-case
                               :validate (fn [new-name] 
                                           (reagent/force-update-all)

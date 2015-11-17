@@ -108,7 +108,7 @@
 (defn vendor-agreement []
   [:div [:h3 "Vendor agreement"]
    [:p "Before you can become an vendor, you need to agree to the festival's vendor rules."]
-   [:a {:href "/news/2015/04/vendor-faq"
+   [:a {:href "http://fpgrocks.org/news/vendor-faq"
         :target "VendorFAQ"} 
     [:button {:class "true"} "Read Vendor Rules"]]
    [:button {:on-click (fn [_] 
@@ -150,9 +150,10 @@
                           :label "Quantity"
                           :placeholder "0"
                           :format util/just-number
-                          :validate #(and (util/just-digits? %)
-                                          (= 1 (count %))
-                                          (some #{\1 \2 \3 \4 \0} %))
+                          :validate #(and (or (= 1 (count %)) 
+                                              (and (= 2 (count %))
+                                                   (= \0 (.charAt % 0))))
+                                          (every? #{\1 \2 \3 \4 \0} %))
                           :rows 0
                           :size 3}]
    " vendor "
@@ -169,20 +170,27 @@
 
 (defn vendor-box []
   (fn []
-    (when (or (pos? (count (filter #(= (:ticket-type @%) :adult) @d/guests)))
-              (pos? (:qty @d/vending)))
-      [:section {:key "vending" :class "card"}
-       [:h2 "Vending"]
-       [:div
-        (cond
-          (zero? adults)
-          [:p "Vendors must have at least one adult admission"]
-          
-          (not (:agreement @d/vending))
-          [vendor-agreement]
-          
-          true
-          [vendor-slips])]])))
+    (let [adults (count (filter #(= (:ticket-type @%) :adult) @d/guests))]
+      (when (or (pos? adults)
+                (pos? (:qty @d/vending)))
+        [:section {:key "vending" :class "card"}
+         [:h2 "Vending"]
+         [:div
+          (cond
+            (zero? adults)
+            [:div [:p "Vendors must have at least one adult admission."]
+             [:p {:class "hint"}
+              "You may see  it written that vendor  admission prices are
+              $140 (with discounts for  buying early). This includes the
+              price of  an adult admission  for the vendor plus  $25 for
+              one  10´×10´ vending  space. You  may purchase  addtiional
+              vending spaces and additional admissions as you like."]]
+            
+            (not (:agreement @d/vending))
+            [vendor-agreement]
+            
+            true
+            [vendor-slips])]]))))
 
 
 (defn need-adult-email []
@@ -560,7 +568,7 @@ legally binding.)"]
                             :label "Notes or comments"
                             :placeholder "Cabin assignment requests? Special discounts or notes?"
                             :rows 3}]]
-         [:p {:class "hint"}
+         [:p {:class "hint no-print"}
           "If there's something else that you want to get sorted-out, enter a
  note above, and your registration will be" [:em "suspended"] " and brought to
  the attention of our Registration staff. " 
@@ -576,6 +584,18 @@ legally binding.)"]
 
 
 
+(defn print-trailer []
+  [:div {:class "print-only"}
+   [:p "This is a copy of the registration web page, formatted for printing. This is "
+    [:em "not"] " the eMail receipt, and it does "
+    [:em "not"] 
+    " indicate proof  of payment. However, we hope that  it will provide
+    a convenient record of your Festival plans."]
+   [:p "Produced by Censorius Herald software. Software copyright © 2013-2015."]
+   [:p "Your web browser or other user agent is " js/navigator.userAgent]])
+
+
+
 (defn registration-page []
   @d/guests
   [:div
@@ -585,7 +605,8 @@ legally binding.)"]
    [workshop-box]
    [scholarship-box]
    [assistant-box]
-   [check-out-box]])
+   [check-out-box]
+   [print-trailer]])
 
 
 (defn about-page []
@@ -680,6 +701,7 @@ legally binding.)"]
 
 (defn init! []
   (reader/read-string "(defn boo [] (js/alert \"boo\"))")
+  (set! js/document.title (str "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)))
   (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))
 
 
@@ -692,7 +714,6 @@ legally binding.)"]
 
 
 (defn main []
-  (util/log "clearTimeout " js/not-loaded)
   (js/window.clearTimeout js/not-loaded)
   (hook-browser-navigation!)
   (init!))

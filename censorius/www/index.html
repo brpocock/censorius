@@ -1,20 +1,36 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link href="css/style.css" rel="stylesheet" type="text/css">
-    <meta charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-tap-highlight" content="no" />
-    <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
-    <meta name="viewport" content="user-scalable=no, initial-scale=1,
-                                   maximum-scale=1, minimum-scale=1, width=device-width,
-                                   height=device-height, target-density-dpi=device-dpi" />
+    <link href="css/style.css" rel="stylesheet" type="text/css" >
+    <meta charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <meta name="format-detection" content="telephone=no" >
+    <meta name="msapplication-tap-highlight" content="no" >
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, target-density-dpi=device-dpi" >
 
-    <title>Registration</title>
+    <script>
+      function cool_label (label) {
+      document.getElementById("censorius").getElementsByTagName("center")[0].getElementsByTagName("h2")[0].innerHTML = label
+      }
+      
+      slow_load_warning = function ()
+      { cool_label ("¿Loading trouble? (" + document.title + ")");
+      alert("There seems to be a problem loading this application. \n\n" + document.title + "\n\nYou may  need to check your  network connection, or make  sure you have the latest update for your web browser (" + navigator.userAgent.substring(navigator.userAgent.lastIndexOf(" ")+1,navigator.userAgent.lastIndexOf("/")) + ").\n\nI'll keep trying for now, but if it  doesn't load in a few moments more,  you might want  to click “Reload” to try again.");
+      }
+      </script>
+
+    <title> Registration — TEG FPG </title>
   </head>
   <body>
-    <div id="censorius">
+    <noscript>
+      <h2> This is a Web Application. </h2>
+      <p> This program requires a web browser with JavaScript enabled. </p>
+      <center>
+        <a href="http://javascript-enabled.com/">Enable it now.</a>
+      </center>
+    </noscript>
 
+    <div id="censorius">
+            
       <center class="centerboth"
 	      style="min-height: 10em; max-height: 75%">
         <img src="css/spinner.gif" alt="Please wait… Loading">
@@ -25,42 +41,45 @@
 
       <h3>Having trouble?</h3>
 
-        <p     class="hint"><a     href="http://getfirefox.com/">Mozilla
+      <p     class="hint"><a     href="http://getfirefox.com/">Mozilla
           Firefox</a> is the  most popular <abbr for="Firefox  is free —
-          like  “free   speech”  —  as   well  as  free  —   like  “free
-          beer.”">free</abbr>  web  browser   for  <abbr  for="Android™,
-          Linux®,  MacOS®,  or  Microsoft™ Windows">most  computers  and
+                                                      like  “free   speech”  —  as   well  as  free  —   like  “free
+                                                      beer.”">free</abbr>  web  browser   for  <abbr  for="Android™,
+                                                                                                           Linux®,  MacOS®,  or  Microsoft™ Windows">most  computers  and
           devices</abbr>.    <a   href="http://getfirefox.com/">Download
           Firefox</a>  to  safely  access   this,  and  other  web-based
-          applications. </p>
+        applications. </p>
 
-        <p>  This  application  should  also work  in  Chromium,  Google
-          Chrome, Safari, Opera, and any  other web browser that follows
-          the World-Wide Web standards. This  notably means it will most
-          likely   <em>not</em>  work   reliably  in   Windows  Internet
-          Explorer;   please  use   a   fully-functional  web   browser.
-          Microsoft's Edge browser, which  replaced Internet Explorer in
-          2015, <em>should</em> be usable. </p>
+      <p class="hint"> This application should also work in Chromium, Google
+        Chrome, Safari, Opera, and any  other web browser that follows
+        the World-Wide Web standards. This  notably means it will most
+        likely   <em>not</em>  work   reliably  in   Windows  Internet
+        Explorer;   please  use   a   fully-functional  web   browser.
+        Microsoft's Edge browser, which  replaced Internet Explorer in
+        2015, <em>should</em> be usable. </p>
       
       <p class"hint"><a href="mailto:brpocock@star-hope.org">brpocock@star-hope.org</a>
         is the programmer building this application.</p>
       
       <script>
-        var
-       not_loaded=setTimeout(function(){document.getElementById("censorius").getElementsByTagName("center")[0].getElementsByTagName("h2")[0].innerHTML="¿Loading trouble?";alert("There seems to be a problem loading this application. You may need to check your network connection, or make sure you have the latest update for Firefox. I'll keep trying for now, but you might want to click “Reload” to try again.")},10000);
+        var not_loaded=setTimeout(slow_load_warning,10000);
       </script>
-      <noscript>
-        <p> This program requires a web browser with
-          JavaScript enabled. </p>
-        <center>
-          <a href="http://javascript-enabled.com/">Enable it now</a>
-        </center>
-      </noscript>
-
     </div>
+    <script>document.title="(Loading: 0/4) Registration — TEG FPG";
+      cool_label("Loading …");
+    clearTimeout(not_loaded); not_loaded=setTimeout(slow_load_warning,10000);</script>
     <script language="javascript" src="js/goog/base.js"></script>
+    <script>document.title="(Loading: 1/4) Registration — TEG FPG";
+      cool_label("Loading … (1/4)");
+    clearTimeout(not_loaded); not_loaded=setTimeout(slow_load_warning,10000);</script>
     <script language="javascript" src="http://fb.me/react-0.14.2.js"></script>
+    <script>document.title="(Loading: 2/4) Registration — TEG FPG";
+      cool_label("Loading … (2/4)");
+    clearTimeout(not_loaded); not_loaded=setTimeout(slow_load_warning,10000);</script>
     <script language="javascript" src="js/cljs_deps.js"></script>
+    <script>document.title="(Loading: 3/4) Registration — TEG FPG";
+      cool_label("Loading … (3/4)");
+    clearTimeout(not_loaded); not_loaded=setTimeout(slow_load_warning,10000);</script>
     <script language="javascript">goog.require("censorius.page");</script> 
   </body>
 </html>

@@ -11,7 +11,10 @@
                  [org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.170"]
                  ;; --- (sorted, to make life easier)
+                 
+                 [alandipert/storage-atom "2.0.0-SNAPSHOT"]
                  [com.cemerick/piggieback "0.1.4"]
+                 [com.cognitect/transit-cljs "0.8.232"]
                  ;;  [com.facebook/react "0.14.2"]
                  [cljs-ajax "0.3.9"]
                  [compojure "1.3.1"]

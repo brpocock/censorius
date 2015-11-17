@@ -140,21 +140,21 @@
            nil)))
 
 (defn staff-id [mail]
-  (util/log "staff-id ← " mail " = " (get +staff-mail+ mail))
+  #_ (util/log "staff-id ← " mail " = " (get +staff-mail+ mail))
   (get +staff-mail+ mail))
 
 (defn staff? [person]
   (let [staffy (or (and (:e-mail person)
                         (highest-job? (staff-id (:e-mail person))))
                    (:staff-department person))]
-    (util/log "Staff? → " staffy)
+    #_ (util/log "Staff? → " staffy)
     staffy))
 
 (defn lugal+? [person]
   (when-let [staff-id (staff-id (:e-mail person))]
-    (util/log "Lugal+ for staff ID ? " staff-id)
+    #_ (util/log "Lugal+ for staff ID ? " staff-id)
     (let [job (highest-job? staff-id)]
       (when (#{:lugal :elder :advisory-board :dc :bod} job)
-        (util/log "Yes, Lugal+ — " job)
+        #_ (util/log "Yes, Lugal+ — " job)
         job))))
 
