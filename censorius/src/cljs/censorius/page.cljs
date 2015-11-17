@@ -100,7 +100,8 @@
   (let [babies (count (filter #(= :baby (:ticket-type %)) @d/guests))
         children (count (filter #(= :child (:ticket-type %)) @d/guests))
         adults (count (filter #(= :adult (:ticket-type %)) @d/guests))]
-    [(+ babies (if (pos? children) 1 0)) adults children babies]))
+    [(+ babies (if (pos? children) 1 0)) 
+     adults children babies]))
 
 
 
@@ -119,14 +120,22 @@
    [text/text-input {:cursor d/vending
                      :keys :title
                      :label "Vending Booth Name"
-                     :placeholder "Plonkee Plonkee Shoppe"
+                     :placeholder (rand-nth ["Plonkee Plonkee Shoppe"
+                                             "Donder und Blitzen"
+                                             "Crazy Carla's Koala Kingdom"
+                                             "Stuff to Hide from the In-Laws"
+                                             "Owls in Paradise"
+                                             "Shiny Bits to Buy"])
                      :format util/name-case
                      :validate util/name-like?
                      :rows 1}]
    [text/text-input {:cursor d/vending
                      :keys :blurb
                      :label "Description (Handbook/Web)"
-                     :placeholder "Come and have lots of fun with our widgets and doodads! You'll want to collect all nine."
+                     :placeholder (rand-nth ["Come and have lots of fun with our widgets and doodads! You'll want to collect all nine."
+                                             "Sometimes an Athame is just an Athame"
+                                             "We've got all the whirlygigs and whinny-diddles you'll ever need"
+                                             "Plenty of whimsical things unlikely to cause permanent harm"])
                      :validate #(> 250 (count %) 32)
                      :rows 3}]
    [text/text-input {:cursor d/vending
@@ -141,7 +150,9 @@
                           :label "Quantity"
                           :placeholder "0"
                           :format util/just-number
-                          :validate util/just-digits?
+                          :validate #(and (util/just-digits? %)
+                                          (= 1 (count %))
+                                          (some #{\1 \2 \3 \4 \0} %))
                           :rows 0
                           :size 3}]
    " vendor "
@@ -156,25 +167,22 @@
    (when (pos? (:qty @d/vending))
      [vendor-info])])
 
-(defn vendor-card [adults]
-  [:section {:class "card"}
-   [:h2 "Vending"]
-   [:div
-    (cond
-      (zero? adults)
-      [:p "Vendors must have at least one adult admission"]
-      
-      (not (:agreement @d/vending))
-      [vendor-agreement]
-      
-      true
-      [vendor-slips])]])
-
 (defn vendor-box []
-  (let [[_ adults] (adults-needed)]
-    (when (or (pos? adults)
+  (fn []
+    (when (or (pos? (count (filter #(= (:ticket-type @%) :adult) @d/guests)))
               (pos? (:qty @d/vending)))
-      [vendor-card adults])))
+      [:section {:key "vending" :class "card"}
+       [:h2 "Vending"]
+       [:div
+        (cond
+          (zero? adults)
+          [:p "Vendors must have at least one adult admission"]
+          
+          (not (:agreement @d/vending))
+          [vendor-agreement]
+          
+          true
+          [vendor-slips])]])))
 
 
 (defn need-adult-email []
