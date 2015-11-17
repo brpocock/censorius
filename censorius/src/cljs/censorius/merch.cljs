@@ -54,43 +54,50 @@
         sold (+ (:qty style)
                 (purchased-for-guests (:id @item) (:id style)))]
     (util/log "item " (:id @item) " style " style " index " style-index)
-    (if (zero? (:inventory style))
+    (if (nil? style-index)
       [:tr {:key (str (:id @item) "∋" (:id style))}
-       [:td {:key (str (:id @item) "∋" (:id style))} {:col-span 4}
-        [:small (:title style) " — Sold out."]]]
-      ;; available in inventory
-      (let [can< (pos? (:qty style))
-            can> (< sold (:inventory style))]
-        [:tr {:key (str (:id @item) "∋" (:id style) "/styles")}
-         ;; # sold
-         [:td {:key (str (:id @item) "∋" (:id style) "/sold")
-               :style {:margin-right "1ex"}}
-          [:strong sold "×" (.toUpperCase (str (:id style)))]]
-         ;; <
-         [:td {:key (str (:id @item) "∋" (:id style) "/less")}
-          [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
-                                      (max 0
-                                           (dec (get-in @item [:styles style-index :qty]))))
-                    :class (when can< "false")
-                    :disabled (not can<)}
-           "-"]]
-         ;; qty sold
-         [:td {:key (str (:id @item) "∋" (:id style) "/qty")}
-          (util/counting sold (:title style))]
-         ;; >
-         [:td {:key (str (:id @item) "∋" (:id style) "/more")}
-          [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
-                                      (min (get-in @item [:styles style-index :inventory]) 
-                                           (inc (:qty style))))
-                    :class (when can> "true")
-                    :disabled (not can>)}
-           "+"]]
-         ;; sellout warning
-         (when (> (max 10 (- sold 5)) (:inventory style))
-           [:tr {:key (str (:id @item) "∋" (:id style) "⚠")} 
-            [:td {:key (str (:id @item) "∋" (:id style) "⚠☉")} ""]
-            [:td {:key (str (:id @item) "∋" (:id style) "⚠sellout") 
-                  :col-span 3 :class "hint"} (util/counting (:inventory style) "item") " left"]])]))))
+       [:td {:key (str (:id @item) "∋" (:id style))
+             :col-span 4}
+        [:small (:title style) " — ∞ we don't do that no more"]]]
+      
+      (if (zero? (:inventory style))
+        [:tr {:key (str (:id @item) "∋" (:id style))}
+         [:td {:key (str (:id @item) "∋" (:id style))
+               :col-span 4}
+          [:small (:title style) " — Sold out."]]]
+        ;; available in inventory
+        (let [can< (pos? (:qty style))
+              can> (< sold (:inventory style))]
+          [:tr {:key (str (:id @item) "∋" (:id style) "/styles")}
+           ;; # sold
+           [:td {:key (str (:id @item) "∋" (:id style) "/sold")
+                 :style {:margin-right "1ex"}}
+            [:strong sold "×" (.toUpperCase (str (:id style)))]]
+           ;; <
+           [:td {:key (str (:id @item) "∋" (:id style) "/less")}
+            [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
+                                        (max 0
+                                             (dec (get-in @item [:styles style-index :qty]))))
+                      :class (when can< "false")
+                      :disabled (not can<)}
+             "-"]]
+           ;; qty sold
+           [:td {:key (str (:id @item) "∋" (:id style) "/qty")}
+            (util/counting sold (:title style))]
+           ;; >
+           [:td {:key (str (:id @item) "∋" (:id style) "/more")}
+            [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
+                                        (min (get-in @item [:styles style-index :inventory]) 
+                                             (inc (:qty style))))
+                      :class (when can> "true")
+                      :disabled (not can>)}
+             "+"]]
+           ;; sellout warning
+           (when (> (max 10 (- sold 5)) (:inventory style))
+             [:tr {:key (str (:id @item) "∋" (:id style) "⚠")} 
+              [:td {:key (str (:id @item) "∋" (:id style) "⚠☉")} ""]
+              [:td {:key (str (:id @item) "∋" (:id style) "⚠sellout") 
+                    :col-span 3 :class "hint"} (util/counting (:inventory style) "item") " left"]])])))))
 
 
 (defn available-styles [item]
