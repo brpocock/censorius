@@ -49,11 +49,11 @@
           (fn [i element] (when (predicate element) i))
           sequence)))
 
-(defn product-style [item style monostyle?]
-  (let [index (position-if #(= (:id %) style) (:styles @item))
+(defn product-style [item style]
+  (let [style-index (position-if #(= (:id %) style) (:styles @item))
         sold (+ (:qty style)
                 (purchased-for-guests (:id @item) (:id style)))]
-    (util/log "item " (:id @item) " style " style)
+    (util/log "item " (:id @item) " style " style " index " style-index)
     (if (zero? (:inventory style))
       [:tr {:key (str (:id @item) "∋" (:id style))}
        [:td {:key (str (:id @item) "∋" (:id style))} {:col-span 4}
@@ -65,13 +65,12 @@
          ;; # sold
          [:td {:key (str (:id @item) "∋" (:id style) "/sold")
                :style {:margin-right "1ex"}}
-          [:strong sold "×"  
-           (if monostyle? (.toUpperCase (str (:id style))) "")]]
+          [:strong sold "×" (.toUpperCase (str (:id style)))]]
          ;; <
          [:td {:key (str (:id @item) "∋" (:id style) "/less")}
-          [:button {:on-click #(swap! item assoc-in [:styles index :qty] 
+          [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
                                       (max 0
-                                           (dec (get-in @item [:styles index :qty]))))
+                                           (dec (get-in @item [:styles style-index :qty]))))
                     :class (when can< "false")
                     :disabled (not can<)}
            "-"]]
@@ -80,8 +79,8 @@
           (util/counting sold (:title style))]
          ;; >
          [:td {:key (str (:id @item) "∋" (:id style) "/more")}
-          [:button {:on-click #(swap! item assoc-in [:styles index :qty] 
-                                      (min (get-in @item [:styles index :inventory]) 
+          [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
+                                      (min (get-in @item [:styles style-index :inventory]) 
                                            (inc (:qty style))))
                     :class (when can> "true")
                     :disabled (not can>)}
@@ -125,7 +124,7 @@
     ;; opened
     [:td {:key (str (:id @item) "-styles")}
      [:table
-      (doall (map #([product-style item % false]) (available-styles @item)))]
+      (doall (map #([product-style item %]) (available-styles @item)))]
      (plus-grid-sales (:id @item) (:id (first (:styles @item))))
      (when (zero? (reduce + (map :qty (:styles @item))))
        (editable/close open?))]))
@@ -150,7 +149,7 @@
        (if (= 1 (count (:styles @item)))
          
          [:td {:key (str "merch-" id "/monostyle")}
-          [:table [:tbody [product-style item (:id (first (:styles @item ))) true]]]]
+          [:table [:tbody [product-style item (first (:styles @item))]]]]
          
          [product-style-hidden item open?])
 
@@ -167,6 +166,7 @@
   (when (pos? (count @d/guests))
     [:section {:class "card" :key "merch-box"}
      [:h2 "Extras"]
+     [:p "This section is being revised and styles/sizes will display erratically for now. TODO"]
      [:table {:class "extras"}
       [:thead [:tr {:key "merch-header-row"}
                [:th {:class "merch-item-col"} "Item"] 
