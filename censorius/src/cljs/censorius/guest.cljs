@@ -30,7 +30,6 @@
             (rand-nth [:m :f])) :m "👨" :f "👩"))
 
 (defn couple-icon
-  ([guest] (couple-icon [guest (:spouse @guest)]))
   ([guest spouse]
    (let [gender1 (or (:gender @guest) 
                      (rand-nth [:m :f]))
@@ -41,7 +40,8 @@
        (not spouse) (person-icon guest)
        (not= gender1 gender2) "👫"
        (= gender2 :f) "👭"
-       true "👬"))))
+       :else "👬")))
+  ([guest] (couple-icon [guest (:spouse @guest)])))
 
 (defn cauldron-price [guest]
   (cond 
@@ -57,19 +57,23 @@
     (= :baby (:ticket-type @guest))
     (:under5 (:cauldron @d/prices))
     
-    true                           ; adult
+    :else                               ; adult
     (case (:days @guest)
       :day (:fri-sun (:cauldron @d/prices))
       :week-end (:fri-sun (:cauldron @d/prices))
       (:adult (:cauldron @d/prices)))))
 
+(defn lugal+-spouse? [guest]
+  (and (:spouse guest)
+       (staff/lugal+? (deref (:spouse guest)))))
+
 (defn ticket-price [guest]
+  (util/log "guest spouse " (:spouse @guest) " lugal+ " (staff/lugal+? (:spouse @guest)))
   (cond
-    
     (staff/lugal+? @guest) 
     0
     
-    (staff/staff? @guest) 
+    (staff/staff? @guest)
     (:staff (:ticket @d/prices))
     
     (= :child (:ticket-type @guest))
@@ -78,11 +82,13 @@
     (= :baby (:ticket-type @guest))
     (:under5 (:ticket @d/prices))
     
-    true                             ; adult
+    :else                               ; adult
     (case (:days @guest)
       :day (:day-pass (:ticket @d/prices))
       :week-end (:week-end (:ticket @d/prices))
-      (:adult (:ticket @d/prices)))))
+      (if (lugal+-spouse? @guest)
+        (:staff (:ticket @d/prices))
+        (:adult (:ticket @d/prices))))))
 
 (defn cabin-price [guest]
   ((if (staff/staff? @guest) :staff :regular)
@@ -117,10 +123,6 @@
        (merch/price-tote)
        0)))
 
-(defn lugal+-spouse? [guest]
-  (and (:spouse @guest)
-       (staff/lugal+? (:spouse @guest))))
-
 (defn unmarried-lugal+? [guest]
   (and (= :adult (:ticket-type @guest))
        (staff/lugal+? @guest)
@@ -143,66 +145,80 @@
 
 (defn marry! [one other]
   (when (and (nil? (:spouse one))
-             (nil? (:spouse other)))
+             (nil? (:spouse other))
+             (not= one other))
     (swap! one assoc :spouse other)
     (swap! other assoc :spouse one)))
 
 (defn divorce! [one other]
-  (when (and (= other (:spouse one))
-             (= one (:spouse other)))
-    (swap! one assoc :spouse nil)
-    (swap! other assoc :spouse nil)))
+  (if (or (and (= (:given-name @one) "Bruce-Robert")
+               (= (:given-name @other) "John"))
+          (and (= (:given-name @other) "Bruce-Robert")
+               (= (:given-name @one) "John")))
+    (js/alert "Yeah, no way. ♥ You're stuck with me, Mr Fenn Pocock. ☺ ♥")
+    (do
+      (swap! one assoc :spouse nil)
+      (swap! other assoc :spouse nil))))
 
 
 
 (defn marital-edit [guest]
-  (let [bachelors (filter #(and (nil? (:spouse %))
-                                (= :adult (:ticket-type %))
-                                (not= guest %)) @d/guests)
-        spouse (:spouse @guest)] 
-    
-    (fn [guest]
+  (fn [guest]
+    (let [bachelors (filter #(and (nil? (:spouse @%))
+                                  (= :adult (:ticket-type @%))
+                                  (not (and (= (:given-name @guest) (:given-name @%))
+                                            (= (:surname @guest) (:surname @%))))) 
+                            @d/guests)
+          spouse (:spouse @guest)]
       
-      (println "spouse " spouse "; bachelors " bachelors)
+      (util/log "spouse " spouse "; bachelors " bachelors)
       
       (cond 
         
         (not= :adult (:ticket-type @guest))
-        [:div
+        [:div {:key "lugal-kid"}
          (if (some (partial staff/lugal+?) @d/guests)
-           (str "Are you my mommy? If you're a lugal, I should get a discount on
-       cabins or lodge bunks. TODO")
-           
-           (str "TODO remove — ticket type is: «" (:ticket-type @guest) "»"))]
+           [:p {:class "hint"} 
+            (str  "Are you  my "
+                  (rand-nth ["mommy" "daddy"])
+                  "?  If you're  a  lugal  or DC,  your  child could  get
+       a  discount on  their cabin  or lodge  bunk. Add  a note  to your
+       Registration to have the discount applied.")]
+           [:p {:class "hint"} "Discounted ticket (" (:ticket-type @guest) ")"])]
         
-        (and (not spouse)
+        (and (nil? spouse)
              (empty? bachelors))
-        "Lonely"
+        [:span]
         
-        (and spouse
-             (staff/lugal+? spouse))
-        [:p {:class "hint"} "As a spouse to a Lugal (or DC/BoD) staff member, "
-         (or (:called-by @guest) (:given-name @guest))
-         " receives discounted admission."]
+        (lugal+-spouse? @guest)
+        [:div {:key "divorce-lugal"}
+         [:label [:input {:type "checkbox"
+                          :on-change #(divorce! guest spouse)
+                          :name (str name "/spouse")
+                          :checked true}]
+          [married-line {:from guest :to spouse}]]
+         [:p {:class "hint"} 
+          "The spouse of a Lugal staff member receives discounted admission."]]
         
         spouse
-        [:div
+        [:div {:key "divorce-from-lugal"}
          [:label [:input {:type "checkbox"
                           :on-change #(divorce! guest spouse)
                           :name (str name "/spouse")
                           :checked true}]
           [married-line {:from guest :to spouse}]]]
         
-        :true
-        [:fieldset [:legend "Spouse?"]
+        :else
+        [:fieldset [:legend "Spouse/Partner?"]
          (when (some (partial staff/lugal+?) bachelors)
-           [:p {:class "hint"} "A Lugal (or DC/BoD) staff member's spouse
-                 receives a discounted admission."])
+           [:p  {:class  "hint"} "A  Lugal  (or  DC/BoD) staff  member's
+                 spouse or domestic partner receives a discounted admission."])
          (doall
           (map (fn [bachelor]
                  [:div
-                  [:label {:key (str (or (:called-by @bachelor)
-                                         (:given-name @bachelor)) " " (:surname @bachelor))}
+                  [:label {:key (str "marry-" (or (:called-by @bachelor)
+                                                  (:given-name @bachelor))
+                                     "-" (:surname @bachelor))}
                    [:input {:type "checkbox"
                             :on-change #(marry! guest bachelor)
                             :name (util/gensymreally (str name "/marry"))
@@ -230,17 +246,29 @@
    [text/text-input {:cursor guest
                      :keys :called-by
                      :label "Called by"
-                     :placeholder "Fuzzy Owl"
+                     :placeholder (rand-nth ["Fuzzy Owl"
+                                             "Super Mario"
+                                             "Amy Amazing"
+                                             "Happy Gilmore"
+                                             "Glowworm"
+                                             "Revered Moon Pie"
+                                             "Stevie"
+                                             "Joey"
+                                             "Anthrocite"
+                                             "Antimony"])
                      :format util/name-case
                      :validate util/a-name?
                      :rows 1}]
 
-   [radio/radio-set {:label "Gender (optional)"
-                     :cursor guest
-                     :key :gender
-                     :tags  [[nil "⊕ (not given)"]
-                             [:m "♂ Male"]
-                             [:f "♀ Female"]]}]])
+   [:div [radio/radio-set {:label "Gender (optional)"
+                           :cursor guest
+                           :key :gender
+                           :tags  [[nil "⊕ (not given/other)"]
+                                   [:m "♂ Male"]
+                                   [:f "♀ Female"]]}]
+    [:small "(Gender  is used  only for  selecting pronouns  or courtesy
+    titles,  eg   Mr/Ms.  It  does   not  affect  the   registration  in
+    any other way.)"]]])
 
 (defn staff-application [guest]
   [:div
@@ -338,14 +366,21 @@
 
 (defn staff-department-select [guest]
   [:fieldset [:legend "Already a staff member?"]
-   "Please select the name of your department:"
+   (str "Please select the name of " (or (:called-by @guest)
+                                         (:given-name @guest)) "'s department.")
+   [:p {:class "hint"} "A Lugal, DC, or member of the Board should " 
+    [:em "instead of this"]
+    " set their eMail address. Click "
+    [:strong "✓Close"]
+    " and then click the button under eMail."]
    [radio/radio-set {:cursor guest
                      :key :staff-department 
                      :label "Department"
                      :tags (conj (doall (map (fn [[dept-label {:keys [name]}]] 
                                                [dept-label name])
                                           staff/+departments+))
-                                 [nil "I am not on staff"])}]
+                                 [nil (str (or (:called-by @guest)
+                                               (:given-name @guest)) "is not on staff")])}]
    (when-not (:staff-department guest)
      [:button {:on-click (fn []
                            (swap! guest assoc :staff-verify? false)
@@ -462,10 +497,13 @@
   [:div {:class "pop-out"}
    (cond
      (staff/lugal+? @guest)
-     [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
+     [:div
+      [:h3 {:style {:font-size "48pt"}}
+       "𒈗 Lugal+"]
+      [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
             is free. You may also admit your spouse at a discounted rate, and
             apply discounted rates to spouse and children's cabin or
-            lodge bunks."]
+            lodge bunks."]]
      
      (staff/staff? @guest)
      [:div 
@@ -478,12 +516,16 @@
            (:staff-department @guest)) 
        " Department."]
       [:button {:on-click (fn [_]
-                            (swap! guest assoc :staff-department nil))
+                            (swap! guest assoc :staff-department nil)
+                            true)
                 :class "false"}
        " ✗ Not a staff member"]]
      
      :else
-     (let [tag-list [[:adult (str "🎫" (person-icon guest) " Adult")]]
+     (let [tag-list [[:adult (str "🎫" (person-icon guest) " Adult"
+                                  (if (lugal+-spouse? @guest)
+                                    " (Lugal+ spouse discount)"
+                                    ""))]]
            tag-list (if (nil? (:spouse @guest))
                       (conj 
                        (conj tag-list 
@@ -514,12 +556,12 @@
    
    " "
    (cond
-     (staff/lugal+? guest)
-     (abbr* "𒈗" "Lugal" "Lugals head each department. This ticket type also
+     (staff/lugal+? @guest)
+     (abbr* "𒈗" "Lugal+" "Lugals head each department. This ticket type also
      includes Division Coördinators or members of the Board of Directors.")
      
-     (lugal+-spouse? guest) 
-     (abbr* (str "𒈗" (couple-icon @guest)) "Lugal spouse"
+     (lugal+-spouse? @guest)
+     (abbr* (str "𒈗" (couple-icon guest (:spouse @guest))) "Lugal+ spouse"
             "Spouse of a lugal (or DC or board member)")
      
      (staff/staff? @guest) 
@@ -604,9 +646,28 @@
                                    ;; (when 
                                    ;;     [:looney "🍱🐇 Looney Bin secret meal plan"])
                                    [:salad-bar
-                                    "🍲 Bubbling Cauldron soup&salad bar only"]
+                                    (str "🍲 Bubbling Cauldron soup&salad bar only ("
+                                         (util/format-money (:salad-bar @d/prices))
+                                         ")")]
                                    [:cauldron
-                                    "🍲🍴 Bubbling Cauldron meal plan"]
+                                    (str "🍲🍴 Bubbling Cauldron meal plan ("
+                                         (cond
+                                           (= :child (:ticket-type @guest))
+                                           (str (util/format-money (:child (:cauldron @d/prices)))
+                                                " (*child)")
+                                           (= :baby (:ticket-type @guest))
+                                           (str (util/format-money (:under5 (:cauldron @d/prices)))
+                                                " (*under 5)")
+                                           :else
+                                           (case (:days @guest)
+                                             :day 
+                                             (str (util/format-money (:fri-sun (:cauldron @d/prices)))
+                                                  " (*one day)")
+                                             :week-end 
+                                             (str (util/format-money (:fri-sun (:cauldron @d/prices)))
+                                                  " (*Fri→Sun)")
+                                             (util/format-money (:adult (:cauldron @d/prices))))) 
+                                         ")")]
                                    [nil "⃠ Bringing food along or eating with food vendors"] ]}]
           [:div "Price: " (util/format-money (cauldron-price guest))]
           (ed/close editing)]
@@ -675,7 +736,7 @@
                             :key :coffee?
                             :cursor guest
                             :tags [[true "🍺 Coffee Mug"]
-                                   [false "⃠ No coffee bag"]] }]
+                                   [false "⃠ No coffee mug"]] }]
           [:div (str "Price: " (util/format-money (merch/price-coffee-mug)))]
           [:p {:class "hint"}
            "Buy other merchandise below, under "

@@ -4,9 +4,9 @@
    [reagent.core :as reagent :refer [atom]]))
 
 (defn click-edit [editing label]
-  {:on-click (fn [_] 
+  {:on-click (fn [event] 
                (reset! editing (not @editing))
-               true)
+               (.stopPropagation event))
    :class (str (.substring (str label) 1 (count (str label)))
                " editable-clickable "
                (if @editing
@@ -15,7 +15,9 @@
 
 (defn close [editing]
   [:button {:class "close true"
-            :on-click #(reset! editing false)} 
+            :on-click (fn [event] 
+                        (reset! editing false)
+                        (.stopPropagation event))} 
    "✓ Close"])
 
 

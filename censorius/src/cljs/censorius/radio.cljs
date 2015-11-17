@@ -27,10 +27,11 @@
                      (case tag nil "∅" tag))
             :on-change (fn [event]
                          (swap! cursor assoc key (fix-nil (.-value (.-target event))))
-                         nil)}
+                         true)}
    (map (partial write-option cursor key) tags)])
 
 (defn radio-button [key key-string cursor [tag name]]
+  (util/log " radio button key " key " key-string " key-string " tag " tag " name " name)
   [:div {:key (str name "∈" (or tag "∞"))} 
    [:label 
     [:input {:name key-string
@@ -39,19 +40,22 @@
                         (str tag))
              :on-change (fn [event]
                           (when (.-checked (.-target event))
-                            (swap! cursor assoc key (fix-nil tag))
-                            nil))
+                            (swap! cursor assoc key (fix-nil tag)))
+                          true)
              :checked (= tag (get @cursor key))}]
     name]])
 
 (defn write-radio-set [cursor label key key-string tags name] 
-  [:fieldset [:legend label]
+  (util/log "mapping set label " label " key-string " key-string " over tags " tags)
+  [:fieldset 
+   (when (not (empty? label)) [:legend label])
    (doall (map (partial radio-button key key-string cursor) tags))])
 
 (defn radio-set [{:keys [cursor label key tags]} children this]
   (let [name (util/gensymreally label)
         key-string (util/keyword->string key)]
     (fn [{:keys [cursor label key tags]} kids self]
+      (util/log "Radio set label " label " with " (count tags) " tags " tags)
       [:div
        (cond
          (< 15 (count tags))

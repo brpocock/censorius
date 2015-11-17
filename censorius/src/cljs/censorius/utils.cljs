@@ -763,10 +763,12 @@
 
 (defn modality [function element]
   (let [docs (js/document.getElementsByTagName "html")
-        doc (or (.item docs 0) (log "boo"))]
+        doc (or (.item docs 0) (log "There is no HTML page here?"))]
     (set! (.-onClick doc) (fn [event] 
                             (when function
-                              (apply function event))))
+                              (apply function event)
+                              (.stopPropagation event))
+                            true))
     (set! (.-onClick element) (fn [event]
                                 (set! (.-onClick doc) nil)
                                 (.stopPropagation event))))
@@ -800,25 +802,4 @@
     short
     [:span {:class "ellide hint"}
      " " long]]))
- 
 
-
-(defn hidden [^boolean is-hidden]
-  (if is-hidden
-    {:display "none"}
-    {}))
-
-(defn alert-hint [event]
-  (js/alert (.getAttribute (.-target event) "title")))
-
-(defn abbr
-  ([short long]
-   [:abbr {:title long :on-click #(js/alert (str short ": " long))}
-    short
-    [:span {:class "ellide hint"}
-     " " long]])
-  ([short long longer]
-   [:abbr {:title long :on-click #(js/alert (str short " (" long "): " longer))}
-    short
-    [:span {:class "ellide hint"}
-     " " long]]))
