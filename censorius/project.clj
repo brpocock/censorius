@@ -8,26 +8,25 @@
   :source-paths ["src/clj" "src/cljs"]
 
   :dependencies [ ;; -- (these come first, to be safe)
-                 [org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2665" ;; :scope "provided"
-                  ]
+                 [org.clojure/clojure "1.7.0"]
+                 [org.clojure/clojurescript "1.7.170"]
                  ;; --- (sorted, to make life easier)
                  [com.cemerick/piggieback "0.1.4"]
-                 [com.facebook/react "0.12.2"]
+                 ;;  [com.facebook/react "0.14.2"]
                  [cljs-ajax "0.3.9"]
                  [compojure "1.3.1"]
                  [enlive "1.1.5"]
                  [environ "1.0.0"]
-                 [figwheel "0.1.5-SNAPSHOT"]
+                 [figwheel "0.5.0-1"]
                  [hickory "0.5.4"]
                  [leiningen "2.5.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [prone "0.8.0"]
-                 [reagent "0.5.0"]
+                 [reagent "0.5.1"]
                  [reagent-utils "0.1.0"]
                  [ring "1.3.2"]
                  [ring/ring-defaults "0.1.3"]
-                 [secretary "1.2.1"]
+                 [secretary "1.2.3"]
                  [selmer "0.7.9"]
                  [weasel "0.5.0"]
                  ;; ---
@@ -35,7 +34,7 @@
 
   :plugins [ ;; --- (sorted, to make life easier)
             [lein-asset-minifier "0.2.0"]
-            [lein-cljsbuild "1.0.5"]
+            [lein-cljsbuild "1.1.1"]
             [lein-environ "1.0.0"]
             [lein-less "1.7.2"]
             [lein-ring "0.9.0"]

@@ -2,12 +2,13 @@
   (:require [clojure.string :as string]
             [reagent.core :as reagent :refer [atom]]))
 
-(defonce guests (atom [#_(atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
-                                :formal-name nil :presenter-bio nil :presenter-requests nil
-                                :e-mail "sage@star-hope.org" :telephone nil
-                                :sleep :tent :eat :looney :day nil
-                                :gender :m
-                                :t-shirt :xs :coffee? false :tote? false }) ]))
+(defonce guests (atom [#_
+                       (atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
+                              :formal-name nil :presenter-bio nil :presenter-requests nil
+                              :e-mail "sage@star-hope.org" :telephone nil
+                              :sleep :tent :eat nil :day nil
+                              :gender :m :ticket-type :adult
+                              :t-shirt :xs :coffee? false :tote? false }) ]))
 
 (defonce extras (atom []))
 (defonce vending (atom {:title nil, :blurb nil, :notes nil, :qty 0, :agreement false}))

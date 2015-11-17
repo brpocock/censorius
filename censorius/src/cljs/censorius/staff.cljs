@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as string]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]))
+   [reagent.session :as session]
+   [censorius.utils :as util]))
 
 (def +staff-mail+ {"ama422@aol.com" :ann-marie,
                    "brpocock@star-hope.org" :brfp,
@@ -139,21 +140,21 @@
            nil)))
 
 (defn staff-id [mail]
-  (println "staff-id ← " mail " = " (get +staff-mail+ mail))
+  (util/log "staff-id ← " mail " = " (get +staff-mail+ mail))
   (get +staff-mail+ mail))
 
 (defn staff? [person]
   (let [staffy (or (and (:e-mail person)
                         (highest-job? (staff-id (:e-mail person))))
                    (:staff-department person))]
-    (println "Staff? → " staffy)
+    (util/log "Staff? → " staffy)
     staffy))
 
 (defn lugal+? [person]
   (when-let [staff-id (staff-id (:e-mail person))]
-    (println "Lugal+ for staff ID ? " staff-id)
+    (util/log "Lugal+ for staff ID ? " staff-id)
     (let [job (highest-job? staff-id)]
       (when (#{:lugal :elder :advisory-board :dc :bod} job)
-        (println "Yes, Lugal+" job)
+        (util/log "Yes, Lugal+ — " job)
         job))))
 

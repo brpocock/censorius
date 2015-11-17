@@ -50,15 +50,18 @@
     (or validated? 
         (not could-validate?))))
 
+(defn stringify [thing]
+  (if (fn? thing)
+    (thing)
+    (str thing)))
+
 (defn valid-submission? [props text can-prompt?]
-  (let [valid-1? (validate% props text)
-        valid-2? (or valid-1?
-                     (and can-prompt?
-                          (when (confirm-change (:label @props) text)
-                            ;; (util/log "User confirms, store invalid value.")
-                            (swap! props assoc :validated? nil)
-                            true)))]
-    (or valid-1? valid-2?)))
+  (or (validate% props text)
+      (and can-prompt?
+           (when (confirm-change (stringify (:label @props)) text)
+             (util/log "User confirms, store invalid value.")
+             (swap! props assoc :validated? nil)
+             true))))
 
 
 (defn submit
@@ -180,81 +183,86 @@
       ;;                             (.setSelectionRange node where-to where-to))
       ;;                           (swap! props assoc :needs-props-set-p nil)))
       
-      :reagent-render (fn [props-in]
-                        
-                        ;; (util/log "rendering text edit " name " with value " (:text @props))
-                        
-                        (let [[validity validity-sigil]
-                              (when (:validate @props)
-                                (case (:validated? @props)
-                                  false [false "✗"]
-                                  true [true "⛤"]
-                                  nil ["unknown" " "]))]
-                          (cond
-                            
-                            ;; inline
-                            (= 0 rows)
-                            [:span [:input {:name (:name @props)
-                                            :type (or (:input-type @props) "text")
-                                            :id (:name @props)
-                                            :value (:text @props)
-                                            :size (:size @props)
-                                            :class (str "valid-" (:validity @props) " size-" (:size @props))
-                                            :placeholder (or (:placeholder @props) "")
-                                            :on-blur (fn [ev] (submit ev props true) nil)
-                                            :on-change (fn [ev] (do-change props (.-value (.-target ev))) nil)
-                                            :on-key-down (fn [ev] (key-down ev props true) nil)
-                                            :title (:label @props)}]
-                             (when (:ellipsis @props)
-                               [:button {:on-click (fn [_] (apply (:ellipsis @props) (:keys @props)) nil)} "…"])
-                             (when (:validate @props)
-                               [:span {:class (str "marker valid-" validity)
-                                       :on-click (fn [ev] ((mkfun-validity-submit props) ev) nil)}
-                                validity-sigil])]
-                            
-                            ;; text-entry box, single-row
-                            (or (not (:rows @props)) (= 1 (:rows @props)))
-                            [:div [:label {:class "two-column"}
-                                   (if (empty? (:label @props)) "" (str (:label @props) ":"))
-                                   [:input {:name (:name @props)
-                                            :type (or (:input-type @props) "text")
-                                            :id (:name @props)
-                                            :value (:text @props)
-                                            :size (:size @props)
-                                            :class (str "valid-" (:validity @props) " size-" (:size @props))
-                                            :placeholder (or (:placeholder @props) "")
-                                            :on-blur (fn [ev] (submit ev props true) nil)
-                                            :on-change (fn [ev] (do-change props (.-value (.-target ev))) nil)
-                                            :on-key-down (fn [ev] (key-down ev props true) nil)
-                                            :title (:label @props)}]
-                                   (when (:ellipsis @props)
-                                     [:button {:on-click (fn [_] (apply (:ellipsis @props) @props) nil)} "…"])
-                                   (when (:validate @props)
-                                     [:span {:class (str "marker "
-                                                         (str "valid-" (:validity @props)))
-                                             :on-click (fn [ev] ((mkfun-validity-submit props) ev) nil)}
-                                      validity-sigil])]]
-                            
-                            ;; text-entry area, multi-row
-                            true
-                            [:fieldset [:legend [:label {:for (str "textarea-" (:name @props))} (:label @props)]
-                                        (when (:ellipsis @props)
-                                          [:button {:on-click (fn [_]  (apply (:ellipsis @props) (:keys @props)) nil)} "…"])
-                                        (when (:validate @props)
-                                          [:span {:class (str "marker valid-" (:validity @props))}
-                                           validity-sigil])]
-                             [:textarea {:name (:name @props)
-                                         :id (:name @props)
-                                         :rows (:rows @props)
-                                         :class (:validity @props)
-                                         :placeholder (:placeholder @props)
-                                         :title (str (:label @props) (if (:placeholder @props)
-                                                                       (str " (" (:placeholder @props) ")")
-                                                                       ""))
-                                         :on-blur (fn [ev] (submit ev props true) nil)
-                                         :on-change (fn [ev] (do-change props (.-value (.-target ev))) nil)
-                                         :on-key-down (fn [ev] (key-down ev props false) nil)
-                                         :value (:text @props)}]])))})))
+      :reagent-render 
+      (fn [props-in]
+        
+        ;; (util/log "rendering text edit " name " with value " (:text @props))
+        
+        (let [[validity validity-sigil]
+              (when (:validate @props)
+                (case (:validated? @props)
+                  false [false "✗"]
+                  true [true "⛤"]
+                  nil ["unknown" " "]))]
+          (cond
+            
+            ;; inline
+            (= 0 rows)
+            [:span [:input {:name (:name @props)
+                            :type (or (:input-type @props) "text")
+                            :id (:name @props)
+                            :value (:text @props)
+                            :size (:size @props)
+                            :class (str "valid-" (:validity @props) " size-" (:size @props))
+                            :placeholder (or (stringify (:placeholder @props)) "")
+                            :on-blur (fn [ev] (submit ev props true) nil)
+                            :on-change (fn [ev] (do-change props (.-value (.-target ev))) nil)
+                            :on-key-down (fn [ev] (key-down ev props true) nil)
+                            :title (stringify (:label @props))}]
+             (when (:ellipsis @props)
+               [:button {:on-click (fn [_] (apply (:ellipsis @props) (:keys @props)) nil)} "…"])
+             (when (:validate @props)
+               [:span {:class (str "marker valid-" validity)
+                       :on-click (fn [ev] ((mkfun-validity-submit props) ev) nil)}
+                validity-sigil])]
+            
+            ;; text-entry box, single-row
+            (or (not (:rows @props)) (= 1 (:rows @props)))
+            [:div [:label {:class "two-column"}
+                   (if (empty? (stringify (:label @props))) 
+                     "" 
+                     (str (stringify (:label @props)) ":"))
+                   [:input {:name (:name @props)
+                            :type (or (:input-type @props) "text")
+                            :id (:name @props)
+                            :value (:text @props)
+                            :size (:size @props)
+                            :class (str "valid-" (:validity @props) " size-" (:size @props))
+                            :placeholder (or (stringify (:placeholder @props)) "")
+                            :on-blur (fn [ev] (submit ev props true) nil)
+                            :on-change (fn [ev] (do-change props (.-value (.-target ev))) nil)
+                            :on-key-down (fn [ev] (key-down ev props true) nil)
+                            :title (stringify (:label @props))}]
+                   (when (:ellipsis @props)
+                     [:button {:on-click (fn [_] (apply (:ellipsis @props) @props) nil)} "…"])
+                   (when (:validate @props)
+                     [:span {:class (str "marker "
+                                         (str "valid-" (:validity @props)))
+                             :on-click (fn [ev] ((mkfun-validity-submit props) ev) nil)}
+                      validity-sigil])]]
+            
+            ;; text-entry area, multi-row
+            true
+            [:fieldset [:legend [:label {:for (str "textarea-" (:name @props))} 
+                                 (stringify (:label @props))]
+                        (when (:ellipsis @props)
+                          [:button {:on-click (fn [_]  (apply (:ellipsis @props) (:keys @props)) nil)} "…"])
+                        (when (:validate @props)
+                          [:span {:class (str "marker valid-" (:validity @props))}
+                           validity-sigil])]
+             [:textarea {:name (:name @props)
+                         :id (:name @props)
+                         :rows (:rows @props)
+                         :class (:validity @props)
+                         :placeholder (or (stringify (:placeholder @props)) "")
+                         :title (str (stringify (:label @props))
+                                     (if (:placeholder @props)
+                                       (str " (" (stringify (:placeholder @props)) ")")
+                                       ""))
+                         :on-blur (fn [ev] (submit ev props true) nil)
+                         :on-change (fn [ev] (do-change props (.-value (.-target ev))) nil)
+                         :on-key-down (fn [ev] (key-down ev props false) nil)
+                         :value (:text @props)}]])))})))
 
 
 ;;; (util/log "Text-entry module loaded")
