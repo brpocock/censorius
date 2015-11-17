@@ -44,8 +44,13 @@
     (count (filter #(= style (get @% :t-shirt)) @d/guests))
     0))
 
-(defn product-style [item index monostyle?]
-  (let [style (get (:styles @item) index)
+(defn position-if [predicate sequence]
+  (first (keep-indexed 
+          (fn [i element] (when (predicate element) i))
+          sequence)))
+
+(defn product-style [item style monostyle?]
+  (let [index (position-if #(= (:id %) style) (:styles @item))
         sold (+ (:qty style)
                 (purchased-for-guests (:id @item) (:id style)))]
     (util/log "item " (:id @item) " style " style)
@@ -117,11 +122,10 @@
      [:strong "Styles: "] 
      [:small (string/join ", " (style-names-string (available-styles item)))]
      [:button "⍐"]]
-
+    ;; opened
     [:td {:key (str (:id @item) "-styles")}
      [:table
-      (doall (map (fn [style-index] [product-style item style-index true]) 
-               (range (count (:styles @item)))))]
+      (doall (map #([product-style item % false]) (available-styles @item)))]
      (plus-grid-sales (:id @item) (:id (first (:styles @item))))
      (when (zero? (reduce + (map :qty (:styles @item))))
        (editable/close open?))]))
@@ -129,30 +133,31 @@
 (defn product-row [id item]
   (let [open? (atom false)]
     (fn [id item]
-      (when (or (not= id :staff-shirt)
-                (some #(staff/staff? @%) @d/guests))
-        [:tr {:key (str "merch-" id)
-              :class "merch-rows"}
-         [:th {:key (str "merch-" id "/title")}
-          (:title @item)
-          #_ (when (:image @item)
-               [:img {:src (:image @item)
-                      :class "merch-thumb"}])
-          [:p {:class "hint"} (:description @item)]]
-         [:td {:key (str "merch-" id "/price")}
-          (util/format-money (:price @item))]
+      [:tr {:key (str "merch-" id)
+            :class "merch-rows"
+            :style {:display (when (and (= id :staff-shirt)
+                                        (not (some #(staff/staff? @%) @d/guests)))
+                               "none")}}
+       [:th {:key (str "merch-" id "/title")}
+        (:title @item)
+        #_ (when (:image @item)
+             [:img {:src (:image @item)
+                    :class "merch-thumb"}])
+        [:p {:class "hint"} (:description @item)]]
+       [:td {:key (str "merch-" id "/price")}
+        (util/format-money (:price @item))]
+       
+       (if (= 1 (count (:styles @item)))
          
-         (if (= 1 (count (:styles @item)))
-           
-           [:td {:key (str "merch-" id "/monostyle")}
-            [:table [:tbody [product-style item 0 true]]]]
-           
-           [product-style-hidden item open?])
+         [:td {:key (str "merch-" id "/monostyle")}
+          [:table [:tbody [product-style item (:id (first (:styles @item ))) true]]]]
+         
+         [product-style-hidden item open?])
 
-         
-         [:td {:key (str "merch-" id "/cost")}
-          (util/format-money (* (reduce + (map :qty (:styles @item)))
-                                (:price @item)))]]))))
+       
+       [:td {:key (str "merch-" id "/cost")}
+        (util/format-money (* (reduce + (map :qty (:styles @item)))
+                              (:price @item)))]])))
 
 (defn price-t-shirt [] (:price (deref (:festival-shirt @d/merch))))
 (defn price-coffee-mug [] (:price (deref (:coffee @d/merch))))

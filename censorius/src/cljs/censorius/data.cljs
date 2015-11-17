@@ -92,21 +92,6 @@
                                                       {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
                                                       {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
                                                       {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
-                              :staff-shirt
-                              (reagent/atom {:id :staff-shirt
-                                             :title "Staff T-Shirt"
-                                             :description "The staff T-shirt"
-                                             :image "/merch/tshirt-staff.png"
-                                             :price 15
-                                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
-                                                      {:id :s :title "Small" :qty 0 :inventory 999}
-                                                      {:id :m :title "Medium" :qty 0 :inventory 999}
-                                                      {:id :l :title "Large" :qty 0 :inventory 999}
-                                                      {:id :xl :title "Extra-large" :qty 0 :inventory 999}
-                                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 999}
-                                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
-                                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
-                                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
                               :general-fpg-shirt
                               (reagent/atom {:id :general-fpg-shirt
                                              :title "General FPG T-Shirt"
@@ -122,48 +107,63 @@
                                                       {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
                                                       {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
                                                       {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
-                              ;; :shirt-b13
-                              ;; (reagent/atom {:title "Beltane 2013 T-shirt"
-                              ;;        :description "The T-shirt from Beltane 2013"
-                              ;;        :image "/merch/tshirtB13.png"
-                              ;;        :price 798
-                              ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                              ;;                 {:id :s :title "Small" :qty 0 :inventory 0}
-                              ;;                 {:id :m :title "Medium" :qty 0 :inventory 0}
-                              ;;                 {:id :l :title "Large" :qty 0 :inventory 0}
-                              ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                              ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                              ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
-                              ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
-                              ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
-                              ;; :shirt-s13
-                              ;; (reagent/atom {:title "Samhain 2013 T-shirt"
-                              ;;        :description "The T-shirt from Samhain 2013"
-                              ;;        :image "/merch/tshirtS13.png"
-                              ;;        :price 798
-                              ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                              ;;                 {:id :s :title "Small" :qty 0 :inventory 0}
-                              ;;                 {:id :m :title "Medium" :qty 0 :inventory 0}
-                              ;;                 {:id :l :title "Large" :qty 0 :inventory 0}
-                              ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                              ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 3}
-                              ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 0}
-                              ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 1}
-                              ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
-                              ;; :tank-s13
-                              ;; (reagent/atom {:title "Samhain 2013 Tank top"
-                              ;;        :description "The Tank top shirt from Samhain 2013"
-                              ;;        :image "/merch/tshirtS13.png"
-                              ;;        :price 798
-                              ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                              ;;                 {:id :s :title "Small" :qty 0 :inventory 1}
-                              ;;                 {:id :m :title "Medium" :qty 0 :inventory 3}
-                              ;;                 {:id :l :title "Large" :qty 0 :inventory 3}
-                              ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 3}
-                              ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                              ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 1}
-                              ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
-                              ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 0}]})
+                              :shirt-b13
+                              (reagent/atom {:title "Beltane 2013 T-shirt"
+                                             :description "The T-shirt from Beltane 2013"
+                                             :image "/merch/tshirtB13.png"
+                                             :price 798
+                                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                                                      {:id :s :title "Small" :qty 0 :inventory 0}
+                                                      {:id :m :title "Medium" :qty 0 :inventory 0}
+                                                      {:id :l :title "Large" :qty 0 :inventory 0}
+                                                      {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
+                                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
+                                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
+                              :shirt-s13
+                              (reagent/atom {:title "Samhain 2013 T-shirt"
+                                             :description "The T-shirt from Samhain 2013"
+                                             :image "/merch/tshirtS13.png"
+                                             :price 798
+                                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                                                      {:id :s :title "Small" :qty 0 :inventory 0}
+                                                      {:id :m :title "Medium" :qty 0 :inventory 0}
+                                                      {:id :l :title "Large" :qty 0 :inventory 0}
+                                                      {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 3}
+                                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 0}
+                                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 1}
+                                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
+                              :tank-s13
+                              (reagent/atom {:title "Samhain 2013 Tank top"
+                                             :description "The Tank top shirt from Samhain 2013"
+                                             :image "/merch/tshirtS13.png"
+                                             :price 798
+                                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                                                      {:id :s :title "Small" :qty 0 :inventory 1}
+                                                      {:id :m :title "Medium" :qty 0 :inventory 3}
+                                                      {:id :l :title "Large" :qty 0 :inventory 3}
+                                                      {:id :xl :title "Extra-large" :qty 0 :inventory 3}
+                                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 1}
+                                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
+                                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 0}]})
+                              :staff-shirt
+                              (reagent/atom {:id :staff-shirt
+                                             :title "Staff T-Shirt"
+                                             :description "The staff T-shirt"
+                                             :image "/merch/tshirt-staff.png"
+                                             :price 15
+                                             :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
+                                                      {:id :s :title "Small" :qty 0 :inventory 999}
+                                                      {:id :m :title "Medium" :qty 0 :inventory 999}
+                                                      {:id :l :title "Large" :qty 0 :inventory 999}
+                                                      {:id :xl :title "Extra-large" :qty 0 :inventory 999}
+                                                      {:id :x2l :title "Double extra-large" :qty 0 :inventory 999}
+                                                      {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
+                                                      {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
+                                                      {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
                               }))
 
 
