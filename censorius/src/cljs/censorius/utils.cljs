@@ -6,7 +6,8 @@
    [goog.string :as gstring] 
    [goog.string.format :as format]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]))
+   [reagent.session :as session]
+   [reagent.core :as reagent :refer [atom]]))
 
 
 ;;; utility functions for javascript
@@ -215,27 +216,27 @@
             
             (and (= \+ (first number))
                  (not= \1 (first digits))) number
-                 
-                 (= \1 (first digits)) (str "+1 " (format-phone (rest digits)))
-                 
-                 (< length 7) digits
-                 (< length 10) (str (.substring digits 0 (- length 4)) 
-                                    "-" 
-                                    (.substring digits (- length 4) length))
-                 (= length 10) (str "("
-                                    (.substring digits 0 3)
-                                    ") "
-                                    (.substring digits 3 6)
-                                    "-" 
-                                    (.substring digits 6 10))
-                 true (str "("
-                           (.substring digits 0 3)
-                           ") "
-                           (.substring digits 3 6)
-                           "-" 
-                           (.substring digits 6 10)
-                           " x"
-                           (.substring digits 10 length))))]
+            
+            (= \1 (first digits)) (str "+1 " (format-phone (rest digits)))
+            
+            (< length 7) digits
+            (< length 10) (str (.substring digits 0 (- length 4)) 
+                               "-" 
+                               (.substring digits (- length 4) length))
+            (= length 10) (str "("
+                               (.substring digits 0 3)
+                               ") "
+                               (.substring digits 3 6)
+                               "-" 
+                               (.substring digits 6 10))
+            true (str "("
+                      (.substring digits 0 3)
+                      ") "
+                      (.substring digits 3 6)
+                      "-" 
+                      (.substring digits 6 10)
+                      " x"
+                      (.substring digits 10 length))))]
     (log "Format phone number " number " ⇒ " formatted)
     formatted))
 
@@ -247,7 +248,7 @@
 (defn mkfun-area-code-reply [code]
   (fn [reply]
     (let [response (js->clj (.getResponseJson (.-target reply))
-                            :keywordize-keys true)]
+                        :keywordize-keys true)]
       (if (= "success" (:status response))
         (doseq [{:keys [area-code state]} (:area-codes response)]
           (swap! area-code-cache assoc area-code 
@@ -394,10 +395,10 @@
   (or (and address
            (string? address)
            (re-matches 
-                   ;; Mostly RFC-5322 compliant, but requires a DNS host name and
-                   ;; doesn't do whitespace folding or quoted local-parts.
-                   #"^[-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*@[0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?(\.[0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?)+$"
-                   address)
+            ;; Mostly RFC-5322 compliant, but requires a DNS host name and
+            ;; doesn't do whitespace folding or quoted local-parts.
+            #"^[-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*@[0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?(\.[0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?)+$"
+            address)
            (not (re-matches #"@example\.com$" address))
            true)
       false))
@@ -440,7 +441,7 @@
      (= 1 number) (str "One " singular)
      (and (integer? number)
           (> 13 number)) (str (nth +numbers+ number) " " plural)
-          true (str number " " plural))))
+     true (str number " " plural))))
 
 (assert (= (counting 4 "dog") "Four dogs"))
 (assert (= (counting 0 "pony") "No ponies"))
@@ -462,15 +463,15 @@
   (and time-string
        (string? time-string)
        (let [[_ hours minutes seconds msec am-pm] 
-                        (re-matches
-                         #"([01]?\d)(?:\:(\d\d))?(?:\:(\d\d))?(?:\.(\d\d\d))? *([aApP][mM]?)?" 
-                         time-string)
-                        pm? (#{\p \P} (first am-pm))]
-                    (when (or (not (string/blank? am-pm))
-                              (not (string/blank? minutes)))
-                      (log "Time-string parts = " hours ":" minutes ":" seconds "." msec " " am-pm)
-                      (js/Date. 2000 1 1 (+ hours (if pm? 12 0))
-                                (or minutes 0) (or seconds 0) (or msec 0))))))
+             (re-matches
+              #"([01]?\d)(?:\:(\d\d))?(?:\:(\d\d))?(?:\.(\d\d\d))? *([aApP][mM]?)?" 
+              time-string)
+             pm? (#{\p \P} (first am-pm))]
+         (when (or (not (string/blank? am-pm))
+                   (not (string/blank? minutes)))
+           (log "Time-string parts = " hours ":" minutes ":" seconds "." msec " " am-pm)
+           (js/Date. 2000 1 1 (+ hours (if pm? 12 0))
+                     (or minutes 0) (or seconds 0) (or msec 0))))))
 
 (defn format-time-of-day [time-string]
   (let [canonical (parse-time-string time-string)]
@@ -759,31 +760,6 @@
   (or (js/parseFloat (just-decimal string))
       (let [[_ amount] (re-matches #"\$?\s*(\d*\.\d*)" string)]
         (money? amount))))
-
-(defn modality-end [function element]
-  (fn [event] 
-    (set! (.-opacity (.-style (js/document.getElementById "nightshade"))) 0)
-    (js/setTimeout #(set! (.-display (.-style (js/document.getElementById "nightshade"))) "none") 750)
-    (when function
-      (try (apply function event)
-           (catch :default e
-             (log (str "Thrown in modality-end: " e)))))
-    ;; (set! (.-onClick (.item (js/document.getElementsByTagName "html") 0)) nil)
-    (.stopPropagation event)
-    true))
-
-(defn modality [function element]
-  (let [done (modality-end function element)
-        doc (.item (js/document.getElementsByTagName "html") 0)
-        nightshade (js/document.getElementById "nightshade")]
-    ;; (set! (.-onClick doc) done))
-    (let [shade (.-style (js/document.getElementById "nightshade"))]
-      (log "SHADE IN")
-      (set! (.-display shade) "block")
-      (set! (.-opacity shade) (/ 1 3)))
-    (set! (.-onClick nightshade) done)
-    (set! (.-onClick element) done))
-  element)
 
 (defn keyword->string [keyword]
   (cond

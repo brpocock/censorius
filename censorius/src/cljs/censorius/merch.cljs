@@ -136,14 +136,11 @@
      (when (zero? (reduce + (map :qty (:styles @item))))
        (editable/close open?))]))
 
-(defn product-row [id item]
+(defn product-row [item]
   (let [open? (atom false)]
-    (fn [id item]
-      [:tr {:key (str "merch-" id)
-            :class "merch-rows"
-            :style {:display (when (and (= id :staff-shirt)
-                                        (not (some #(staff/staff? @%) @d/guests)))
-                               "none")}}
+    (fn [item]
+      [:tr {:key (str "merch-" (:id item))
+            :class "merch-rows"}
        [:th {:key (str "merch-" id "/title")}
         (:title @item)
         #_ (when (:image @item)
@@ -180,7 +177,15 @@
                [:th {:class "merch-price-col"} "Price"] 
                [:th {:class "merch-styles-qty-col"} "Style / Qty."] 
                [:th {:class "merch-subtotal-col"} "Sum"]]]
-      [:tbody (doall (map (fn [[id item]] [product-row id item]) @d/merch))]
+      [:tbody (doall (map #([product-row %]) 
+                       ;; if there  are no staff members  in the ticket,
+                       ;; hide  all  items  with an  ID  beginning  with
+                       ;; “staff-”
+                       (filter (if (some #(staff/staff? @%) @d/guests)
+                                 identity
+                                 #(not= (.substring (str (:id %)) 0 7)
+                                        ":staff-")) 
+                               @d/merch)))]
       [:tfoot [:tr {:key "merch-footer-row"} 
                [:th {:key "merch-footer/subtotal-label" :col-span 3} "Subtotal"]
                [:td {:key "merch-footer/subtotal"} [sum-merch-prices]]]]]]))

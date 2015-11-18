@@ -4,21 +4,31 @@
    [reagent.core :as reagent :refer [atom]]
    [censorius.utils :as util]))
 
-(defn click-edit [editing label]
+(def nightshade? (atom false))
+
+(defn nightshade []
+  (fn []
+    [:div {:id "nightshade" :style {:display (if @nightshade?
+                                               "block"
+                                               "none")}}]))
+
+(defn click-edit [editing? label]
   {:on-click (fn [event] 
-               (reset! editing (not @editing))
+               (swap! editing? not)
+               (reset! nightshade? @editing?)
                (.stopPropagation event))
    :class (str (.substring (str label) 1 (count (str label)))
                " editable-clickable "
-               (if @editing
-                 "editing"
+               (if @editing?
+                 "editing?"
                  "display"))})
 
-(defn close [editing]
-  (util/modality #(reset! editing false)
-                 [:button {:class "close true"} 
-                  "✓ Close"]))
-
-
-
+(defn close [editing?]
+  [:button {:class "close true"
+            :on-click (fn [event] 
+                        (reset! nightshade? false)
+                        (reset! editing? false)
+                        (.stopPropagation event)
+                        true)} 
+   "✓ Close"])
 

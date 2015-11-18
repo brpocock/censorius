@@ -777,8 +777,9 @@ abbr {
     position: fixed;
     left: 50%;
     top: 50%;
-    transform: translate(-50%, -50%) rotate(360deg);
     z-index: 11;
+    transform: translate(-50%, -50%);
+    transform: rotate(360deg);
 }
 
 .pop-out>button.close {
@@ -800,7 +801,18 @@ abbr>.ellide {
     abbr>.ellide {
         display: block;
     }
-    h1>abbr>.ellide { display: none }
+    abbr>span:first-child { 
+        display: none;
+    }
+    h1>abbr>span:first-child { 
+        display: block;
+    }
+    h1>abbr>.ellide { 
+        display: none;
+    }
+    abbr>.ellide.hint:before { 
+        content: '';
+    }
 }
 
 #assistant {

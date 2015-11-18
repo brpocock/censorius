@@ -746,12 +746,17 @@
             (abbr* "🍺" "Coffee Mug")
             (abbr* "⃠" "No coffee mug"))])])))
 
+(defn bought-merch [guest-atom]
+  (let [guest (deref guest-atom)] 
+    (or (:t-shirt guest)
+        (:coffee? guest)
+        (:tote? guest))))
 
 (defn guest-row [guest]
   (let [name (util/gensymreally "guest")]
     (fn [guest]
       ;; (println "guest row for " @guest)
-      [:tr
+      [:tr {:key (str (:given-name @guest) " " (:surname @guest))}
        [name-cell guest]
        [email-cell guest]
        [phone-cell guest]

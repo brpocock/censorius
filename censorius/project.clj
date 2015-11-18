@@ -16,7 +16,7 @@
                  [com.cemerick/piggieback "0.1.4"]
                  [com.cognitect/transit-cljs "0.8.232"]
                  ;;  [com.facebook/react "0.14.2"]
-                 [cljs-ajax "0.3.9"]
+                 [cljs-ajax "0.5.1"]
                  [compojure "1.3.1"]
                  [enlive "1.1.5"]
                  [environ "1.0.0"]

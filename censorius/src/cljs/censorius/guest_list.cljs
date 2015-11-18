@@ -19,6 +19,13 @@
         :else
         string))
 
+(defn adults-needed []
+  (let [babies (count (filter #(= :baby (:ticket-type %)) @d/guests))
+        children (count (filter #(= :child (:ticket-type %)) @d/guests))
+        adults (count (filter #(= :adult (:ticket-type %)) @d/guests))]
+    [(+ babies (if (pos? children) 1 0)) 
+     adults children babies]))
+
 (defn guess-gender [name]
   (case name
     "John" :m
@@ -111,12 +118,13 @@ Add other members of your party, and watch the Assistant box for advice.")
                                             :sleep :tent :eat nil
                                             :gender (guess-gender given)
                                             :t-shirt nil :coffee? false :tote? false})]))
-                (swap! d/guests conj (atom {:called-by (guess-nickname given surname) :given-name given :surname surname
-                                            :e-mail nil :telephone nil
-                                            :ticket-type :adult :staff-department nil
-                                            :sleep :tent :eat nil
-                                            :gender (guess-gender given)
-                                            :t-shirt nil :coffee? false :tote? false}))))))))))
+                (let [leader @(first @d/guests)]
+                  (swap! d/guests conj (atom {:called-by (guess-nickname given surname) :given-name given :surname surname
+                                              :e-mail nil :telephone nil
+                                              :ticket-type :adult :staff-department nil
+                                              :sleep (:sleep leader) :eat (:eat leader)
+                                              :gender (guess-gender given)
+                                              :t-shirt nil :coffee? false :tote? false})))))))))))
 
 (defn suggest-partner-name [guest]
   (case (:given-name @guest)
@@ -224,17 +232,11 @@ Add other members of your party, and watch the Assistant box for advice.")
     [:th (util/abbr "💼" "Tote" "FPG tote bags")]
     [:th (util/abbr "🍺" "Mug" "FPG 20th Anniversary hot & cold beverage mugs. (Buy more mugs in the “Extras” box)")]]])
 
-(defn guest-list-box []
-  #_ (util/log "Guests = " @d/guests)
-  [:section [:h1 "Registration for " (:season @d/festival) " " (:year @d/festival)
-             " — "(util/abbr "💁 Need Help?" "Look at the Assistant box for help!
-
-The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")]
-   [:section {:class "card"}
-    [:h2 (let [leader (first @d/guests)]
+(defn party-title []
+  [:span (let [leader (first @d/guests)]
            (case (count @d/guests)
              0
-             "New Party: Welcome!"
+             "New Party: Please Register"
              
              1
              (str (case (:gender @leader)
@@ -280,29 +282,29 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
                       :f "Ms "
                       "") 
                     (or (:called-by @leader) (:given-name @leader)) " " (:surname @leader)
-                    " &  " (util/counting (- (count @d/guests) 1) "Guest")))))]
+                    " &  " (util/counting (- (count @d/guests) 1) "Guest")))))])
+
+(defn guest-list-box []
+  #_ (util/log "Guests = " @d/guests)
+  [:section [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
+             (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
+
+The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")]
+   [:section {:class "card" :key "guest-list-box"}
+    [:h2 [party-title]]
     
     [:table {:class "people"}
      (when-not (empty? @d/guests) [guests-thead])
-     [:tbody
-      (doall (for [guest @d/guests]
-               ^{:key (str (:given-name @guest) "∈" (:surname @guest))}
-               [guest/guest-row guest]))]
-     
+     [:tbody (doall (map #([guest/guest-row %]) @d/guests))]
      [:tfoot 
-      (if (empty? @d/guests)
       [add-person-row]
-        [add-person-row])
       [:tr {:key "☠|subtotal|"} 
        [:th {:col-span 7} "Subtotal"]
        [:td {:col-span 3 :style {:align "right"}} 
         [guests-price-sum]]]]]]])
 
-
-
-
-
-
+(defn count-adults []
+  (count (filter #(= (:ticket-type @%) :adult) @d/guests)))
 
 
 
