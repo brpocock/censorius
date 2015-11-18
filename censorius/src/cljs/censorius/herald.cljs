@@ -40,8 +40,20 @@
           (swap! fields assoc-in (str table "∋" row "∋" (keyword->string key)) value))))
     (swap! fields assoc (str table "∋#") (string/join \, rows))))
 
+(defn form->hash-atoms [atom label jso]
+  (reset! atom [])
+  (let [prefix (str label "∋")]
+    (doseq [row (string/split \, (get jso (str label "∋#")))]
+      (let [row-atom (atom {})]
+        (doseq [[key value] jso]
+          (when (= (.substring key 0 (+ 1 (count row) (count prefix))) 
+                   (str prefix row "∋"))
+            (let [field (.substring key (+ 1 (count row) (count prefix)))]
+              (swap! row-atom assoc (make-keyword field) value))))
+        (swap! atom conj row-atom)))))
+
 (defn json->invoice [jso]
-  ())
+  (form->hash-atoms @d/guests "guests" jso))
 
 (defun read-invoice [number]
   (ajax/ajax-request {:uri "//herald.cgi"
