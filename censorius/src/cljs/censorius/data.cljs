@@ -3,12 +3,13 @@
             [alandipert.storage-atom :refer [local-storage]]
             [reagent.core :as reagent :refer [atom]]))
 
-(defonce guests (local-storage (reagent/atom [ #_ (reagent/atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
-                                                                 :formal-name nil :presenter-bio nil :presenter-requests nil
-                                                                 :e-mail "sage@star-hope.org" :telephone nil
-                                                                 :sleep :tent :eat nil :day nil
-                                                                 :gender :m :ticket-type :adult
-                                                                 :t-shirt :xs :coffee? false :tote? false }) ])
+(defonce guests (local-storage (reagent/atom 
+                                [ (reagent/atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
+                                                 :formal-name nil :presenter-bio nil :presenter-requests nil
+                                                 :e-mail "sage@star-hope.org" :telephone nil
+                                                 :sleep :tent :eat nil :day nil
+                                                 :gender :m :ticket-type :adult
+                                                 :t-shirt :xs :coffee? false :tote? false }) ])
                                :reg-guests))
 
 (defonce extras (local-storage (reagent/atom []) 
@@ -22,7 +23,9 @@
 (defonce scholarships (local-storage (reagent/atom {:php 0 :seva 0 :baiardi 0})
                                      :reg-scholarships))
 
-(defonce festival (reagent/atom {:season "Samhain" :year 2015}))
+(defonce festival (reagent/atom {:season "Beltane" :year 2015
+                                 :starting "2015-05-04"
+                                 :ending "2015-05-08"}))
 
 (defonce prices (reagent/atom {:ticket { :adult 95
                                         :child 30

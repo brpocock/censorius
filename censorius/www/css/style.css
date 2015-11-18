@@ -768,14 +768,16 @@ abbr {
     border: 1pt solid #444;
     box-shadow: 4pt 4pt 9pt green;
     display: block;
-    left: 3em;
-    /*calc(100% - 42em));*/
+    /* left: calc(100% - 42em));*/
     margin-left: auto;
     margin-right: auto;
     max-width: 40em;
     min-width: 20em;
     padding: 1ex;
-    position: absolute;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(360deg);
     z-index: 11;
 }
 
@@ -1074,7 +1076,20 @@ table {
     }
 
     .editable-clickable { border: none }
+
+    #nightshade { display: none }
 }
+
+#nightshade { display: none;
+              height: 100%;
+              width: 100%;
+              position: fixed;
+              opacity: .5;
+              background-color: #393;
+              top: 0;
+              left: 0;
+              z-index: 10;
+            }
 
 input.size-3 { width: 3em }
 input.size-6 { width: 6em }

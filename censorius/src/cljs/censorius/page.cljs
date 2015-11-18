@@ -606,6 +606,7 @@ legally binding.)"]
    [scholarship-box]
    [assistant-box]
    [check-out-box]
+   [:div {:id "nightshade"}]
    [print-trailer]])
 
 

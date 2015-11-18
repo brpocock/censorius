@@ -1,7 +1,8 @@
 (ns censorius.editable
   (:require
    [clojure.string :as string]
-   [reagent.core :as reagent :refer [atom]]))
+   [reagent.core :as reagent :refer [atom]]
+   [censorius.utils :as util]))
 
 (defn click-edit [editing label]
   {:on-click (fn [event] 
@@ -14,11 +15,9 @@
                  "display"))})
 
 (defn close [editing]
-  [:button {:class "close true"
-            :on-click (fn [event] 
-                        (reset! editing false)
-                        (.stopPropagation event))} 
-   "✓ Close"])
+  (util/modality #(reset! editing false)
+                 [:button {:class "close true"} 
+                  "✓ Close"]))
 
 
 

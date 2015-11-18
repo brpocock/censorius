@@ -157,7 +157,7 @@
                (= (:given-name @one) "John")))
     (js/alert "Yeah, no way. ♥ You're stuck with me, Mr Fenn Pocock. ☺ ♥")
     (do
-    (swap! one assoc :spouse nil)
+      (swap! one assoc :spouse nil)
       (swap! other assoc :spouse nil))))
 
 
@@ -169,8 +169,8 @@
                                   (not (and (= (:given-name @guest) (:given-name @%))
                                             (= (:surname @guest) (:surname @%))))) 
                             @d/guests)
-        spouse (:spouse @guest)] 
-    
+          spouse (:spouse @guest)] 
+      
       (util/log "spouse " spouse "; bachelors " bachelors)
       
       (cond 
@@ -184,8 +184,8 @@
                   "?  If you're  a  lugal  or DC,  your  child could  get
        a  discount on  their cabin  or lodge  bunk. Add  a note  to your
        Registration to have the discount applied.")]
-           [:p {:class "hint"} "Discounted ticket (" (:ticket-type @guest) ")"])]
-           
+           [:p {:class "hint"} "Discounted (child) admission with adult admission."])]
+        
         (and (nil? spouse)
              (empty? bachelors))
         [:span]
@@ -261,10 +261,10 @@
                      :rows 1}]
 
    [:div [radio/radio-set {:label "Gender (optional)"
-                     :cursor guest
-                     :key :gender
+                           :cursor guest
+                           :key :gender
                            :tags  [[nil "⊕ (not given/other)"]
-                             [:m "♂ Male"]
+                                   [:m "♂ Male"]
                                    [:f "♀ Female"]]}]
     [:small "(Gender  is used  only for  selecting pronouns  or courtesy
     titles,  eg   Mr/Ms.  It  does   not  affect  the   registration  in
@@ -457,18 +457,17 @@
     (fn [guest]
       [:td 
        (if @editing
-         (util/modality #(reset! editing false)
-                        [:div {:class "pop-out"}
-                         [text/text-input {:cursor guest
-                                           :keys :e-mail
-                                           :label "eMail address"
-                                           :placeholder (.toLowerCase (str (first (:given-name @guest))
-                                                                           (:surname @guest)
-                                                                           "@example.com"))
-                                           :format util/format-email
-                                           :validate util/email?
-                                           :rows 1}]
-                         (ed/close editing)])
+         [:div {:class "pop-out"}
+          [text/text-input {:cursor guest
+                            :keys :e-mail
+                            :label "eMail address"
+                            :placeholder (.toLowerCase (str (first (:given-name @guest))
+                                                            (:surname @guest)
+                                                            "@example.com"))
+                            :format util/format-email
+                            :validate util/email?
+                            :rows 1}]
+          (ed/close editing) ]
          [:div (ed/click-edit editing :mail)
           (if-let [mail (:e-mail @guest)]
             (abbr* "✉" mail)
@@ -500,7 +499,7 @@
      [:div
       [:h3 {:style {:font-size "48pt"}}
        "𒈗 Lugal+"]
-     [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
+      [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
             is free. You may also admit your spouse at a discounted rate, and
             apply discounted rates to spouse and children's cabin or
             lodge bunks."]]

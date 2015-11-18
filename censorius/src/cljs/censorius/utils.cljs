@@ -6,8 +6,7 @@
    [goog.string :as gstring] 
    [goog.string.format :as format]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
-   ))
+   [reagent.session :as session]))
 
 
 ;;; utility functions for javascript
@@ -761,17 +760,29 @@
       (let [[_ amount] (re-matches #"\$?\s*(\d*\.\d*)" string)]
         (money? amount))))
 
+(defn modality-end [function element]
+  (fn [event] 
+    (set! (.-opacity (.-style (js/document.getElementById "nightshade"))) 0)
+    (js/setTimeout #(set! (.-display (.-style (js/document.getElementById "nightshade"))) "none") 750)
+    (when function
+      (try (apply function event)
+           (catch :default e
+             (log (str "Thrown in modality-end: " e)))))
+    ;; (set! (.-onClick (.item (js/document.getElementsByTagName "html") 0)) nil)
+    (.stopPropagation event)
+    true))
+
 (defn modality [function element]
-  (let [docs (js/document.getElementsByTagName "html")
-        doc (or (.item docs 0) (log "There is no HTML page here?"))]
-    (set! (.-onClick doc) (fn [event] 
-                            (when function
-                              (apply function event)
-                              (.stopPropagation event))
-                            true))
-    (set! (.-onClick element) (fn [event]
-                                (set! (.-onClick doc) nil)
-                                (.stopPropagation event))))
+  (let [done (modality-end function element)
+        doc (.item (js/document.getElementsByTagName "html") 0)
+        nightshade (js/document.getElementById "nightshade")]
+    ;; (set! (.-onClick doc) done))
+    (let [shade (.-style (js/document.getElementById "nightshade"))]
+      (log "SHADE IN")
+      (set! (.-display shade) "block")
+      (set! (.-opacity shade) (/ 1 3)))
+    (set! (.-onClick nightshade) done)
+    (set! (.-onClick element) done))
   element)
 
 (defn keyword->string [keyword]
@@ -780,7 +791,6 @@
     (keyword? keyword) (let [s (str keyword)] 
                          (.substring s 1))
     true (str keyword)))
-
 
 
 (defn hidden [^boolean is-hidden]
