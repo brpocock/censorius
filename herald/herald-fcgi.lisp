@@ -17,7 +17,7 @@
 (require :cl-ppcre)
 (require :cl-sendmail)
 (require :com.informatimago.common-lisp.rfc2822)
-(require :flexi-streams)1
+(require :flexi-streams)
 (require :memoize)
 (require :split-sequence)
 (require :trivial-backtrace)
@@ -27,7 +27,7 @@
 
 (defpackage :herald-fcgi
   (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence)
+   :cl-ppcre :split-sequence)
   (:export :herald-cgi :herald-fcgi))
 
 (in-package :herald-fcgi)
@@ -114,15 +114,15 @@ will have a fill pointer set to its end.
 The macro also uses SETQ to store the new vector in VECTOR."
   `(setq ,vector
          (loop with length = (length ,vector)
-            with new-vector = (make-array length
-                                          :element-type ,new-type
-                                          :fill-pointer length)
-            for i below length
-            do (setf (aref new-vector i)
-                     ,(if converter
-                          `(funcall ,converter (aref ,vector i))
-                          `(aref ,vector i)))
-            finally (return new-vector))))
+               with new-vector = (make-array length
+                                             :element-type ,new-type
+                                             :fill-pointer length)
+               for i below length
+               do (setf (aref new-vector i)
+                        ,(if converter
+                             `(funcall ,converter (aref ,vector i))
+                             `(aref ,vector i)))
+               finally (return new-vector))))
 
 ;;; this function is taken from Hunchentoot 1.1.0 without effective modification
 (defun url-decode (string &optional (external-format +utf-8+))
@@ -176,18 +176,18 @@ the external format EXTERNAL-FORMAT."
   "URL-encodes a string"
   (with-output-to-string (s)
     (loop for c across string
-       for index from 0
-       do (cond ((or (char<= #\0 c #\9)
-                     (char<= #\a c #\z)
-                     (char<= #\A c #\Z)
-                     ;; note that there's no comma in there - because of cookies
-                     (find c "$-_.!*'()" :test #'char=))
-                 (write-char c s))
-                (t (loop for octet across
-                        (flexi-streams:string-to-octets string
-                                                        :start index
-                                                        :end (1+ index))
-                      do (format s "%~2,'0x" octet)))))))
+          for index from 0
+          do (cond ((or (char<= #\0 c #\9)
+                        (char<= #\a c #\z)
+                        (char<= #\A c #\Z)
+                        ;; note that there's no comma in there - because of cookies
+                        (find c "$-_.!*'()" :test #'char=))
+                    (write-char c s))
+                   (t (loop for octet across
+                                      (flexi-streams:string-to-octets string
+                                                                      :start index
+                                                                      :end (1+ index))
+                            do (format s "%~2,'0x" octet)))))))
 
 
 
@@ -195,15 +195,15 @@ the external format EXTERNAL-FORMAT."
 (defmacro interleave (&rest sets)
   "Interleave elements from each set: (a b c) (1 2 3) ⇒ (a 1 b 2 c 3)"
   (let ((gensyms
-         (loop for i below (length sets)
-            collecting (gensym (or (and (consp (elt sets i))
-                                        (princ-to-string (car (elt sets i))))
-                                   (princ-to-string (elt sets i)))))))
+          (loop for i below (length sets)
+                collecting (gensym (or (and (consp (elt sets i))
+                                            (princ-to-string (car (elt sets i))))
+                                       (princ-to-string (elt sets i)))))))
     `(loop
-        ,@(loop for i below (length sets)
-             appending (list 'for (elt gensyms i) 'in (elt sets i)))
-        ,@(loop for i below (length sets)
-             appending (list 'collect (elt gensyms i))))))
+       ,@(loop for i below (length sets)
+               appending (list 'for (elt gensyms i) 'in (elt sets i)))
+       ,@(loop for i below (length sets)
+               appending (list 'collect (elt gensyms i))))))
 
 (defun interleave2 (set1 set2)
   (interleave set1 set2))
@@ -355,9 +355,9 @@ real numbers."
     (otherwise (etypecase object
                  (null (princ "nil" stream))
                  (keyword (princ #\: stream)
-                          (princ (string-downcase (string object)) stream))
+                  (princ (string-downcase (string object)) stream))
                  (symbol (princ #\: stream)
-                         (princ (string-downcase (string object)) stream))
+                  (princ (string-downcase (string object)) stream))
                  (string (prin1 object stream))
                  (integer (prin1 object stream))
                  (real (prin1 (* 1.0 object) stream))
@@ -697,7 +697,7 @@ cookie says “~36r.”
 
 (defun accept-general (invoice)
   (sql-insert-invoice-fields (nil)
-                             (note signature-p)))
+                             (note signature)))
 
 (defun accept-guests (invoice)
   (sql-insert-invoice-array (guests)
@@ -737,12 +737,22 @@ cookie says “~36r.”
 (defmethod handle-verb ((verb t))
   (reply '(:error 404)))
 
+(defun valid-invoice-and-token-sent ()
+  (let ((invoice (field :invoice))
+        (token (field :token))) 
+    (and invoice
+         token
+         (every #'digit-char-p invoice)
+         (equal (invoice->token invoice token))
+         (parse-integer invoice))))
+
 (defmethod handle-verb ((verb (eql :save)))
   (let ((to-save (accept-state-from-form)))
     (format t "Content-Type: text/plain; charset=utf-8~2%")
     (princ "Imagine this just saved the thing and eMailed Bobbi Jo.")
     (format t "~&~{~{ Field ~:(~a~) = “~a” ~2%~}~}" to-save)
-    (let ((invoice (next-invoice-number)))
+    (let ((invoice (or (valid-invoice-and-token-sent)
+                       (next-invoice-number))))
       (format t "~2% Invoice # ~:d" invoice)
 
       (accept-state-from-form)
@@ -805,8 +815,8 @@ cookie says “~36r.”
                                    "/" (subseq numberish 1))))
     (let ((half (floor (length numberish) 2)))
       (coerce (loop for i from 0 upto half
-                 collect (char numberish (- (length numberish) i 1))
-                 collect (char numberish i))
+                    collect (char numberish (- (length numberish) i 1))
+                    collect (char numberish i))
               'string))))
 
 (defun recall-link (invoice &optional adminp)
@@ -897,10 +907,10 @@ cookie says “~36r.”
                           (cons "PWD" *paypal-password*)
                           (cons "SIGNATURE" *paypal-signature*))
                     (loop for (param value) on args by #'cddr
-                       collect (cons (symbol-name param)
-                                     (if (stringp value)
-                                         value
-                                         (princ-to-string value))))))
+                          collect (cons (symbol-name param)
+                                        (if (stringp value)
+                                            value
+                                            (princ-to-string value))))))
     (unless (= 200 http-status)
       (error 'http-request-error :http-status http-status :response-string response-string))
     (let ((response (cl-paypal::decode-response response-string)))
@@ -1141,9 +1151,9 @@ Details: Invoice token ~s;
 
 (defmacro select-1-plist (query &rest q-args)
   `(select (,query ,@q-args)
-           (when rows
-             (assert (=  1 (length rows)))
-             (mapcan #'interleave2 columns (first rows)))))
+     (when rows
+       (assert (=  1 (length rows)))
+       (mapcan #'interleave2 columns (first rows)))))
 
 (defun read-vending (&optional invoice)
   (select-1-plist "select * from \"invoice-vending\" where invoice=~/sql/"
@@ -1328,7 +1338,7 @@ where (`starting` is null or `starting` <= date(now()))
 ending date not null unique key, season varchar(8) not null, year year not null, primary key(season, year))"
                     "create table invoices (invoice serial primary key, created datetime,
 closed datetime, `closed-by` text, `old-system-p` boolean not null default false, `festival-season` varchar(8),
- `festival-year` year not null, note text, `signature-p` varchar(60), memo text,
+ `festival-year` year not null, note text, `signature` varchar(60), memo text,
 foreign key (`festival-season`,`festival-year`) references festivals(season,year) on delete restrict)"
                     "create table merch (id varchar(20) primary key, title varchar(100) unique key,
 description text, image varchar(100), price decimal(6,2) not null default 9999.99)"
@@ -1376,6 +1386,7 @@ foreign key (invoice) references invoices (invoice))"
                     "create table `invoice-vending` (invoice bigint unsigned not null primary key,
 title varchar(72),
 blurb text, notes text, qty integer unsigned not null default 1, `agreement-p` boolean,
+mqa-license varchar(15) null, bpr-license varchar(15) null,
 foreign key (invoice) references invoices (invoice))"
                     "create table payments (invoice bigint unsigned not null,
 via varchar(100), source varchar(200),

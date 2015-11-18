@@ -27,11 +27,24 @@
            [(keyword->string key) value]
            hash))))
 
+(defn hash-atoms->form (table hash-atoms)
+  (let [rows (atom [])
+        counter (atom 0)
+        fields (atom {})]
+    (doseq [hash-atom @hash-atoms] 
+      (let [hash @hash-atom
+            row @counter]
+        (swap! counter inc)
+        (swap! rows conj row)
+        (doseq [[key value] hash]
+          (swap! fields assoc-in (str table "∋" row "∋" (keyword->string key)) value))))
+    (swap! fields assoc (str table "∋#") (string/join \, rows))))
+
 (defn json->invoice [jso]
   ())
 
 (defun read-invoice [number]
-  (ajax/ajax-request {:uri "//reg/herald.cgi"
+  (ajax/ajax-request {:uri "//herald.cgi"
                       :method :post
                       :params {:verb "read-invoice"
                                :invoice number
@@ -44,15 +57,26 @@
                                    (js/alert (str "Failure; got " response))))}))
 
 (defun submit-invoice []
-  (ajax/ajax-request {:uri "//reg/herald.cgi"
+  (ajax/ajax-request {:uri "//herald.cgi"
                       :method :post
-                      :params {:verb "submit-invoice"
-                               :invoice (or @d/invoice "*")
-                               :guests (map hash-atom->json @d/guests)
-                               :merch (map hash-atom->json @d/extras)
-                               :vending (hash-atom->json @d/vending)
-                               :workshops (map hash-atom->json @d/workshops)
-                               :scholarships (hash-atom->json @d/scholarships)}
+                      :params (reduce conj 
+                                      (list {:verb "save"
+                                             :invoice (or (:invoice @d/general) "*")
+                                             :token (or (:invoice-token @d/general) "*")
+                                             :note (:note @d/general)
+                                             :signature (:signature @d/general)
+                                             :scholarship∋# "php,seva,baiardi"
+                                             :scholarship∋php∋scholarship "php"
+                                             :scholarship∋php∋amount (:php @d/scholarships)
+                                             :scholarship∋seva∋scholarship "seva"
+                                             :scholarship∋seva∋amount (:seva @d/scholarships)
+                                             :scholarship∋baiardi∋scholarship "baiardi"
+                                             :scholarship∋baiardi∋amount (:baiardi @d/scholarships)}
+                                            
+                                            (hash-atoms->form "guests" @d/guests)
+                                            (hash-atoms->form "extras" @d/merch)
+                                            (hash-atoms->form "vending" @d/vending)
+                                            (hash-atoms->form "workshops" @d/workshops)))
                       :format (ajax/json-request-format)
                       :response-format (ajax/json-response-format {:keywords? true})
                       :handler (fn [[ok? response]]
