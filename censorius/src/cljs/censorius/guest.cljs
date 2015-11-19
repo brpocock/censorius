@@ -168,7 +168,7 @@
                                   (= :adult (:ticket-type @%))
                                   (not (and (= (:given-name @guest) (:given-name @%))
                                             (= (:surname @guest) (:surname @%))))) 
-                            @d/guests)
+                            @guest-list/guests)
           spouse (:spouse @guest)] 
       
       (util/log "spouse " spouse "; bachelors " bachelors)
@@ -177,7 +177,7 @@
         
         (not= :adult (:ticket-type @guest))
         [:div {:key "lugal-kid"}
-         (if (some (partial staff/lugal+?) @d/guests)
+         (if (some (partial staff/lugal+?) @guest-list/guests)
            [:p {:class "hint"} 
             (str  "Are you  my "
                   (rand-nth ["mommy" "daddy"])
@@ -431,13 +431,13 @@
          [:div {:class "pop-out"}
           [name-edit-box guest]
           
-          (when (< 1 (count @d/guests))
+          (when (< 1 (count @guest-list/guests))
             [:div [:button {:class "false"
                             :on-click (fn [_]
                                         (when (js/confirm (str "Remove "
                                                                (or (:called-by @guest) (:given-name @guest))
                                                                " from your party?"))
-                                          (swap! d/guests mmap remove (fn [it] (= (deref it) @guest))))
+                                          (swap! guest-list/guests mmap remove (fn [it] (= (deref it) @guest))))
                                         true)}
                    "Remove from party"]])
           

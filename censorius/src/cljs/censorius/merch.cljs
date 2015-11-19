@@ -1,11 +1,133 @@
 (ns censorius.merch
   (:require [clojure.string :as string]
+            
+            [alandipert.storage-atom :refer [local-storage]]
+            [reagent.core :as reagent :refer [atom]]
+            
             [censorius.editable :as editable]
             [censorius.utils :as util]
             [censorius.data :as d]
             [censorius.staff :as staff]
-            [censorius.text :as text]
-            [reagent.core :as reagent :refer [atom]]))
+            [censorius.text :as text]))
+
+(defonce merch (local-storage (reagent/atom 
+                               [
+                                
+                                ;; :general-shirt 
+                                ;; (reagent/atom {:title "FPG General T-Shirt"
+                                ;;        :description "The FPG general T-shirt"
+                                ;;        :image "/merch/tshirt_Gen.png"
+                                ;;        :price 50
+                                ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                                ;;                 {:id :s :title "Small" :qty 0 :inventory 2}
+                                ;;                 {:id :m :title "Medium" :qty 0 :inventory 0}
+                                ;;                 {:id :l :title "Large" :qty 0 :inventory 0}
+                                ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                                ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                                ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
+                                ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 2}
+                                ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 2}]})
+                                (reagent/atom {:id :tote-bag
+                                               :title "FPG Tote Bag"
+                                               :description "The tote bag with the FPG logo"
+                                               :image "/merch/tote-bag.jpeg"
+                                               :price 10
+                                               :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 13}]})
+                                (reagent/atom {:id :coffee
+                                               :title "FPG Coffee Mug"
+                                               :price 7
+                                               :description "The FPG thermal coffee mug is great for other beverages, too"
+                                               :image "/merch/tote-bag.jpeg"
+                                               :styles [{:id :mug :title "Coffee mug" :qty 0 :inventory 140}]})
+                                (reagent/atom {:id :water
+                                               :title "FPG Water Bottle"
+                                               :price 25
+                                               :description "The FPG water bottle is great for other beverages, too"
+                                               :image "/merch/tote-bag.jpeg"
+                                               :styles [{:id :water :title "Water bottle" :qty 0 :inventory 62}]})
+                                (reagent/atom {:id :festival-shirt
+                                               :title "Festival T-Shirt"
+                                               :description "The new T-shirt for this festival"
+                                               :image "/merch/tshirt-fest.png"
+                                               :price 15
+                                               :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
+                                                        {:id :s :title "Small" :qty 0 :inventory 999}
+                                                        {:id :m :title "Medium" :qty 0 :inventory 999}
+                                                        {:id :l :title "Large" :qty 0 :inventory 999}
+                                                        {:id :xl :title "Extra-large" :qty 0 :inventory 999}
+                                                        {:id :x2l :title "Double extra-large" :qty 0 :inventory 999}
+                                                        {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
+                                                        {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
+                                                        {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
+                                (reagent/atom {:id :general-fpg-shirt
+                                               :title "General FPG T-Shirt"
+                                               :description "The general T-shirt for FPG"
+                                               :image "/merch/tshirt-general.png"
+                                               :price 15
+                                               :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
+                                                        {:id :s :title "Small" :qty 0 :inventory 999}
+                                                        {:id :m :title "Medium" :qty 0 :inventory 999}
+                                                        {:id :l :title "Large" :qty 0 :inventory 999}
+                                                        {:id :xl :title "Extra-large" :qty 0 :inventory 999}
+                                                        {:id :x2l :title "Double extra-large" :qty 0 :inventory 999}
+                                                        {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
+                                                        {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
+                                                        {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
+                                (reagent/atom {:title "Beltane 2013 T-shirt"
+                                               :description "The T-shirt from Beltane 2013"
+                                               :image "/merch/tshirtB13.png"
+                                               :price 798
+                                               :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                                                        {:id :s :title "Small" :qty 0 :inventory 0}
+                                                        {:id :m :title "Medium" :qty 0 :inventory 0}
+                                                        {:id :l :title "Large" :qty 0 :inventory 0}
+                                                        {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                                                        {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                                                        {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
+                                                        {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
+                                                        {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
+                                (reagent/atom {:title "Samhain 2013 T-shirt"
+                                               :description "The T-shirt from Samhain 2013"
+                                               :image "/merch/tshirtS13.png"
+                                               :price 798
+                                               :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                                                        {:id :s :title "Small" :qty 0 :inventory 0}
+                                                        {:id :m :title "Medium" :qty 0 :inventory 0}
+                                                        {:id :l :title "Large" :qty 0 :inventory 0}
+                                                        {:id :xl :title "Extra-large" :qty 0 :inventory 0}
+                                                        {:id :x2l :title "Double extra-large" :qty 0 :inventory 3}
+                                                        {:id :x3l :title "Triple extra-large" :qty 0 :inventory 0}
+                                                        {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 1}
+                                                        {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
+                                (reagent/atom {:title "Samhain 2013 Tank top"
+                                               :description "The Tank top shirt from Samhain 2013"
+                                               :image "/merch/tshirtS13.png"
+                                               :price 798
+                                               :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
+                                                        {:id :s :title "Small" :qty 0 :inventory 1}
+                                                        {:id :m :title "Medium" :qty 0 :inventory 3}
+                                                        {:id :l :title "Large" :qty 0 :inventory 3}
+                                                        {:id :xl :title "Extra-large" :qty 0 :inventory 3}
+                                                        {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
+                                                        {:id :x3l :title "Triple extra-large" :qty 0 :inventory 1}
+                                                        {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
+                                                        {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 0}]})
+                                (reagent/atom {:id :staff-shirt
+                                               :title "Staff T-Shirt"
+                                               :description "The staff T-shirt"
+                                               :image "/merch/tshirt-staff.png"
+                                               :price 15
+                                               :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 999}
+                                                        {:id :s :title "Small" :qty 0 :inventory 999}
+                                                        {:id :m :title "Medium" :qty 0 :inventory 999}
+                                                        {:id :l :title "Large" :qty 0 :inventory 999}
+                                                        {:id :xl :title "Extra-large" :qty 0 :inventory 999}
+                                                        {:id :x2l :title "Double extra-large" :qty 0 :inventory 999}
+                                                        {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
+                                                        {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
+                                                        {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
+                                ])
+                              :reg-merch))
 
 (def +t-shirt-long-names+
   [[:xs "Extra-small"]
@@ -29,7 +151,7 @@
                    (* (reduce + (map #(:qty %)
                                   (:styles @item)))
                       (:price @item)))
-              (vals @d/merch))))
+              (vals @merch))))
 
 (defn sum-merch-prices []
   [:span (util/format-money (price-all-merch))])
@@ -37,11 +159,11 @@
 (defn purchased-for-guests [id style]
   (case id
     :coffee
-    (count (filter #(get @% :coffee?) @d/guests))
+    (count (filter #(get @% :coffee?) @guest-list/guests))
     :tote-bag
-    (count (filter #(get @% :tote?) @d/guests))
+    (count (filter #(get @% :tote?) @guest-list/guests))
     :festival-shirt
-    (count (filter #(= style (get @% :t-shirt)) @d/guests))
+    (count (filter #(= style (get @% :t-shirt)) @guest-list/guests))
     0))
 
 (defn position-if [predicate sequence]
@@ -162,12 +284,12 @@
         (util/format-money (* (reduce + (map :qty (:styles @item)))
                               (:price @item)))]])))
 
-(defn price-t-shirt [] (:price (deref (:festival-shirt @d/merch))))
-(defn price-coffee-mug [] (:price (deref (:coffee @d/merch))))
-(defn price-tote [] (:price (deref (:tote-bag @d/merch))))
+(defn price-t-shirt [] (:price (deref (:festival-shirt @merch))))
+(defn price-coffee-mug [] (:price (deref (:coffee @merch))))
+(defn price-tote [] (:price (deref (:tote-bag @merch))))
 
 (defn merch-box []
-  (when (pos? (count @d/guests))
+  (when (pos? (count @guest-list/guests))
     [:section {:class "card" :key "merch-box"}
      [:h2 "Extras"]
      [:p "This section is being revised and styles/sizes will display erratically for now. TODO"]
@@ -181,11 +303,11 @@
                        ;; if there  are no staff members  in the ticket,
                        ;; hide  all  items  with an  ID  beginning  with
                        ;; “staff-”
-                       (filter (if (some #(staff/staff? @%) @d/guests)
+                       (filter (if (some #(staff/staff? @%) @guest-list/guests)
                                  identity
                                  #(not= (.substring (str (:id %)) 0 7)
                                         ":staff-")) 
-                               @d/merch)))]
+                               @merch)))]
       [:tfoot [:tr {:key "merch-footer-row"} 
                [:th {:key "merch-footer/subtotal-label" :col-span 3} "Subtotal"]
                [:td {:key "merch-footer/subtotal"} [sum-merch-prices]]]]]]))

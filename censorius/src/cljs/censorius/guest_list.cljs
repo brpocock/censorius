@@ -1,11 +1,34 @@
 (ns censorius.guest-list
   (:require
    [clojure.string :as string]
+   [alandipert.storage-atom :refer [local-storage]]
    [reagent.core :as reagent :refer [atom]]
    [censorius.data :as d]
    [censorius.guest :as guest]
    [censorius.text :as text]
    [censorius.utils :as util]))
+
+(defonce guests (local-storage (reagent/atom 
+                                [ (reagent/atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
+                                                 :formal-name nil :presenter-bio nil :presenter-requests nil
+                                                 :e-mail "sage@star-hope.org" :telephone nil
+                                                 :sleep :tent :eat nil :day nil
+                                                 :gender :m :ticket-type :adult
+                                                 :t-shirt :xs :coffee? false :tote? false })
+                                 (reagent/atom { :called-by nil :given-name "Bruce-Robert" :surname "Fenn Pocock"
+                                                :formal-name nil :presenter-bio nil :presenter-requests nil
+                                                :e-mail "brpocock@star-hope.org" :telephone nil
+                                                :sleep :tent :eat nil :day nil
+                                                :gender :m :ticket-type :adult
+                                                :t-shirt :xs :coffee? false :tote? false })])
+                               :reg-guests))
+
+(marry! (get @guests 0) (get @guests 1))
+
+(defn need-adult-email []
+  (empty? (filter #(and (= :adult (:ticket-type @%))
+                        (util/email? (:e-mail @%))) 
+                  @guests)))
 
 (defn strip-final-number [string]
   (cond (< (count string) 4)
@@ -20,9 +43,9 @@
         string))
 
 (defn adults-needed []
-  (let [babies (count (filter #(= :baby (:ticket-type %)) @d/guests))
-        children (count (filter #(= :child (:ticket-type %)) @d/guests))
-        adults (count (filter #(= :adult (:ticket-type %)) @d/guests))]
+  (let [babies (count (filter #(= :baby (:ticket-type %)) @guests))
+        children (count (filter #(= :child (:ticket-type %)) @guests))
+        adults (count (filter #(= :adult (:ticket-type %)) @guests))]
     [(+ babies (if (pos? children) 1 0)) 
      adults children babies]))
 
@@ -77,8 +100,8 @@
                                 [(first name-parts) (second name-parts)]
                                 
                                 (and (= 1 (count name-parts))
-                                     (not (empty? @d/guests)))
-                                [(first name-parts) (:surname (deref (first @d/guests)))]
+                                     (not (empty? @guests)))
+                                [(first name-parts) (:surname (deref (first @guests)))]
                                 
                                 (= 1  (count name-parts))
                                 ["" ""]
@@ -92,7 +115,7 @@
         (let [num-given (count (filter #(and (= given 
                                                 (strip-final-number (:given-name (deref %))))
                                              (= surname (:surname (deref %)))) 
-                                       @d/guests))
+                                       @guests))
               ]
           (if (pos? num-given)
             (js/alert (str "I'm sorry: We can't actually handle two party members with exactly the same given & surnames.
@@ -105,26 +128,26 @@ For now, could you please put down the additional “"
             (do 
               #_ (util/log "given " given " surname " surname)
               (reset! new-name {:new-name-entered ""})
-              (if (empty? @d/guests)
+              (if (empty? @guests)
                 (do
                   (js/alert "Welcome! Now that you've added yourself, click each of the table cells to plan your Festival. 
 
 (For example, click on your name first, then work your way across the columns.)
 
 Add other members of your party, and watch the Assistant box for advice.")
-                  (reset! d/guests  [(atom {:called-by (guess-nickname given surname) :given-name given :surname surname
+                  (reset! guests  [(atom {:called-by (guess-nickname given surname) :given-name given :surname surname
+                                          :e-mail nil :telephone nil
+                                          :ticket-type :adult :staff-department nil
+                                          :sleep :tent :eat nil
+                                          :gender (guess-gender given)
+                                          :t-shirt nil :coffee? false :tote? false})]))
+                (let [leader @(first @guests)]
+                  (swap! guests conj (atom {:called-by (guess-nickname given surname) :given-name given :surname surname
                                             :e-mail nil :telephone nil
                                             :ticket-type :adult :staff-department nil
-                                            :sleep :tent :eat nil
+                                            :sleep (:sleep leader) :eat (:eat leader)
                                             :gender (guess-gender given)
-                                            :t-shirt nil :coffee? false :tote? false})]))
-                (let [leader @(first @d/guests)]
-                  (swap! d/guests conj (atom {:called-by (guess-nickname given surname) :given-name given :surname surname
-                                              :e-mail nil :telephone nil
-                                              :ticket-type :adult :staff-department nil
-                                              :sleep (:sleep leader) :eat (:eat leader)
-                                              :gender (guess-gender given)
-                                              :t-shirt nil :coffee? false :tote? false})))))))))))
+                                            :t-shirt nil :coffee? false :tote? false})))))))))))
 
 (defn suggest-partner-name [guest]
   (case (:given-name @guest)
@@ -146,18 +169,18 @@ Add other members of your party, and watch the Assistant box for advice.")
     (reagent/create-class
      {:reagent-render
       (fn [_ children this]
-        #_ (util/log " Add person row to " (count @d/guests) " guests")
+        #_ (util/log " Add person row to " (count @guests) " guests")
         (let [name$ (:new-name-entered @new-name)
               named? (and name$
                           (string? name$)
                           (not (string/blank? name$)))]
-          [:tr {:key (if (empty @d/guests) "☠|add-first|" "☠|add-next|")
+          [:tr {:key (if (empty @guests) "☠|add-first|" "☠|add-next|")
                 :class "no-print"}
            [:td {:col-span 10
                  :style {:border "2pt solid black"
                          :border-radius "1ex"
                          :padding "8pt"}}
-            (when (empty? @d/guests)
+            (when (empty? @guests)
               [:div {:key (str "add-person-1") :class "no-print"}
                #_ (util/log " • first person intro")
                [:h3 "To get started:"]
@@ -170,17 +193,17 @@ Add other members of your party, and watch the Assistant box for advice.")
                hyphen: Bruce-Robert, Ann-Marie, Billy-Bob.)"]]])
             [text/text-input {:cursor new-name
                               :keys :new-name-entered
-                              :label (fn [] (if (empty? @d/guests) 
+                              :label (fn [] (if (empty? @guests) 
                                               "Start with this person"
                                               "Add this person"))
                               :placeholder 
                               (fn [] (str (or (first 
                                                (filter (fn [name]
-                                                         #_ (util/log "• anybody named " name " in " (map #(:given-name @%) @d/guests) "?")
+                                                         #_ (util/log "• anybody named " name " in " (map #(:given-name @%) @guests) "?")
                                                          (not (some #(= name %) 
-                                                                    (map #(:given-name @%) @d/guests)))) 
+                                                                    (map #(:given-name @%) @guests)))) 
                                                        (concat
-                                                        (map suggest-partner-name @d/guests)
+                                                        (map suggest-partner-name @guests)
                                                         (list "John"
                                                               "Amy" "Brian" "Charlie" "David" "Elizabeth"
                                                               "Frank" "Gerri" "Harry" "Ingrid" "Jack"
@@ -189,10 +212,10 @@ Add other members of your party, and watch the Assistant box for advice.")
                                                               "Uma" "Vladimir" "Wilmena" "Xavier" "Zach"))))
                                               "John") 
                                           " "
-                                          (if (or (empty? @d/guests)
-                                                  (empty? (:surname (deref (first @d/guests)))))
+                                          (if (or (empty? @guests)
+                                                  (empty? (:surname (deref (first @guests)))))
                                             "Doe"
-                                            (:surname (deref (first @d/guests))))))
+                                            (:surname (deref (first @guests))))))
                               :format util/name-case
                               :validate (fn [new-name] 
                                           (reagent/force-update-all)
@@ -200,23 +223,23 @@ Add other members of your party, and watch the Assistant box for advice.")
                                                (not (some #(or (= (str (:given-name %) " " (:surname %))
                                                                   new-name)
                                                                (= (:given-name %) new-name))
-                                                          @d/guests))))
+                                                          @guests))))
                               :rows 1}]
             " \u00a0 \u00a0 \u00a0 "
             [:button
              {:on-click (add-to-party! new-name)
               :class (str (if named?
-                            (if (zero? (count @d/guests))
+                            (if (zero? (count @guests))
                               "true urgent"
                               "true")
                             "disabled"))}
              (str (if named? "+" "✗") " Add to party")]]]))})))
 
 (defn price-all-guests []
-  (reduce + (map guest/price @d/guests)))
+  (reduce + (map guest/price @guests)))
 
 (defn guests-price-sum []
-  @d/guests
+  @guests
   [:span (util/format-money (price-all-guests))])
 
 (defn guests-thead []
@@ -233,8 +256,8 @@ Add other members of your party, and watch the Assistant box for advice.")
     [:th (util/abbr "🍺" "Mug" "FPG 20th Anniversary hot & cold beverage mugs. (Buy more mugs in the “Extras” box)")]]])
 
 (defn party-title []
-  [:span (let [leader (first @d/guests)]
-           (case (count @d/guests)
+  [:span (let [leader (first @guests)]
+           (case (count @guests)
              0
              "New Party: Please Register"
              
@@ -246,7 +269,7 @@ Add other members of your party, and watch the Assistant box for advice.")
                   (or (:called-by @leader) (:given-name @leader)) " " (:surname @leader))
              
              2
-             (let [partner (second @d/guests)]
+             (let [partner (second @guests)]
                (if (= (:surname @leader) (:surname @partner))
                  (str (cond (= (:gender @leader) (:gender @partner) :m)
                             "Messrs "
@@ -275,17 +298,17 @@ Add other members of your party, and watch the Assistant box for advice.")
                         "") 
                       (or (:called-by @partner) (:given-name @partner)) " " (:surname @partner))))
              
-             (if (every? #(= (:surname @%) (:surname @leader)) @d/guests)
-               (str "The " (:surname @leader) " Party of " (util/counting (count @d/guests) "Guest"))
+             (if (every? #(= (:surname @%) (:surname @leader)) @guests)
+               (str "The " (:surname @leader) " Party of " (util/counting (count @guests) "Guest"))
                (str (case (:gender @leader)
                       :m "Mr "
                       :f "Ms "
                       "") 
                     (or (:called-by @leader) (:given-name @leader)) " " (:surname @leader)
-                    " &  " (util/counting (- (count @d/guests) 1) "Guest")))))])
+                    " &  " (util/counting (- (count @guests) 1) "Guest")))))])
 
 (defn guest-list-box []
-  #_ (util/log "Guests = " @d/guests)
+  #_ (util/log "Guests = " @guests)
   [:section [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
              (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
 
@@ -294,8 +317,8 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
     [:h2 [party-title]]
     
     [:table {:class "people"}
-     (when-not (empty? @d/guests) [guests-thead])
-     [:tbody (doall (map #([guest/guest-row %]) @d/guests))]
+     (when-not (empty? @guests) [guests-thead])
+     [:tbody (doall (map #([guest/guest-row %]) @guests))]
      [:tfoot 
       [add-person-row]
       [:tr {:key "☠|subtotal|"} 
@@ -304,7 +327,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
         [guests-price-sum]]]]]]])
 
 (defn count-adults []
-  (count (filter #(= (:ticket-type @%) :adult) @d/guests)))
+  (count (filter #(= (:ticket-type @%) :adult) @guests)))
 
 
 

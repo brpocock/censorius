@@ -32,7 +32,7 @@ your party. The leader's sleeping and eating arrangements will be copied
 to new party members."]])
 
 (defn assistant-need-adults []
-  (let [[adults-needed adults & _] (guest-list/adults-needed)]
+  (let [[adults-needed adults children babies] (guest-list/adults-needed)]
     [:div [:h4 {:class "warning"} (util/counting (- adults-needed adults) "Adult") " Required"]
      [:p "At least "
       (string/lower-case (util/counting adults-needed "adult"))
@@ -92,17 +92,17 @@ to new party members."]])
   [:section {:id "assistant"}
    [:a {:name "assistant"}]
    [:h2 "Assistant"]
-   (if (empty? @d/guests)
+   (if (empty? @guest-list/guests)
      [assistant-getting-started]
      [assistant-editing-party])
-   (when (need-adult-email)
+   (when (guest-list/need-adult-email)
      [assistant-need-adult-email])
    (let [[adults-needed adults & _] (guest-list/adults-needed)]
      (when (> adults-needed adults) [assistant-need-adults]))
-   (when (< 1 (count @d/guests))
+   (when (< 1 (count @guest-list/guests))
      [assistant-can-remove])
-   (when-not (empty? @d/guests)
-     (if (some guest/bought-merch @d/guests)
+   (when-not (empty? @guest-list/guests)
+     (if (some guest/bought-merch @guest-list/guests)
        [assistant-merch+]
        [assistant-merch])
      [assistant-vendors]

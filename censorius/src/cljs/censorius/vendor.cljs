@@ -4,6 +4,7 @@
             [censorius.data :as d]
             [censorius.guest :as guest]
             [censorius.guest-list :as guest-list]
+            [censorius.text :as text]
             [censorius.utils :as util]))
 
 (defn vendor-agreement []
@@ -131,7 +132,7 @@
      [:div
       (cond (not (some #(nil? (:days @%))
                        (filter #(= (:ticket-type @%) :adult) 
-                               @d/guests)))
+                               @guest-list/guests)))
             [vendor-requires-admission]
             
             (not (:agreement @d/vending))

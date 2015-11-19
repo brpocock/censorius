@@ -1,5 +1,12 @@
 (ns censorius.herald
-  (:require [ajax.core :refer [GET PUT POST]]))
+  (:require 
+   [clojure.string :as string]
+   [ajax.core :as ajax :refer [GET PUT POST]]
+   
+   [censorius.data :as d]
+   [censorius.guest-list :as guest-list]
+   [censorius.merch :as merch]
+   [censorius.utils :as util]))
 
 (defn validate-mqa-license [license-number]
   (POST "https://appsmqa.doh.state.fl.us/IRM00PRAES/PRASLIST.ASP"
@@ -21,13 +28,13 @@
                  (.append "LicNbr" license-number)
                  (.append "hDivision" "ALL"))}))
 
-(defn hash-atom->json (hash-atom)
+(defn hash-atom->json [hash-atom]
   (let [hash @hash-atom]
     (map (fn [[key value]]
-           [(keyword->string key) value]
+           [(util/keyword->string key) value]
            hash))))
 
-(defn hash-atoms->form (table hash-atoms)
+(defn hash-atoms->form [table hash-atoms]
   (let [rows (atom [])
         counter (atom 0)
         fields (atom {})]
@@ -37,7 +44,7 @@
         (swap! counter inc)
         (swap! rows conj row)
         (doseq [[key value] hash]
-          (swap! fields assoc-in (str table "∋" row "∋" (keyword->string key)) value))))
+          (swap! fields assoc-in (str table "∋" row "∋" (util/keyword->string key)) value))))
     (swap! fields assoc (str table "∋#") (string/join \, rows))))
 
 (defn form->hash-atoms [atom label jso]
@@ -49,13 +56,13 @@
           (when (= (.substring key 0 (+ 1 (count row) (count prefix))) 
                    (str prefix row "∋"))
             (let [field (.substring key (+ 1 (count row) (count prefix)))]
-              (swap! row-atom assoc (make-keyword field) value))))
+              (swap! row-atom assoc (keyword field) value))))
         (swap! atom conj row-atom)))))
 
 (defn json->invoice [jso]
-  (form->hash-atoms @d/guests "guests" jso))
+  (form->hash-atoms @guest-list/guests "guests" jso))
 
-(defun read-invoice [number]
+(defn read-invoice [number token]
   (ajax/ajax-request {:uri "//herald.cgi"
                       :method :post
                       :params {:verb "read-invoice"
@@ -68,7 +75,7 @@
                                    (json->invoice response)
                                    (js/alert (str "Failure; got " response))))}))
 
-(defun submit-invoice []
+(defn submit-invoice []
   (ajax/ajax-request {:uri "//herald.cgi"
                       :method :post
                       :params (reduce conj 
@@ -85,8 +92,8 @@
                                              :scholarship∋baiardi∋scholarship "baiardi"
                                              :scholarship∋baiardi∋amount (:baiardi @d/scholarships)}
                                             
-                                            (hash-atoms->form "guests" @d/guests)
-                                            (hash-atoms->form "extras" @d/merch)
+                                            (hash-atoms->form "guests" @guest-list/guests)
+                                            (hash-atoms->form "extras" @merch/merch)
                                             (hash-atoms->form "vending" @d/vending)
                                             (hash-atoms->form "workshops" @d/workshops)))
                       :format (ajax/json-request-format)
