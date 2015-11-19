@@ -45,35 +45,46 @@
                                  (= max (second %))) +common-age-ranges+)))
       (str "Ages from " (or min "birth") " to " (or max "death"))))
 
+(defn make-create-workshop-function [new]
+  (fn []
+    (let [guest (first (filter (fn [guest] 
+                                 (= (:presenter @new)
+                                    (or (:formal-name @guest)
+                                        (str (or (:called-by @guest)
+                                                 (:given-name @guest))
+                                             " "
+                                             (:surname @guest)))))
+                               @guest-list/guests))]
+      (swap! workshops conj (atom {:long-name (:title @new)
+                                   :short-name (:title @new)
+                                   :presenter guest
+                                   :description ""
+                                   :extra-web-description ""
+                                   :duration 1
+                                   :age-min nil
+                                   :age-max nil
+                                   :♂? true
+                                   :♀? true
+                                   :workshop-needs ""
+                                   :needs ""
+                                   :allow-recording false}))
+      (when-not (:formal-name @guest)
+        (swap! guest assoc :formal-name (str (or (:called-by @guest)
+                                                 (:given-name @guest))
+                                             " "
+                                             (:surname @guest))))
+      (when-not (:headliner? @guest)
+        (swap! guest assoc :headliner? false))
+      (when-not (:music? @guest)
+        (swap! guest assoc :music? false))
+      (when-not (:presenter-needs @guest)
+        (swap! guest assoc :presenter-needs ""))
+      (swap! new assoc :title ""))))
+
 (defn add-workshop-button [new]
   [:button {:class "true"
-            :on-click (fn [_]
-                        (swap! d/workshops conj (atom {:long-name (:title @new)
-                                                       :short-name (:title @new)
-                                                       :presenter (:presenter @new)
-                                                       :description ""
-                                                       :extra-web-description ""
-                                                       :duration 1
-                                                       :age-min nil
-                                                       :age-max nil
-                                                       :♂? true
-                                                       :♀? true
-                                                       :workshop-needs ""
-                                                       :needs ""
-                                                       :allow-recording false}))
-                        (when-not (:formal-name @guest)
-                          (swap! guest assoc :formal-name (str (or (:called-by @guest)
-                                                                   (:given-name @guest))
-                                                               " "
-                                                               (:surname @guest))))
-                        (when-not (:headliner? @guest)
-                          (swap! guest assoc :headliner? false))
-                        (when-not (:music? @guest)
-                          (swap! guest assoc :music? false))
-                        (when-not (:presenter-needs @gues)
-                          (swap! guest assoc :presenter-needs ""))
-                        (swap! new assoc :title ""))}
-   (if (zero? (count @d/workshops))
+            :on-click (make-create-workshop-function new)}
+   (if (zero? (count @workshops))
      "⁂ Present a workshop"
      "+ Add another")])
 
@@ -90,26 +101,27 @@
                                       :cursor new
                                       :key :presenter
                                       :tags (map (fn [guest]
-                                                   (let [n (str (or (:called-by @guest)
-                                                                    (:given-name @guest))
-                                                                " "
-                                                                (:surname @guest))]
-                                                     [guest n]))
-                                              @d/guests)}]
+                                                   (let [n (or (:formal-name @guest)
+                                                               (str (or (:called-by @guest)
+                                                                        (:given-name @guest))
+                                                                    " "
+                                                                    (:surname @guest)))]
+                                                     [n n]))
+                                              @guest-list/guests)}]
                     (when (and (:presenter new)
                                (not (empty? (:title new)))) 
                       [add-workshop-button new])]]])))
 
 (defn workshop-box []
-  (when-not (empty? @d/guests)
+  (when-not (empty? @guest-list/guests)
     [:section {:class "card"}
      [:h2 "Workshops"]
-     (when (pos? (count @d/workshops))
+     (when (pos? (count @workshops))
        [:fieldset [:legend "Workshop Requests"]
         [:table
          [:thead [:tr [:th "Title"] [:th "Presenter"]]]
          [:tbody
-          (map #([workshop-info %]) @d/workshops)]]])
+          (map #([workshop-info %]) @workshops)]]])
      (if :true-dont-accept-workshop-submissions
        [:div "Please contact " [:a {:href "mailto:workshops@flapagan.org"}
                                 "workshops@flapagan.org"] 

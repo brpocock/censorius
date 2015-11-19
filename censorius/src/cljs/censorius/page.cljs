@@ -17,7 +17,7 @@
    [censorius.text :as text]
    [censorius.utils :as util]
    [censorius.vendor :as vendor]
-   [censorius.workshops :as workshop])
+   [censorius.workshops :as workshops])
   (:import [goog History] [goog events]))
 
 
@@ -28,24 +28,29 @@
 
 
 
-(defn guest-list-box []
-  #_ (util/log "Guests = " @guests)
-  [:section [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
-             (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
+(defn guest-list-box-title []
+  [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
+   (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
 
-The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")]
+The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")])
+
+(defn guest-list-box []
+  #_ (util/log "Guests = " @guest-list/guests)
+  [:section
+   [guest-list-box-title]
    [:section {:class "card" :key "guest-list-box"}
-    [:h2 [party-title]]
-    
+    #_    [:h2 [guest-list/party-title]]
+
     [:table {:class "people"}
-     (when-not (empty? @guests) [guest-list/guests-thead])
-     [:tbody (doall (map #([guest/guest-row %]) @guests))]
-     [:tfoot 
+     (when-not (empty? @guest-list/guests) 
+       #_ [guest-list/guests-thead])
+     #_ [:tbody (map #([guest/guest-row %]) @guest-list/guests)]
+     [:tfoot
       [guest-list/add-person-row]
-      [:tr {:key "☠|subtotal|"} 
+      [:tr {:key "☠|subtotal|"}
        [:th {:col-span 7} "Subtotal"]
-       [:td {:col-span 3 :style {:align "right"}} 
-        [guest-list/guests-price-sum]]]]]]])
+       [:td {:col-span 3 :style {:align "right"}}
+        #_ [guest/guests-price-sum]]]]]]])
 
 (defn scholarship-box []
   [:section {:class "card"}
@@ -57,7 +62,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
            [:span {:class "hint"}
             "These funds are used to provide scholarships for guests who would
     like to attend FPG but need financial assistance."]]
-      [:td [text/text-input {:cursor d/scholarships
+      [:td [text/text-input {:cursor invoice/scholarships
                              :keys :php
                              :label "Pagans Helping Pagans Fund"
                              :placeholder "$5.00"
@@ -71,7 +76,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
     of FPG staff who passed away shortly after FPG Samhain 2012. This
     fund has been set up to provide financial assistance for
     staff admissions."]]
-      [:td [text/text-input {:cursor d/scholarships
+      [:td [text/text-input {:cursor invoice/scholarships
                              :keys :baiardi
                              :label "Robert Baiardi Memorial Fund"
                              :placeholder "$5.00"
@@ -82,7 +87,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
      [:tr [:th "Seva"
            [:span {:class "hint"}
             "The Seva Scholarship offers financial assistance to FPG staff members who need it."]]
-      [:td [text/text-input {:cursor d/scholarships
+      [:td [text/text-input {:cursor invoice/scholarships
                              :keys :seva
                              :label "Seva Fund"
                              :placeholder "$5.00"
@@ -98,7 +103,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
   [:div {:class "print-only"}
    [:p "This is a copy of the registration web page, formatted for printing. This is "
     [:em "not"] " the eMail receipt, and it does "
-    [:em "not"] 
+    [:em "not"]
     " indicate proof  of payment. However, we hope that  it will provide
     a convenient record of your Festival plans."]
    [:p "Produced by Censorius Herald software. Software copyright © 2013-2015."]
@@ -207,7 +212,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
 
 
 
-(guest/marry! (get @guests 0) (get @guests 1))
+(guest/marry! (get @guest-list/guests 0) (get @guest-list/guests 1))
 
 
 ;; Initialize app

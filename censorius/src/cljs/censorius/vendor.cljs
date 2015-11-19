@@ -61,6 +61,9 @@
 
 
 
+(defn price-vendor []
+  (* (:vendor @d/prices) (:qty @vending)))
+
 (defn vendor-slips []
   [:div [text/text-input {:cursor vending
                           :keys :qty
@@ -96,9 +99,6 @@
      vending  space.  You may  purchase  addtiional  vending spaces  and
      additional admissions as you like.  Vendors can arrive on Wednesday
      or Thursday."]])
-
-(defn price-vendor []
-  (* (:vendor @d/prices) (:qty @vending)))
 
 
 

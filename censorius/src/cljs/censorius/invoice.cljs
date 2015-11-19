@@ -1,6 +1,5 @@
 (ns censorius.invoice
   (:require
-   [alandipert.storage-atom :refer [local-storage]]
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.data :as d]
@@ -16,24 +15,7 @@
 
 (defonce payments (reagent/atom []))
 
-(defonce prices (reagent/atom {:ticket { :adult 95
-                                        :child 30
-                                        :under5 0
-                                        :week-end 40 ; TODO?
-                                        :day-pass 30 ; TODO?
-                                        :lugal-so 30
-                                        :staff 30}
-                               :vendor 25
-                               :cauldron {:fri-sun 45
-                                          :adult 65
-                                          :child 30
-                                          :under5 0}
-                               :salad-bar 35
-                               :cabin {:regular 45 :staff 25}
-                               :lodge {:regular 60 :staff 45}}))
-
-(defonce scholarships (local-storage (reagent/atom {:php 0 :seva 0 :baiardi 0})
-                                     :reg-scholarships))
+(defonce scholarships (reagent/atom {:php 0 :seva 0 :baiardi 0}))
 
 
 
@@ -88,13 +70,17 @@ Make sure that the testing mode shows up on PayPal!")
       [:th "Invoice Number"]
       [:td (str (:invoice @d/general))]]]))
 
+(defn guest-price-line [guest]
+  [:li {:key (str "guest-price-" (:given-name @guest) "-" (:surname @guest)) }
+   (util/format-money (guest/price guest)) 
+   " for " 
+   (or (:called-by @guest) (:given-name @guest))])
+
 (defn invoice-guests-section []
   [:tr {:key "invoice-guests"} 
-   [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))
-                   (doall (map (fn [guest] 
-                                 [:li {:key (str "guest-price-" (:given-name @guest) "-" (:surname @guest)) }
-                                  (util/format-money (guest/price guest)) " for " (or (:called-by @guest) (:given-name @guest))]) 
-                            @guest-list/guests))]])
+   [:th "Guests"] [:td (util/format-money (guest/price-all-guests))
+                   (map #([guest-price-line %]) 
+                     @guest-list/guests)]])
 
 (defn invoice-merch-section []
   (when (pos? (merch/price-all-merch)) 
@@ -123,7 +109,7 @@ Make sure that the testing mode shows up on PayPal!")
     [:td [:big (util/format-money (total-due))]]]])
 
 (defn check-out-invoice []
-  @guest-list/guests @merch/merch @vending/vending
+  @guest-list/guests @merch/merch @vendor/vending
   [:table {:style {:width "10em"}}
    [invoice-header]
    [:tbody

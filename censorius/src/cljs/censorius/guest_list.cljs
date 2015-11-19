@@ -1,7 +1,6 @@
 (ns censorius.guest-list
   (:require
    [clojure.string :as string]
-   [alandipert.storage-atom :refer [local-storage]]
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.data :as d]
@@ -9,43 +8,40 @@
    [censorius.text :as text]
    [censorius.utils :as util]))
 
-(defonce guests (local-storage 
-                 (reagent/atom 
-                  [ (reagent/atom { :called-by "Sage"
-                                   :given-name "John"
-                                   :surname "Fenn Pocock"
-                                   :formal-name nil
-                                   :presenter-bio nil
-                                   :presenter-requests nil
-                                   :e-mail "sage@star-hope.org"
-                                   :telephone nil
-                                   :sleep :tent
-                                   :eat nil
-                                   :day nil
-                                   :gender :m
-                                   :ticket-type :adult
-                                   :t-shirt :xs
-                                   :coffee? false
-                                   :tote? false })
-                   (reagent/atom { :called-by nil
-                                  :given-name "Bruce-Robert"
+(defonce guests (reagent/atom 
+                 [ (reagent/atom { :called-by "Sage"
+                                  :given-name "John"
                                   :surname "Fenn Pocock"
                                   :formal-name nil
                                   :presenter-bio nil
                                   :presenter-requests nil
-                                  :e-mail "brpocock@star-hope.org"
+                                  :e-mail "sage@star-hope.org"
                                   :telephone nil
                                   :sleep :tent
                                   :eat nil
                                   :day nil
                                   :gender :m
                                   :ticket-type :adult
-                                  :t-shirt :s
+                                  :t-shirt :xs
                                   :coffee? false
-                                  :tote? false })])
-                 :reg-guests))
-
-
+                                  :tote? false })
+                  (reagent/atom { :called-by nil
+                                 :given-name "Bruce-Robert"
+                                 :surname "Fenn Pocock"
+                                 :formal-name nil
+                                 :presenter-bio nil
+                                 :presenter-requests nil
+                                 :e-mail "brpocock@star-hope.org"
+                                 :telephone nil
+                                 :sleep :tent
+                                 :eat nil
+                                 :day nil
+                                 :gender :m
+                                 :ticket-type :adult
+                                 :t-shirt :s
+                                 :coffee? false
+                                 :tote? false })]))
+(util/log "Seeded guest list : " @guests)
 
 (defn need-adult-email []
   (empty? (filter #(and (= :adult (:ticket-type @%))
@@ -70,6 +66,16 @@
         adults (count (filter #(= :adult (:ticket-type %)) @guests))]
     [(+ babies (if (pos? children) 1 0)) 
      adults children babies]))
+
+(defn purchased-for-guests [id style]
+  (case id
+    :coffee
+    (count (filter #(get @% :coffee?) @guests))
+    :tote-bag
+    (count (filter #(get @% :tote?) @guests))
+    :festival-shirt
+    (count (filter #(= style (get @% :t-shirt)) @guests))
+    0))
 
 (defn guess-gender [name]
   (case name
