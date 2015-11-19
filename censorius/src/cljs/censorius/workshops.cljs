@@ -41,8 +41,8 @@
    [21 nil "Drinking Age"]])
 
 (defn format-age-range [min max]
-  (or (last (first (filter #(and (= min (first row))
-                                 (= max (second row))) +common-age-ranges+)))
+  (or (last (first (filter #(and (= min (first %))
+                                 (= max (second %))) +common-age-ranges+)))
       (str "Ages from " (or min "birth") " to " (or max "death"))))
 
 (defn add-workshop-button [new]
