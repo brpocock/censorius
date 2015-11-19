@@ -1,28 +1,51 @@
 (ns censorius.invoice
   (:require
+   [alandipert.storage-atom :refer [local-storage]]
    [reagent.core :as reagent :refer [atom]]
    
-   [censorius.assistant :as assistant]
    [censorius.data :as d]
-   [censorius.editable :as ed]
    [censorius.guest :as guest]
    [censorius.guest-list :as guest-list]
    [censorius.merch :as merch]
-   [censorius.radio :as radio]
    [censorius.text :as text]
    [censorius.utils :as util]
    [censorius.vendor :as vendor])
   (:import [goog History] [goog events]))
 
+
+
+(defonce payments (reagent/atom []))
+
+(defonce prices (reagent/atom {:ticket { :adult 95
+                                        :child 30
+                                        :under5 0
+                                        :week-end 40 ; TODO?
+                                        :day-pass 30 ; TODO?
+                                        :lugal-so 30
+                                        :staff 30}
+                               :vendor 25
+                               :cauldron {:fri-sun 45
+                                          :adult 65
+                                          :child 30
+                                          :under5 0}
+                               :salad-bar 35
+                               :cabin {:regular 45 :staff 25}
+                               :lodge {:regular 60 :staff 45}}))
+
+(defonce scholarships (local-storage (reagent/atom {:php 0 :seva 0 :baiardi 0})
+                                     :reg-scholarships))
+
+
+
 (defn scholarship-donations-amount []
-  (reduce + (map util/just-decimal (vals @d/scholarships))))
+  (reduce + (map util/just-decimal (vals @scholarships))))
 
 (defn total-due []
-  (+ (guest-list/price-all-guests)
+  (+ (guest/price-all-guests)
      (merch/price-all-merch)
      (vendor/price-vendor)
      (scholarship-donations-amount)
-     (- (reduce + (map #(:amount %) @d/payments)))))
+     (- (reduce + (map #(:amount %) @payments)))))
 
 (defn try-check-out []
   (js/alert "This is in Testing Mode.
@@ -45,6 +68,8 @@ Make sure that the testing mode shows up on PayPal!")
         
         :ok 
         (js/alert "Save with note: Disabled for testing. Pretend it worked. ~brfp")))
+
+
 
 (defn display-payment [payment]
   [:dl [:dt {:key (str "payment-" (:cleared payment))}
@@ -87,9 +112,9 @@ Make sure that the testing mode shows up on PayPal!")
      [:th "Scholarships"] [:td (util/format-money (scholarship-donations-amount))]]))
 
 (defn invoice-payments-section []
-  (when (pos? (count @d/payments))
+  (when (pos? (count @payments))
     [:tr {:key "invoice-payments"}
-     [:th "Payments"] [:td (doall (map display-payment @d/payments))]]))
+     [:th "Payments"] [:td (doall (map display-payment @payments))]]))
 
 (defn invoice-footer []
   [:tfoot
@@ -98,7 +123,7 @@ Make sure that the testing mode shows up on PayPal!")
     [:td [:big (util/format-money (total-due))]]]])
 
 (defn check-out-invoice []
-  @guest-list/guests @merch @d/vending
+  @guest-list/guests @merch/merch @vending/vending
   [:table {:style {:width "10em"}}
    [invoice-header]
    [:tbody
@@ -109,7 +134,7 @@ Make sure that the testing mode shows up on PayPal!")
     [invoice-payments-section]]
    [invoice-footer]])
 
-
+
 
 (defn sign-fpg-waiver []
   [:div 
@@ -234,7 +259,7 @@ legally binding.)"]
           (filter #(= (:ticket-type @%) :adult)
                   @guest-list/guests))))
 
-
+
 
 (defn adult-email-prevent-checkout []
   [:p {:class "warning"}
@@ -250,17 +275,19 @@ legally binding.)"]
              same eMail  address you use  for other FPG business,  so we
              can apply any discounts."]])
 
+(defn need-adults-warning []
+  [:p {:class "warning"}
+   "There are  not enough adults  registered for the  number of
+            children. (Check the " [:strong [:q "Ticket"]] " column.)"])
+
+
+
 (defn check-out-button-box []
   [:div {:class "buttonBox"}
    (when (pos? (total-due)) 
      [:button
       {:on-click try-check-out}
       "Ready, Make Payment →"])])
-
-(defn need-adults-warning []
-  [:p {:class "warning"}
-   "There are  not enough adults  registered for the  number of
-            children. (Check the " [:strong [:q "Ticket"]] " column.)"])
 
 (defn check-out-notes []
   [:div {:key "notes-div"}
@@ -276,8 +303,6 @@ legally binding.)"]
     (when (guest-list/need-adult-email)
       [:big "You " [:em "must"] 
        " have at least one adult's eMail address entered as well."])]])
-
-
 
 (defn check-out-action []
   (let [pay? (atom false)]
@@ -297,7 +322,7 @@ legally binding.)"]
 (defn check-out-box []
   (if (and false
            (zero? (total-due))
-           (zero? (count @d/payments)))
+           (zero? (count @payments)))
     
     [:span {:id "check-out"}] ; placeholder, nil
     

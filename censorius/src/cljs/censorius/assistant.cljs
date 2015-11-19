@@ -1,10 +1,11 @@
 (ns censorius.assistant
   (:require [clojure.string :as string]
-            
-            [censorius.data :as d]
+
             [censorius.guest :as guest]
             [censorius.guest-list :as guest-list]
             [censorius.utils :as util]))
+
+
 
 (defn assistant-getting-started []
   [:div [:h4 "Getting Started"]
@@ -31,6 +32,14 @@ party, make your selections for  yourself before adding other members of
 your party. The leader's sleeping and eating arrangements will be copied
 to new party members."]])
 
+(defn assistant-can-remove []
+  [:div
+   [:h4 "Removing tickets"]
+   [:p "To remove someone from your party, click on their name, then click the "
+    [:strong "Remove from Party"] " button."]])
+
+
+
 (defn assistant-need-adults []
   (let [[adults-needed adults children babies] (guest-list/adults-needed)]
     [:div [:h4 {:class "warning"} (util/counting (- adults-needed adults) "Adult") " Required"]
@@ -47,16 +56,12 @@ to new party members."]])
   [:div [:h4 {:class "warning"} "eMail Address Needed"]
    [:p "The  eMail address of  at least one adult  in the party  must be
    provided. (Click on the box under the "
-    [:q "eMail"] 
+    [:q "eMail"]
     " column to set one. For Lugals,  DCs, or members of the Board, make
     sure you use  the same eMail that you use  for FPG business, because
     you'll be eligible for discounts on some things.)"]])
 
-(defn assistant-can-remove []
-  [:div
-   [:h4 "Removing tickets"]
-   [:p "To remove someone from your party, click on their name, then click the "
-    [:strong "Remove from Party"] " button."]])
+
 
 (defn assistant-merch+ []
   [:div
@@ -64,8 +69,8 @@ to new party members."]])
    [:p "You can purchase great merchandise for every member of your party,
     and order extra items to take home from the "
     [:strong "Extras"]
-    " box as well. There are additional items, like general T-shirts, also
-    available this way."]])
+    " box as well. There are additional items also
+    available as " [:q "extras."]]])
 
 (defn assistant-merch []
   [:div
@@ -73,6 +78,8 @@ to new party members."]])
    [:p "Buy your festival T-shirts for every party member, or order more
     merchandise from the "
     [:strong "Extras"] " box."]])
+
+
 
 (defn assistant-vendors []
   [:div
@@ -88,6 +95,8 @@ to new party members."]])
        [:p "If any members of your party want to present a workshop at FPG, just
     fill out the information here."]])
 
+
+
 (defn assistant-box [props children self]
   [:section {:id "assistant"}
    [:a {:name "assistant"}]
@@ -102,10 +111,9 @@ to new party members."]])
    (when (< 1 (count @guest-list/guests))
      [assistant-can-remove])
    (when-not (empty? @guest-list/guests)
-     (if (some guest/bought-merch @guest-list/guests)
+     (if (some guest/bought-merch? @guest-list/guests)
        [assistant-merch+]
        [assistant-merch])
      [assistant-vendors]
      [assistant-workshops])])
-
 

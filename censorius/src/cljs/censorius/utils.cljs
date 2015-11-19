@@ -1,6 +1,5 @@
 (ns censorius.utils
   (:require
-   ;;[ajax.core :refer [GET POST]]
    [clojure.data :as data]
    [clojure.string :as string]
    [goog.string :as gstring] 
@@ -725,6 +724,7 @@
 
 (defn to-integer [n]
   (or (and (integer? n) n)
+      (and (number? n) (js/Math.round n))
       (and (string? n)
            (js/parseInt n))))
 

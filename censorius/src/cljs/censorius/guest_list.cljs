@@ -3,27 +3,49 @@
    [clojure.string :as string]
    [alandipert.storage-atom :refer [local-storage]]
    [reagent.core :as reagent :refer [atom]]
+   
    [censorius.data :as d]
    [censorius.guest :as guest]
    [censorius.text :as text]
    [censorius.utils :as util]))
 
-(defonce guests (local-storage (reagent/atom 
-                                [ (reagent/atom { :called-by "Sage" :given-name "John" :surname "Fenn Pocock"
-                                                 :formal-name nil :presenter-bio nil :presenter-requests nil
-                                                 :e-mail "sage@star-hope.org" :telephone nil
-                                                 :sleep :tent :eat nil :day nil
-                                                 :gender :m :ticket-type :adult
-                                                 :t-shirt :xs :coffee? false :tote? false })
-                                 (reagent/atom { :called-by nil :given-name "Bruce-Robert" :surname "Fenn Pocock"
-                                                :formal-name nil :presenter-bio nil :presenter-requests nil
-                                                :e-mail "brpocock@star-hope.org" :telephone nil
-                                                :sleep :tent :eat nil :day nil
-                                                :gender :m :ticket-type :adult
-                                                :t-shirt :xs :coffee? false :tote? false })])
-                               :reg-guests))
+(defonce guests (local-storage 
+                 (reagent/atom 
+                  [ (reagent/atom { :called-by "Sage"
+                                   :given-name "John"
+                                   :surname "Fenn Pocock"
+                                   :formal-name nil
+                                   :presenter-bio nil
+                                   :presenter-requests nil
+                                   :e-mail "sage@star-hope.org"
+                                   :telephone nil
+                                   :sleep :tent
+                                   :eat nil
+                                   :day nil
+                                   :gender :m
+                                   :ticket-type :adult
+                                   :t-shirt :xs
+                                   :coffee? false
+                                   :tote? false })
+                   (reagent/atom { :called-by nil
+                                  :given-name "Bruce-Robert"
+                                  :surname "Fenn Pocock"
+                                  :formal-name nil
+                                  :presenter-bio nil
+                                  :presenter-requests nil
+                                  :e-mail "brpocock@star-hope.org"
+                                  :telephone nil
+                                  :sleep :tent
+                                  :eat nil
+                                  :day nil
+                                  :gender :m
+                                  :ticket-type :adult
+                                  :t-shirt :s
+                                  :coffee? false
+                                  :tote? false })])
+                 :reg-guests))
 
-(marry! (get @guests 0) (get @guests 1))
+
 
 (defn need-adult-email []
   (empty? (filter #(and (= :adult (:ticket-type @%))
@@ -235,13 +257,6 @@ Add other members of your party, and watch the Assistant box for advice.")
                             "disabled"))}
              (str (if named? "+" "✗") " Add to party")]]]))})))
 
-(defn price-all-guests []
-  (reduce + (map guest/price @guests)))
-
-(defn guests-price-sum []
-  @guests
-  [:span (util/format-money (price-all-guests))])
-
 (defn guests-thead []
   [:thead
    [:tr [:th (util/abbr "Name" "Name of each party member")]
@@ -307,24 +322,6 @@ Add other members of your party, and watch the Assistant box for advice.")
                     (or (:called-by @leader) (:given-name @leader)) " " (:surname @leader)
                     " &  " (util/counting (- (count @guests) 1) "Guest")))))])
 
-(defn guest-list-box []
-  #_ (util/log "Guests = " @guests)
-  [:section [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
-             (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
-
-The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")]
-   [:section {:class "card" :key "guest-list-box"}
-    [:h2 [party-title]]
-    
-    [:table {:class "people"}
-     (when-not (empty? @guests) [guests-thead])
-     [:tbody (doall (map #([guest/guest-row %]) @guests))]
-     [:tfoot 
-      [add-person-row]
-      [:tr {:key "☠|subtotal|"} 
-       [:th {:col-span 7} "Subtotal"]
-       [:td {:col-span 3 :style {:align "right"}} 
-        [guests-price-sum]]]]]]])
 
 (defn count-adults []
   (count (filter #(= (:ticket-type @%) :adult) @guests)))

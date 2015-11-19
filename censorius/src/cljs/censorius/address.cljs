@@ -2,11 +2,9 @@
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:require
    [cljs.core.async :refer [put! chan <!]]
-   [clojure.data :as data]
    [clojure.string :as string]
    [goog.events :as events]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
    [secretary.core :as secretary]
    
    [censorius.utils :as util]
@@ -14,7 +12,7 @@
   (:import [goog History]
            [goog.history EventType]))
 
-;; 
+
 
 ;; (def +clear+ 12)
 ;; (def +return+ 13)

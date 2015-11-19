@@ -1,23 +1,14 @@
-(ns censorius.guest 
-  (:require-macros [cljs.core.async.macros :refer [go alt!]])
+(ns censorius.guest
   (:require
-   [cljs.core.async :refer [put! chan <!]]
-   [clojure.data :as data]
    [clojure.string :as string]
-   [goog.events :as events]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
-   [secretary.core :as secretary]
 
    [censorius.staff :as staff]
    [censorius.merch :as merch]
    [censorius.utils :as util]
    [censorius.text :as text]
    [censorius.radio :as radio]
-   [censorius.data :as d]
-   [censorius.editable :as ed])
-  (:import [goog History]
-           [goog.history EventType]))
+   ))
 
 (defn abbr* [short & more]
   [:abbr {:title (str short " " (string/join " " more))}
@@ -46,22 +37,22 @@
 (defn cauldron-price [guest]
   (cond 
     (= :salad-bar (:eat @guest))
-    (:salad-bar @d/prices)
+    (:salad-bar @invoice/prices)
     
     (not= :cauldron (:eat @guest))
     0
     
     (= :child (:ticket-type @guest))
-    (:child (:cauldron @d/prices))
+    (:child (:cauldron @invoice/prices))
     
     (= :baby (:ticket-type @guest))
-    (:under5 (:cauldron @d/prices))
+    (:under5 (:cauldron @invoice/prices))
     
     :else                               ; adult
     (case (:days @guest)
-      :day (:fri-sun (:cauldron @d/prices))
-      :week-end (:fri-sun (:cauldron @d/prices))
-      (:adult (:cauldron @d/prices)))))
+      :day (:fri-sun (:cauldron @invoice/prices))
+      :week-end (:fri-sun (:cauldron @invoice/prices))
+      (:adult (:cauldron @invoice/prices)))))
 
 (defn lugal+-spouse? [guest]
   (and (:spouse guest)
@@ -74,29 +65,29 @@
     0
     
     (staff/staff? @guest) 
-    (:staff (:ticket @d/prices))
+    (:staff (:ticket @invoice/prices))
     
     (= :child (:ticket-type @guest))
-    (:child (:ticket @d/prices))
+    (:child (:ticket @invoice/prices))
     
     (= :baby (:ticket-type @guest))
-    (:under5 (:ticket @d/prices))
+    (:under5 (:ticket @invoice/prices))
     
     :else                               ; adult
     (case (:days @guest)
-      :day (:day-pass (:ticket @d/prices))
-      :week-end (:week-end (:ticket @d/prices))
+      :day (:day-pass (:ticket @invoice/prices))
+      :week-end (:week-end (:ticket @invoice/prices))
       (if (lugal+-spouse? @guest)
-        (:staff (:ticket @d/prices))
-        (:adult (:ticket @d/prices))))))
+        (:staff (:ticket @invoice/prices))
+        (:adult (:ticket @invoice/prices))))))
 
 (defn cabin-price [guest]
   ((if (staff/staff? @guest) :staff :regular)
-   (:cabin @d/prices)))
+   (:cabin @invoice/prices)))
 
 (defn lodge-price [guest]
   ((if (staff/staff? @guest) :staff :regular)
-   (:lodge @d/prices)))
+   (:lodge @invoice/prices)))
 
 (defn sleep-price [guest]
   (case (:sleep @guest)
@@ -646,26 +637,26 @@
                                    ;;     [:looney "🍱🐇 Looney Bin secret meal plan"])
                                    [:salad-bar
                                     (str "🍲 Bubbling Cauldron soup&salad bar only ("
-                                         (util/format-money (:salad-bar @d/prices))
+                                         (util/format-money (:salad-bar @invoice/prices))
                                          ")")]
                                    [:cauldron
                                     (str "🍲🍴 Bubbling Cauldron meal plan ("
                                          (cond
                                            (= :child (:ticket-type @guest))
-                                           (str (util/format-money (:child (:cauldron @d/prices)))
+                                           (str (util/format-money (:child (:cauldron @invoice/prices)))
                                                 " (*child)")
                                            (= :baby (:ticket-type @guest))
-                                           (str (util/format-money (:under5 (:cauldron @d/prices)))
+                                           (str (util/format-money (:under5 (:cauldron @invoice/prices)))
                                                 " (*under 5)")
                                            :else
                                            (case (:days @guest)
                                              :day 
-                                             (str (util/format-money (:fri-sun (:cauldron @d/prices)))
+                                             (str (util/format-money (:fri-sun (:cauldron @invoice/prices)))
                                                   " (*one day)")
                                              :week-end 
-                                             (str (util/format-money (:fri-sun (:cauldron @d/prices)))
+                                             (str (util/format-money (:fri-sun (:cauldron @invoice/prices)))
                                                   " (*Fri→Sun)")
-                                             (util/format-money (:adult (:cauldron @d/prices))))) 
+                                             (util/format-money (:adult (:cauldron @invoice/prices))))) 
                                          ")")]
                                    [nil "⃠ Bringing food along or eating with food vendors"] ]}]
           [:div "Price: " (util/format-money (cauldron-price guest))]
@@ -746,11 +737,18 @@
             (abbr* "🍺" "Coffee Mug")
             (abbr* "⃠" "No coffee mug"))])])))
 
-(defn bought-merch [guest-atom]
+(defn bought-merch? [guest-atom]
   (let [guest (deref guest-atom)] 
     (or (:t-shirt guest)
         (:coffee? guest)
         (:tote? guest))))
+
+(defn price-all-guests []
+  (reduce + (map guest/price @guests)))
+
+(defn guests-price-sum []
+  @guests
+  [:span (util/format-money (price-all-guests))])
 
 (defn guest-row [guest]
   (let [name (util/gensymreally "guest")]

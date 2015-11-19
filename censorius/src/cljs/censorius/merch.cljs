@@ -8,31 +8,15 @@
             [censorius.utils :as util]
             [censorius.data :as d]
             [censorius.staff :as staff]
-            [censorius.text :as text]))
+            [censorius.guest-list :as guest-list]))
 
 (defonce merch (local-storage (reagent/atom 
-                               [
-                                
-                                ;; :general-shirt 
-                                ;; (reagent/atom {:title "FPG General T-Shirt"
-                                ;;        :description "The FPG general T-shirt"
-                                ;;        :image "/merch/tshirt_Gen.png"
-                                ;;        :price 50
-                                ;;        :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                ;;                 {:id :s :title "Small" :qty 0 :inventory 2}
-                                ;;                 {:id :m :title "Medium" :qty 0 :inventory 0}
-                                ;;                 {:id :l :title "Large" :qty 0 :inventory 0}
-                                ;;                 {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                                ;;                 {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                                ;;                 {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
-                                ;;                 {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 2}
-                                ;;                 {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 2}]})
-                                (reagent/atom {:id :tote-bag
-                                               :title "FPG Tote Bag"
-                                               :description "The tote bag with the FPG logo"
-                                               :image "/merch/tote-bag.jpeg"
-                                               :price 10
-                                               :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 13}]})
+                               [ (reagent/atom {:id :tote-bag
+                                                :title "FPG Tote Bag"
+                                                :description "The tote bag with the FPG logo"
+                                                :image "/merch/tote-bag.jpeg"
+                                                :price 10
+                                                :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 13}]})
                                 (reagent/atom {:id :coffee
                                                :title "FPG Coffee Mug"
                                                :price 7
@@ -261,26 +245,26 @@
 (defn product-row [item]
   (let [open? (atom false)]
     (fn [item]
-      [:tr {:key (str "merch-" (:id item))
+      [:tr {:key (str "merch-" (:id @item))
             :class "merch-rows"}
-       [:th {:key (str "merch-" id "/title")}
+       [:th {:key (str "merch-" (:id @item) "/title")}
         (:title @item)
         #_ (when (:image @item)
              [:img {:src (:image @item)
                     :class "merch-thumb"}])
         [:p {:class "hint"} (:description @item)]]
-       [:td {:key (str "merch-" id "/price")}
+       [:td {:key (str "merch-" (:id item) "/price")}
         (util/format-money (:price @item))]
        
        (if (= 1 (count (:styles @item)))
          
-         [:td {:key (str "merch-" id "/monostyle")}
+         [:td {:key (str "merch-" (:id @item) "/monostyle")}
           [:table [:tbody [product-style item (first (:styles @item))]]]]
          
          [product-style-hidden item open?])
 
        
-       [:td {:key (str "merch-" id "/cost")}
+       [:td {:key (str "merch-" (:id @item) "/cost")}
         (util/format-money (* (reduce + (map :qty (:styles @item)))
                               (:price @item)))]])))
 

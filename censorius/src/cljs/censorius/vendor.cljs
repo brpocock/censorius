@@ -1,11 +1,22 @@
 (ns censorius.vendor
-  (:require [clojure.string :as string]
-            
-            [censorius.data :as d]
-            [censorius.guest :as guest]
-            [censorius.guest-list :as guest-list]
-            [censorius.text :as text]
-            [censorius.utils :as util]))
+  (:require
+   [clojure.string :as string]
+   [alandipert.storage-atom :refer [local-storage]]
+   [reagent.core :as reagent :refer [atom]]
+   
+   [censorius.data :as d]
+   [censorius.guest-list :as guest-list]
+   [censorius.text :as text]
+   [censorius.utils :as util]))
+
+
+
+(defonce vending (local-storage 
+                  (reagent/atom
+                   {:title nil, :blurb nil, :notes nil, :qty 0, :agreement false}) 
+                  :reg-vending))
+
+
 
 (defn vendor-agreement []
   [:div [:h3 "Vendor agreement"]
@@ -14,12 +25,14 @@
         :target "VendorFAQ"} 
     [:button {:class "true"} "Read Vendor Rules"]]
    [:button {:on-click (fn [_] 
-                         (swap! d/vending assoc :agreement true))}
+                         (swap! vending assoc :agreement true))}
     "✓ Accept the vendor agreement"]])
+
+
 
 (defn vendor-info []
   [:div
-   [text/text-input {:cursor d/vending
+   [text/text-input {:cursor vending
                      :keys :title
                      :label "Vending Booth Name"
                      :placeholder (rand-nth ["Plonkee Plonkee Shoppe"
@@ -31,7 +44,7 @@
                      :format util/name-case
                      :validate util/name-like?
                      :rows 1}]
-   [text/text-input {:cursor d/vending
+   [text/text-input {:cursor vending
                      :keys :blurb
                      :label "Description (Handbook/Web)"
                      :placeholder (rand-nth ["Come and have lots of fun with our widgets and doodads! You'll want to collect all nine."
@@ -40,16 +53,16 @@
                                              "Plenty of whimsical things unlikely to cause permanent harm"])
                      :validate #(> 250 (count %) 32)
                      :rows 3}]
-   [text/text-input {:cursor d/vending
+   [text/text-input {:cursor vending
                      :keys :notes
                      :label "Requests/Notes (for Vendor Concierge)"
                      :placeholder ""
                      :rows 2}]])
 
-
+
 
 (defn vendor-slips []
-  [:div [text/text-input {:cursor d/vending
+  [:div [text/text-input {:cursor vending
                           :keys :qty
                           :label "Quantity"
                           :placeholder "0"
@@ -60,59 +73,18 @@
                                           (every? #{\1 \2 \3 \0} %))
                           :rows 0
                           :size 3}]
-   " vendor " (if (= 1 (:qty @d/vending)) "slip" "slips")
-   " (" (if (< 1 (:qty @d/vending))
-          [:strong (* 10 (:qty @d/vending))]
+   " vendor " (if (= 1 (:qty @vending)) "slip" "slips")
+   " (" (if (< 1 (:qty @vending))
+          [:strong (* 10 (:qty @vending))]
           10)
    "′×10′) @ " (util/format-money (:vendor @d/prices)) " each slip."
-   (when (< 1 (:qty @d/vending))
+   (when (< 1 (:qty @vending))
      [:span {:class "hint"}
       " (total " (util/format-money (price-vendor)) ")"])
-   (when (pos? (:qty @d/vending))
+   (when (pos? (:qty @vending))
      [vendor-info])])
 
-(defn price-vendor []
-  (* (:vendor @d/prices) (:qty @d/vending)))
-
-(defn validate-mqa-license []
-  [:button {:on-click #(do
-                         (if (some #{\& \| \; \= \? \- \_ \, }  (:mqa-license @d/vending))
-                           (js/alert "The license number has invalid characters in it. It should consist of only letters and digits.")
-                           (js/window.open (str "https://appsmqa.doh.state.fl.us/IRM00PRAES/PRASLIST.ASP?SearchTypeButton=ALL&PROFESSIONBOX=99999&ACTION=SEARCH&LICENSEBOX="
-                                                (:mqa-license @d/vending)))))}
-   "Check License →"])
-
-(defn validate-bpr-license []
-  ;; TODO : POST the hSearchType, hDivision, LicNbr fields.
-  [:button {:on-click #(do
-                         (if (some #{\& \| \; \= \? \- \_ \, }  (:bpr-license @d/vending))
-                           (js/alert "The license number has invalid characters in it. It should consist of only letters and digits.")
-                           (js/window.open (str "https://www.myfloridalicense.com/wl11.asp?mode=2&search=LicNbr&SID=&brd=&typ=N&hSearchType=LicNbr&hDivision=ALL&LicNbr="
-                                                (:bpr-license @d/vending)))))}
-   "Check License →"])
-
-(defn vendor-license [category symbol license-symbol]
-  [:div {:key (str "vendor/" (util/keyword->string symbol))}
-   [:h4 category]
-   [:label [:input {:type "checkbox"
-                    :on-change (if (get @d/vending symbol)
-                                 #(swap! @d/vending assoc symbol false)
-                                 #(swap! @d/vending assoc symbol true))
-                    :checked (get @d/vending symbol)
-                    :name (str "license-needed/" (util/keyword->string symbol))}
-            category 
-            [:span {:style {:disabled (not (get @d/vending symbol))}}
-             [text/text-input {:cursor d/vending
-                               :keys license-symbol
-                               :label "State license number"
-                               :placeholder (case license-symbol
-                                              :mqa-license "ME99999"
-                                              :bpr-license ""
-                                              "")
-                               :rows 1}]
-             (case license-symbol
-               :mqa-license [validate-mqa-license]
-               :bpr-license [validate-bpr-license])]]]])
+
 
 (defn vendor-requires-admission []
   [:div   [:p   "Vendors   must   have  at   least   one   adult,   full
@@ -125,6 +97,55 @@
      additional admissions as you like.  Vendors can arrive on Wednesday
      or Thursday."]])
 
+(defn price-vendor []
+  (* (:vendor @d/prices) (:qty @vending)))
+
+
+
+(defn validate-mqa-license []
+  [:button {:on-click #(do
+                         (if (some #{\& \| \; \= \? \- \_ \, }  (:mqa-license @vending))
+                           (js/alert "The license number has invalid characters in it. It should consist of only letters and digits.")
+                           (js/window.open (str "https://appsmqa.doh.state.fl.us/IRM00PRAES/PRASLIST.ASP?SearchTypeButton=ALL&PROFESSIONBOX=99999&ACTION=SEARCH&LICENSEBOX="
+                                                (:mqa-license @vending)))))}
+   "Check License →"])
+
+(defn validate-bpr-license []
+  ;; TODO : POST the hSearchType, hDivision, LicNbr fields.
+  [:button {:on-click #(do
+                         (if (some #{\& \| \; \= \? \- \_ \, }  (:bpr-license @vending))
+                           (js/alert "The license number has invalid characters in it. It should consist of only letters and digits.")
+                           (js/window.open (str "https://www.myfloridalicense.com/wl11.asp?mode=2&search=LicNbr&SID=&brd=&typ=N&hSearchType=LicNbr&hDivision=ALL&LicNbr="
+                                                (:bpr-license @vending)))))}
+   "Check License →"])
+
+
+
+(defn vendor-license [category symbol license-symbol]
+  [:div {:key (str "vendor/" (util/keyword->string symbol))}
+   [:h4 category]
+   [:label [:input {:type "checkbox"
+                    :on-change (if (get @vending symbol)
+                                 #(swap! @vending assoc symbol false)
+                                 #(swap! @vending assoc symbol true))
+                    :checked (get @vending symbol)
+                    :name (str "license-needed/" (util/keyword->string symbol))}
+            category 
+            [:span {:style {:disabled (not (get @vending symbol))}}
+             [text/text-input {:cursor vending
+                               :keys license-symbol
+                               :label "State license number"
+                               :placeholder (case license-symbol
+                                              :mqa-license "ME99999"
+                                              :bpr-license ""
+                                              "")
+                               :rows 1}]
+             (case license-symbol
+               :mqa-license [validate-mqa-license]
+               :bpr-license [validate-bpr-license])]]]])
+
+
+
 (defn vendor-box []
   (fn []
     [:section {:key "vending" :class "card"}
@@ -135,7 +156,7 @@
                                @guest-list/guests)))
             [vendor-requires-admission]
             
-            (not (:agreement @d/vending))
+            (not (:agreement @vending))
             [vendor-agreement]
             
             true

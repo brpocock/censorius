@@ -9,12 +9,11 @@
 
    [censorius.assistant :as assistant]
    [censorius.data :as d]
-   [censorius.editable :as ed]
+   [censorius.editable :as editable]
    [censorius.guest :as guest]
    [censorius.guest-list :as guest-list]
    [censorius.invoice :as invoice]
    [censorius.merch :as merch]
-   [censorius.radio :as radio]
    [censorius.text :as text]
    [censorius.utils :as util]
    [censorius.vendor :as vendor]
@@ -28,6 +27,25 @@
 (util/log "Censorius loading…")
 
 
+
+(defn guest-list-box []
+  #_ (util/log "Guests = " @guests)
+  [:section [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
+             (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
+
+The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")]
+   [:section {:class "card" :key "guest-list-box"}
+    [:h2 [party-title]]
+    
+    [:table {:class "people"}
+     (when-not (empty? @guests) [guest-list/guests-thead])
+     [:tbody (doall (map #([guest/guest-row %]) @guests))]
+     [:tfoot 
+      [guest-list/add-person-row]
+      [:tr {:key "☠|subtotal|"} 
+       [:th {:col-span 7} "Subtotal"]
+       [:td {:col-span 3 :style {:align "right"}} 
+        [guest-list/guests-price-sum]]]]]]])
 
 (defn scholarship-box []
   [:section {:class "card"}
@@ -91,14 +109,14 @@
 (defn registration-page []
   @guest-list/guests
   [:div
-   [guest-list/guest-list-box]
+   [guest-list-box]
    [merch/merch-box]
    [vendor/vendor-box]
    [workshops/workshop-box]
    [scholarship-box]
    [assistant/assistant-box]
    [invoice/check-out-box]
-   [ed/nightshade]
+   [editable/nightshade]
    [print-trailer]])
 
 
@@ -186,6 +204,10 @@
 
 (secretary/defroute "/staff-confirm/:id" [{:keys [id]}]
   (swap! uri-view assoc  :current-page staff-confirm :id id))
+
+
+
+(guest/marry! (get @guests 0) (get @guests 1))
 
 
 ;; Initialize app

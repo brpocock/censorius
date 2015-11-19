@@ -1,15 +1,15 @@
 (ns censorius.workshops
   (:require
-   [censorius.assistant :as assistant]
+   [alandipert.storage-atom :refer [local-storage]]
+   [reagent.core :as reagent :refer [atom]]
+   
    [censorius.data :as d]
-   [censorius.editable :as ed]
-   [censorius.guest :as guest]
    [censorius.guest-list :as guest-list]
-   [censorius.merch :as merch]
    [censorius.radio :as radio]
-   [censorius.text :as text]
-   [censorius.utils :as util]
-   [censorius.vendor :as vendor]))
+   [censorius.text :as text]))
+
+(defonce workshops (local-storage (reagent/atom [])
+                                  :reg-workshops))
 
 (defn workshop-info [workshop]
   [:tr [:td (:long-name @workshop)]
@@ -60,7 +60,7 @@
                                                        :♀? true
                                                        :workshop-needs ""
                                                        :needs ""
-                                                       :allow-recording false ""}))
+                                                       :allow-recording false}))
                         (when-not (:formal-name @guest)
                           (swap! guest assoc :formal-name (str (or (:called-by @guest)
                                                                    (:given-name @guest))

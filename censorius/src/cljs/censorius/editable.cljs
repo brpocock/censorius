@@ -1,8 +1,7 @@
 (ns censorius.editable
   (:require
    [clojure.string :as string]
-   [reagent.core :as reagent :refer [atom]]
-   [censorius.utils :as util]))
+   [reagent.core :as reagent :refer [atom]]))
 
 (def nightshade? (atom false))
 
@@ -13,7 +12,7 @@
                                                "none")}}]))
 
 (defn click-edit [editing? label]
-  {:on-click (fn [event] 
+  {:on-click (fn [event]
                (swap! editing? not)
                (reset! nightshade? @editing?)
                (.stopPropagation event))
