@@ -1,12 +1,5 @@
-(ns censorius.page
+(ns censorius.workshops
   (:require
-   [cljs.reader :as reader]
-   [goog.events :as events]
-   [goog.history.EventType :as EventType]
-   [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
-   [secretary.core :as secretary :refer-macros [defroute]]
-   
    [censorius.assistant :as assistant]
    [censorius.data :as d]
    [censorius.editable :as ed]
@@ -16,8 +9,7 @@
    [censorius.radio :as radio]
    [censorius.text :as text]
    [censorius.utils :as util]
-   [censorius.vendor :as vendor])
-  (:import [goog History] [goog events]))
+   [censorius.vendor :as vendor]))
 
 (defn workshop-info [workshop]
   [:tr [:td (:long-name @workshop)]
@@ -49,7 +41,7 @@
    [21 nil "Drinking Age"]])
 
 (defn format-age-range [min max]
-  (if ()))
+  (str "Ages from " (or min "birth") " to " (or max "death")))
 
 (defn add-workshop-button [new]
   [:button {:class "true"

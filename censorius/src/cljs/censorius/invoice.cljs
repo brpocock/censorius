@@ -1,4 +1,4 @@
-(ns censorius.page
+(ns censorius.invoice
   (:require
    [reagent.core :as reagent :refer [atom]]
    
@@ -40,7 +40,7 @@ Make sure that the testing mode shows up on PayPal!")
   (cond (empty? (:note @d/general))
         (js/alert "Please supply a note for the Regsitration staff as to what needs to be done.")
         
-        (need-adult-email)
+        (guest-list/need-adult-email)
         (js/alert "At least one adult's  eMail address must be supplied. Otherwise,  the   Registration  staff   will  not  be   able  to  contact you.")
         
         :ok 
@@ -273,7 +273,7 @@ legally binding.)"]
     "If there's  something else that  you want to get  sorted-out, enter
  a note above,  and your registration will be "  [:em "suspended"] " and
  brought to the attention of our Registration staff. "
-    (when (need-adult-email)
+    (when (guest-list/need-adult-email)
       [:big "You " [:em "must"] 
        " have at least one adult's eMail address entered as well."])]])
 
@@ -286,7 +286,7 @@ legally binding.)"]
               (> adults-needed adults))
             [need-adults-warning]
             
-            (need-adult-email) [adult-email-prevent-checkout]
+            (guest-list/need-adult-email) [adult-email-prevent-checkout]
             
             (and @pay? (waiver-signed?)) "Signed. sealed, delivered."
             
@@ -308,5 +308,5 @@ legally binding.)"]
      [check-out-notes]
      [:button {:on-click save-action
                :disabled (or (empty? (:note @d/general))
-                             (need-adult-email))}
+                             (guest-list/need-adult-email))}
       "Suspend registration and send to Reg. staff"]]))
