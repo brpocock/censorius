@@ -1,0 +1,437 @@
+\input texinfo
+@setfilename censorius
+@settitle Censorius Herald Manual
+@documentencoding UTF-8
+@copying
+Copyright @copyright{} 2014-2015, Bruce-Robert Pocock.
+
+This edition was typeset @today{}.
+@end copying
+
+@setchapternewpage odd
+
+@documentdescription
+This manual describes  how to operate the Censorius  Herald software for
+Festival management functions. It is intended for Festival staff members.
+@end documentdescription
+
+@dircategory Productivity
+@direntry
+Censorius Herald is an application suite for managing festivals or events.
+@end direntry
+
+@titlepage
+@title Censorius Herald 
+@subtitle Festival Operators' Manual
+@author Bruce-Robert Fenn Pocock
+
+@page
+
+@vskip 0pt plus 1filll
+
+@insertcopying
+
+
+
+@end titlepage
+
+@headings double
+
+@ifplaintext
+@insertcopying
+@end ifplaintext
+
+
+@shortcontents
+@contents
+
+@ifnottex
+@node Top, Introduction, (dir), (dir)
+@top Censorius Herald Manual
+
+@menu
+* Introduction::
+* Setting Up::
+* Registration::
+* Workshops::
+* Vendors::
+* Handbook Generation::
+* Staffing::
+* Inventory::
+* Providing Support::
+* How to Register::
+* How to Amend a Registration::
+* Index::
+@end menu
+@end ifnottex
+
+@node Introduction, Setting Up, Top, Top
+@unnumbered Introduction
+
+Censorius Herald  is an application  suite that manages  the Information
+Systems needs  of an event  or festival. It's being  developed primarily
+for Temple of Earth Gathering, but  could be used by other organizations
+in the future.
+
+This  manual  is  not  yet  ``publication ready;''  it,  like  parts  of
+Censorius Herald, is a work-in-progress.
+
+@node Operators Manual Part, Setting Up, Introduction, Top
+@part Operators' Manual
+
+@node Setting Up, Registration, Introduction, Top
+@chapter Setting Up
+
+TODO. Right  now, I manually  am setting up TEG  and there isn't  a nice
+front-end. Check out the source code. 
+
+
+@menu
+* Adding Festivals::
+* Privileged Staff::
+@end menu
+
+@node Adding Festivals, Privileged Staff, Setting Up, Setting Up
+@section Adding Festivals
+
+Herald will allow you to manage (primarily) your next upcoming festival.
+Each festival has a name, a year, and the dates on which it will occur.
+
+Currently,  these  have  to  be manually  injected  into  the  database.
+A management interface is needed. TODO
+
+
+@node Privileged Staff,  , Adding Festivals, Setting Up
+@section Privileged Staff
+
+
+@menu
+* Overseers::
+* Operators::
+* Registrar::
+* Check-In Valet::
+* Vendor Concierge::
+* Workshop Facilitator::
+@end menu
+
+@node Overseers, Operators, Privileged Staff, Privileged Staff
+@subsection Overseer
+
+Management staff  who have full  access. Overseer actions  are verified,
+unlike Operators.
+
+@node Operators, Registrar, Overseers, Privileged Staff
+@subsection Operator
+Operators have unfettered access to the system.
+
+@node Registrar, Check-In Valet, Operators, Privileged Staff
+@subsection Registrar
+
+@node Check-In Valet, Vendor Concierge, Registrar, Privileged Staff
+@subsection Check-In Valet
+
+The staff working at your  on-site check-in desk will typically have
+Valet level of access. They can review some information, but may require
+a Registrar to access arbitrary records.
+
+@node Vendor Concierge, Workshop Facilitator, Check-In Valet, Privileged Staff
+@subsection Vendor Concierge
+
+@node Workshop Facilitator,  , Vendor Concierge, Privileged Staff
+@subsection Workshop Facilitator
+
+@node Registration, Workshops, Setting Up, Top
+@chapter Registration
+
+@menu
+* Effects of a Registration::
+* Parts of a Registration::
+* Registration Staff Access::
+* Historical Invoices::
+@end menu
+
+
+
+@node  Effects of a Registration, Parts of a Registration, Registration, Registration
+@section Effects of a Registration
+
+Each  party  who  registers  will  create  an  invoice  in  the  system.
+Depending on their selections, a bill will be added to that invoice.
+
+For  our purposes,  each  invoice has  a string  of  bills or  payments.
+Bills  are added  when the  registration is  made; a  billed amount  has
+a  negative dollar  value. Payments  include literal  payments made  via
+PayPal, or adjustments entered by Registration staff. 
+
+In theory, Registration staff could make a negative adjustment (that is:
+increase  the amount  due) manually.  In practice,  this would  normally
+imply that you should edit the registration itself.
+
+The ``leader''  of a party is  the first adult  in the party who  has an
+e-mail address supplied. The party's leader will be:
+
+@enumerate
+@item
+informed of  the invoice  being created  (initial billing)  during their
+registration process;
+@item
+informed of  any payment  or adjustment  made, either  via PayPal  or by
+Registration staff
+@item
+able to return to edit their  Registration by voiding or adding items in
+future (TODO, this will not work 100% yet)
+@end enumerate
+
+
+@node  Parts of a Registration, Registration Staff Access, Effects of a Registration, Registration
+@section Parts of a Registration
+
+The registration  consists of  a number  of people  in the  party, their
+eating and  sleeping arrangements  selections, and  optional merchandise
+and  donation (scholarship  funds) amounts,  as well  as the  associated
+invoice of billing and payments (typically, one of each).
+
+@node Registration Staff Access, Historical Invoices, Parts of a Registration, Registration
+@section Registration Staff Access
+The Registration team can provide  privileged access to the invoices for
+every guest registration to a limited list of people.
+
+Note that the system operators will also have full access.
+
+
+@menu
+* Signing In::
+* Searching for an Invoice::
+* Party Member's Name::
+* Payment Reference ::
+* Notes::
+* Payment Amount and Date::
+* Card Number?::
+@end menu
+
+@node Signing In, Searching for an Invoice, Registration Staff Access, Registration Staff Access
+@subsection Signing In
+WRITEME
+
+@node Searching for an Invoice, Party Member's Name, Signing In, Registration Staff Access
+@subsection Searching for an Invoice
+
+There are several ways to call up an invoice:
+
+@menu
+* Known Invoice Number::
+@end menu
+
+@node Known Invoice Number,  , Searching for an Invoice, Searching for an Invoice
+@subsubsection Known Invoice Number
+
+If  you know  the invoice  number, you  can key  it in  here. The  saved
+invoice will open.
+
+If the invoice was created in Herald for a future festival, you can make
+adjustments to it.
+
+@node Party Member's Name, Payment Reference , Searching for an Invoice, Registration Staff Access
+@subsection Party Member's Name
+
+
+@node Payment Reference , Notes, Party Member's Name, Registration Staff Access
+@subsection Payment Reference 
+
+@node Notes, Payment Amount and Date, Payment Reference , Registration Staff Access
+@subsection Notes
+
+Search notes from the person registering or comments associated with any
+payment or adjustment.
+
+@node Payment Amount and Date, Card Number?, Notes, Registration Staff Access
+@subsection Payment Amount and Date
+
+@node Card Number?,  , Payment Amount and Date, Registration Staff Access
+@subsection Card Number?
+
+Note that we never receive  anyone's credit-card numbers; PayPal handles
+that part for us. There will never be any reason for anyone on our staff
+to ask  for a card  number, and we cannot  discover what card  was used.
+In the same way, we can't tell what payment was made from a card number.
+
+
+@node Historical Invoices,  , Registration Staff Access, Registration
+@section Historical Invoices
+
+TODO. Historical invoices  from the legacy TEG  registration system will
+be imported as time permits; but this has not been done yet.
+
+These invoices may be less complete or accurate than current invoices.
+
+@node Workshops, Vendors, Registration, Top
+@chapter Workshops and Events
+WRITEME
+
+@menu
+* Adding Events::
+* Presenter Details::
+* Venues::
+* Approving and Scheduling Workshops::
+* Reviewing Schedule::
+@end menu
+ Adding Events
+@node Adding Events, Presenter Details, Workshops, Workshops
+@section Adding Events
+
+@node Presenter Details, Venues, Adding Events, Workshops
+@section Presenter Details
+
+@node Venues, Approving and Scheduling Workshops, Presenter Details, Workshops
+@section Venues
+
+@node  Approving and Scheduling Workshops, Reviewing Schedule, Venues, Workshops
+@section Approving and Scheduling Workshops
+
+
+@node Reviewing Schedule,  , Approving and Scheduling Workshops, Workshops
+@section Reviewing Schedule
+
+@node Vendors, Handbook Generation, Workshops, Top
+@chapter Vendors
+
+WRITEME
+
+@node Handbook Generation, Staffing, Vendors, Top
+@chapter Handbook Generation
+
+WRITEME
+
+@menu
+* Static Sections::
+* HTML Version::
+* WiFi Captive Hotspot::
+* Alignment and Finishing::
+@end menu
+
+@node Static Sections, HTML Version, Handbook Generation, Handbook Generation
+@section Static Sections
+
+@node HTML Version, WiFi Captive Hotspot, Static Sections, Handbook Generation
+@section HTML Version
+
+@node WiFi Captive Hotspot, Alignment and Finishing, HTML Version, Handbook Generation
+@section WiFi Captive Hotspot
+
+@menu
+* Hardware::
+* Software::
+* Deployment::
+@end menu
+
+@node Hardware, Deployment, WiFi Captive Hotspot, WiFi Captive Hotspot
+@subsection Hotspot Hardware
+@node Software, Deployment, Hardware, WiFi Captive Hotspot
+@subsection Hotspot Software
+
+@node  Deployment,  , Software, WiFi Captive Hotspot
+@subsection Hotspot Deployment
+
+
+
+@node Alignment and Finishing,  , WiFi Captive Hotspot, Handbook Generation
+@section Alignment and Finishing
+
+@node Staffing, Inventory, Handbook Generation, Top
+@chapter Staffing
+
+@menu
+* Accepting Staff Applications::
+* Manually Adding Staff::
+* Assigning Staff Positions::
+* Divisions and Departments::
+@end menu
+
+@node  Accepting Staff Applications, Manually Adding Staff, Staffing, Staffing
+@section Accepting Staff Applications
+
+@node Manually Adding Staff, Assigning Staff Positions, Accepting Staff Applications, Staffing
+@section Manually Adding Staff
+
+@node Assigning Staff Positions, Divisions and Departments, Manually Adding Staff, Staffing
+@section Assigning Staff Positions
+
+@node Divisions and Departments,  , Assigning Staff Positions, Staffing
+@section Divisions and Departments
+
+
+@node Inventory, Providing Support, Staffing, Top
+@chapter Inventory
+
+@menu
+* Merchandise::
+* Property::
+@end menu
+
+WRITEME
+
+@node Merchandise, Property, Inventory, Inventory
+@section Merchandise
+
+@menu
+* Prices::
+* Sales Reports::
+@end menu
+
+@node  Prices, Sales Reports, Merchandise, Merchandise
+@subsection Prices
+
+Right now prices are being manually injected into the database. TODO.
+
+Prices  have  date   ranges,  so  they  can  be  edited   to  change  on
+certain  dates. Note  that the  prices  apply when  the registration  is
+calculated.
+
+TODO, we need to ensure that someone can't ``sit on'' a registration and
+keep lower prices into the future.
+
+
+@node Sales Reports,  , Prices, Merchandise
+@subsection Sales Reports
+
+@node Property,  , Merchandise, Inventory
+@section Property
+
+@menu
+* Resource Planning::
+* Reconciliation::
+* Reporting::
+@end menu
+
+@node Resource Planning, Reconciliation, Property, Property
+@subsection Resource Planning
+
+@node Reconciliation, Reporting, Resource Planning, Property
+@subsection Reconciliation
+
+@node Reporting,  , Reconciliation, Property
+@subsection Reporting
+
+@node Public Access, Providing Support, Inventory, Top
+@part Public Access
+
+@node Providing Support, How to Register, Inventory, Top
+@unnumbered Providing Support
+
+This part of the  manual will explain the process as  it relates to your
+festivals'  guests. You  can use  it to  provide them  with support,  or
+discover how to handle unusual situations.
+
+@node How to Register, How to Amend a Registration, Providing Support, Top
+@chapter How to Register
+
+@node How to Amend a Registration, Index, How to Register, Top
+@chapter How to Amend a Registration
+
+@part Index
+
+@node Index,  , How to Amend a Registration, Top
+@unnumbered Index
+@printindex cp
+
+@bye 
