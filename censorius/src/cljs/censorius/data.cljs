@@ -3,7 +3,6 @@
    [clojure.string :as string]
    [reagent.core :as reagent :refer [atom]]))
 
-
 (defonce general (reagent/atom {:note nil :invoice nil}))
 
 (defonce prices (reagent/atom {:ticket { :adult 95

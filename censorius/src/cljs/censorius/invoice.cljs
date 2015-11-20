@@ -24,11 +24,11 @@
 
 (defn total-due []
   (+ 999999
-     #_ (guest/price-all-guests)
-     #_ (merch/price-all-merch)
-     #_ (vendor/price-vendor)
-     #_ (scholarship-donations-amount)
-     #_ (- (reduce + (map #(:amount %) @payments)))))
+     (guest/price-all-guests)
+     (merch/price-all-merch)
+     (vendor/price-vendor)
+     (scholarship-donations-amount)
+     (- (reduce + (map :amount @payments)))))
 
 (defn try-check-out []
   (js/alert "This is in Testing Mode.

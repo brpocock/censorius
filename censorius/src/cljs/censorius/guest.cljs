@@ -6,7 +6,6 @@
    [censorius.data :as d]
    [censorius.editable :as ed]
    [censorius.guest-list :as guest-list]
-   [censorius.invoice :as invoice]
    [censorius.merch :as merch]
    [censorius.radio :as radio]
    [censorius.staff :as staff]

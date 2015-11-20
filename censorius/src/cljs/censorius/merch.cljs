@@ -5,7 +5,6 @@
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.editable :as editable]
-   [censorius.guest-list :as guest-list]
    [censorius.utils :as util]
    [censorius.data :as d]
    [censorius.staff :as staff]))
@@ -183,7 +182,7 @@
 (defn product-style [item style]
   (let [style-index (position-if #(= (:id %) (:id style)) (:styles @item))
         sold (+ (:qty style)
-                (guest-list/purchased-for-guests (:id @item)))]
+                (censorius.guest-list/purchased-for-guests (:id @item)))]
     (util/log "item " (:id @item) " style " style " index " style-index)
     (if (nil? style-index)
       [no-such-style item style]
@@ -217,7 +216,7 @@
 
 
 (defn plus-grid-sales [item]
-  (let [purchased (guest-list/purchased-for-guests (:id @item))]
+  (let [purchased (censorius.guest-list/purchased-for-guests (:id @item))]
     (when (pos? purchased)
       [:p {:class "hint"}
        "*Plus, " (util/counting purchased (:title @item)) " purchased for "
@@ -290,7 +289,7 @@
   ;; if there  are no staff members  in the ticket,
   ;; hide  all  items  with an  ID  beginning  with
   ;; “staff-”
-  (filter (if (some #(staff/staff? @%) @guest-list/guests)
+  (filter (if (some #(staff/staff? @%) @censorius.guest-list/guests)
             identity
             #(not= (.substring (str (:id %)) 0 7)
                    ":staff-"))
