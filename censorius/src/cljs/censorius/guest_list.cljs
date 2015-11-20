@@ -4,8 +4,8 @@
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.data :as d]
-   [censorius.guest :as guest]
    [censorius.text :as text]
+   [censorius.staff :as staff]
    [censorius.utils :as util]))
 
 (defonce guests (reagent/atom 
@@ -67,15 +67,19 @@
     [(+ babies (if (pos? children) 1 0)) 
      adults children babies]))
 
-(defn purchased-for-guests [id]
-  (case id
-    :coffee
-    (count (filter #(:coffee? @%) @guests))
-    :tote-bag
-    (count (filter #(:tote? @%) @guests))
-    :festival-shirt
-    (count (filter #(:t-shirt @%) @guests))
-    0))
+(defn purchased-for-guests 
+  ([id] (case id
+          :coffee
+          (count (filter #(:coffee? @%) @guests))
+          :tote-bag
+          (count (filter #(:tote? @%) @guests))
+          :festival-shirt
+          (count (filter #(:t-shirt @%) @guests))
+          0))
+  ([id style]
+   (if (= id :festival-shirt)
+     (count (filter (partial = style) (map (comp deref :t-shirt) @guests)))
+     (purchased-for-guests id))))
 
 (defn guess-gender [name]
   (case name
@@ -278,6 +282,9 @@ Add other members of your party, and watch the Assistant box for advice.")
     "Scott" "Dawn"
     "John"))
 
+(defn have-guests []
+  (pos? (count @guests)))
+
 (defn add-person-row [_ children this]
   (let [new-name (atom  {:new-name-entered ""})]
     (reagent/create-class
@@ -343,11 +350,13 @@ Add other members of your party, and watch the Assistant box for advice.")
             [:button
              {:on-click (add-to-party! new-name)
               :class (str (if named?
-                            (if (zero? (count @guests))
-                              "true urgent"
-                              "true")
+                            (if (have-guests)
+                              "true"
+                              "true urgent")
                             "disabled"))}
              (str (if named? "+" "✗") " Add to party")]]]))})))
+
+
 
 (defn guests-thead []
   [:thead
@@ -362,6 +371,41 @@ Add other members of your party, and watch the Assistant box for advice.")
     [:th (util/abbr "💼" "Tote" "FPG tote bags")]
     [:th (util/abbr "🍺" "Mug" "FPG 20th Anniversary hot & cold beverage mugs. (Buy more mugs in the “Extras” box)")]]])
 
+(defn address-couple [one-person other-person]
+  (if (= (:surname @one-person) (:surname @other-person))
+    (str (cond (= (:gender @one-person) (:gender @other-person) :m)
+               "Messrs "
+               (= (:gender @one-person) (:gender @other-person) :f)
+               "Mtrss "
+               (or (nil? (:gender @one-person)) (nil? (:gender @other-person)))
+               ""
+               :else
+               (case (:gender @one-person)
+                 :m "Mr & Ms "
+                 :f "Ms & Mr "))
+         (or (:called-by @one-person) (:given-name @one-person))
+         " & "
+         (or (:called-by @other-person) (:given-name @other-person))
+         " "
+         (:surname @one-person))
+    (str (case (:gender @one-person)
+           :m "Mr "
+           :f "Ms "
+           "") 
+         (or (:called-by @one-person) (:given-name @one-person)) " " (:surname @one-person)
+         " & "
+         (case (:gender @other-person)
+           :m "Mr "
+           :f "Ms "
+           "") 
+         (or (:called-by @other-person) (:given-name @other-person)) " " (:surname @other-person))))
+
+(defn address-mixed-party [leader guests] 
+  (if (every? #(= (:surname @%) (:surname @leader)) @guests)
+    (str "The " (:surname @leader) " Party of " (util/counting (count @guests) "Guest"))
+    (str (guest/personal-address leader)
+         " &  " (util/counting (- (count @guests) 1) "Guest"))))
+
 (defn party-title []
   [:span (let [leader (first @guests)]
            (case (count @guests)
@@ -369,52 +413,62 @@ Add other members of your party, and watch the Assistant box for advice.")
              "New Party: Please Register"
              
              1
-             (str (case (:gender @leader)
-                    :m "Mr "
-                    :f "Ms "
-                    "") 
-                  (or (:called-by @leader) (:given-name @leader)) " " (:surname @leader))
+             (personal-address leader)
              
              2
-             (let [partner (second @guests)]
-               (if (= (:surname @leader) (:surname @partner))
-                 (str (cond (= (:gender @leader) (:gender @partner) :m)
-                            "Messrs "
-                            (= (:gender @leader) (:gender @partner) :f)
-                            "Mtrss "
-                            (or (nil? (:gender @leader)) (nil? (:gender @partner)))
-                            ""
-                            :else
-                            (case (:gender @leader)
-                              :m "Mr & Ms "
-                              :f "Ms & Mr "))
-                      (or (:called-by @leader) (:given-name @leader))
-                      " & "
-                      (or (:called-by @partner) (:given-name @partner))
-                      " "
-                      (:surname @leader))
-                 (str (case (:gender @leader)
-                        :m "Mr "
-                        :f "Ms "
-                        "") 
-                      (or (:called-by @leader) (:given-name @leader)) " " (:surname @leader)
-                      " & "
-                      (case (:gender @partner)
-                        :m "Mr "
-                        :f "Ms "
-                        "") 
-                      (or (:called-by @partner) (:given-name @partner)) " " (:surname @partner))))
+             (address-couple leader (second @guests))
              
-             (if (every? #(= (:surname @%) (:surname @leader)) @guests)
-               (str "The " (:surname @leader) " Party of " (util/counting (count @guests) "Guest"))
-               (str (case (:gender @leader)
-                      :m "Mr "
-                      :f "Ms "
-                      "") 
-                    (or (:called-by @leader) (:given-name @leader)) " " (:surname @leader)
-                    " &  " (util/counting (- (count @guests) 1) "Guest")))))])
+             (address-mixed-party leader guests)))])
 
 
 (defn count-adults []
   (count (filter #(= (:ticket-type @%) :adult) @guests)))
+
+(defn guest-list-box-title []
+  [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
+   (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
+
+The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")])
+
+(defn price-all-guests [] 
+  (reduce + (map censorius.guest/price @guests)))
+
+(defn guest-list-subtotal-row []
+  (when (have-guests)
+    [:tr {:key "☠|subtotal|"}
+     [:th {:col-span 7} "Subtotal"]
+     [:td {:col-span 3 :style {:align "right"}}
+      [:span (util/format-money (price-all-guests))]]]))
+
+(defn maybe-guest-list []
+  (util/log "Maybe guest list")
+  (when (have-guests)
+    (util/log "We have guests")
+    (let [prog1 [:tbody
+                 (doall (for [guest @guests] 
+                          (do (util/log "Let's print a row for this guest …")
+                              (util/log "Let's print a row for this guest; guest=" guest)
+                              (censorius.guest/guest-row guest))))]]
+      (util/log "generated a tree")
+      (util/log "tree looks like: " (str prog1))
+      prog1)))
+
+(defn guest-list-box []
+  (fn []
+    [:section
+     [guest-list-box-title]
+     [:section {:class "card" :key "guest-list-box"}
+      [:h2 [party-title]]
+
+      [:table {:class "people"}
+       (when (have-guests) 
+         [guests-thead])
+       [maybe-guest-list]
+       [:tfoot
+        [guest-list-subtotal-row]
+        [add-person-row]]]]]))
+
+(defn staff-in-party? []
+  (some #(staff/staff? %) @guests))
+
 

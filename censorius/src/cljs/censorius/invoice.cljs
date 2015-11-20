@@ -24,7 +24,7 @@
 
 (defn total-due []
   (+ 999999
-     (guest/price-all-guests)
+     (guest-list/price-all-guests)
      (merch/price-all-merch)
      (vendor/price-vendor)
      (scholarship-donations-amount)
@@ -79,12 +79,12 @@ Make sure that the testing mode shows up on PayPal!")
 
 (defn invoice-guests-section []
   [:tr {:key "invoice-guests"} 
-   [:th "Guests"] [:td (util/format-money (guest/price-all-guests))
-                   #_ (for [guest @guest-list/guests]
-                        [guest-price-line guest])]])
+   [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))
+                   (for [guest @guest-list/guests]
+                     [guest-price-line guest])]])
 
 (defn invoice-merch-section []
-  (when (pos? (merch/price-all-merch)) 
+  (when (or true (pos? (merch/price-all-merch))) 
     [:tr {:key "invoice-extras"}
      [:th "Extras"] [:td (util/format-money (merch/price-all-merch))]]))
 

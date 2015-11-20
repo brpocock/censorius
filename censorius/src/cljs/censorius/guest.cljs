@@ -5,22 +5,43 @@
 
    [censorius.data :as d]
    [censorius.editable :as ed]
-   [censorius.guest-list :as guest-list]
    [censorius.merch :as merch]
    [censorius.radio :as radio]
    [censorius.staff :as staff]
    [censorius.text :as text]
    [censorius.utils :as util]))
 
-(defn abbr* [short & more]
-  [:abbr {:title (str short " " (string/join " " more))}
-   short])
+#_ (defn abbr* [short & more]
+     [:abbr {:title (str short " " (string/join " " more))}
+      short])
+
+(defn abbr* [& args]
+  (apply util/abbr args))
 
 (defn mmap [m f a] (->> m (f a) (into (empty m))))
+
+(defn same-person? [one other]
+  (and (= (:given-name @one) (:given-name @other))
+       (= (:surname @one) (:surname @other))))
 
 (defn person-icon [guest]
   (case (or (:gender @guest)
             (rand-nth [:m :f])) :m "👨" :f "👩"))
+
+(defn everyone-else-but [guest]
+  (filter #(not (same-person? guest %))
+          censorius.guest-list/guest-list))
+
+(defn spouse [guest]
+  (when-let [marriage (:spouse @guest)]
+    (first (filter #(= (:spouse @%) marriage)
+                   (everyone-else-but guest)))))
+
+(defn bachelor? [guest]
+  (nil? (:spouse @guest)))
+
+(defn adult? [guest]
+  (= :adult (:ticket-type @guest)))
 
 (defn couple-icon
   ([guest spouse]
@@ -34,7 +55,7 @@
        (not= gender1 gender2) "👫"
        (= gender2 :f) "👭"
        :else "👬")))
-  ([guest] (couple-icon [guest (:spouse @guest)])))
+  ([guest] (couple-icon [guest (spouse guest)])))
 
 (defn cauldron-price [guest]
   (cond 
@@ -57,29 +78,35 @@
       (:adult (:cauldron @d/prices)))))
 
 (defn lugal+-spouse? [guest]
-  (and (:spouse guest)
-       (staff/lugal+? (deref (:spouse guest)))))
+  (and (spouse guest)
+       (staff/lugal+? (spouse guest))))
+
+(defn child? [guest]
+  (= :child (:ticket-type @guest)))
+
+(defn baby? [guest]
+  (= :baby (:ticket-type @guest)))
 
 (defn ticket-price [guest]
-  (util/log "guest spouse " (:spouse @guest) " lugal+ " (staff/lugal+? (:spouse @guest)))
+  
   (cond
-    (staff/lugal+? @guest) 
+    (staff/lugal+? guest) 
     0
     
-    (staff/staff? @guest) 
+    (staff/staff? guest) 
     (:staff (:ticket @d/prices))
     
-    (= :child (:ticket-type @guest))
+    (child? guest)
     (:child (:ticket @d/prices))
     
-    (= :baby (:ticket-type @guest))
+    (baby? guest)
     (:under5 (:ticket @d/prices))
     
     :else                               ; adult
     (case (:days @guest)
       :day (:day-pass (:ticket @d/prices))
       :week-end (:week-end (:ticket @d/prices))
-      (if (lugal+-spouse? @guest)
+      (if (lugal+-spouse? guest)
         (:staff (:ticket @d/prices))
         (:adult (:ticket @d/prices))))))
 
@@ -123,7 +150,7 @@
 (defn unmarried-lugal+? [guest]
   (and (= :adult (:ticket-type @guest))
        (staff/lugal+? @guest)
-       (nil? (:spouse @guest))))
+       (bachelor? guest)))
 
 (defn married-line [{:keys [from to]} children self]
   [:span 
@@ -140,19 +167,32 @@
    " "
    (:surname @to)])
 
+(defn personal-address [guest]
+  (str (case (:gender @guest)
+         :m "Mr "
+         :f "Ms "
+         "") 
+       (or (:called-by @guest) (:given-name @guest)) " " (:surname @guest)))
+
+(defn make-couple-symbol [one other]
+  (util/gensymreally (str "marriage-" (:surname @one) "+" (:surname @other) "/" (rand 100))))
+
 (defn marry! [one other]
-  (when (and (nil? (:spouse one))
-             (nil? (:spouse other))
-             (not= one other))
-    (swap! one assoc :spouse other)
-    (swap! other assoc :spouse one)))
+  (when (and (bachelor? one)
+             (bachelor? other)
+             (not (same-person? one other)))
+    (let [marriage (make-couple-symbol one other)]
+      (swap! one assoc :spouse marriage)
+      (swap! other assoc :spouse marriage))))
 
 (defn divorce! [one other]
-  (if (or (and (= (:given-name @one) "Bruce-Robert")
-               (= (:given-name @other) "John"))
-          (and (= (:given-name @other) "Bruce-Robert")
-               (= (:given-name @one) "John")))
-    (js/alert "Yeah, no way. ♥ You're stuck with me, Mr Fenn Pocock. ☺ ♥")
+  (if (or (and (= (.toLowerCase (:given-name @one)) "bruce-robert")
+               (= (.toLowerCase (:given-name @other)) "john"))
+          (and (= (.toLowerCase (:given-name @other)) "bruce-robert")
+               (= (.toLowerCase (:given-name @one)) "john")))
+    (js/alert "Yeah, no way.
+
+♥ You're stuck with me, Mr Fenn Pocock. ☺ ♥")
     (do
       (swap! one assoc :spouse nil)
       (swap! other assoc :spouse nil))))
@@ -161,20 +201,19 @@
 
 (defn marital-edit [guest]
   (fn [guest]
-    (let [bachelors (filter #(and (nil? (:spouse @%))
-                                  (= :adult (:ticket-type @%))
-                                  (not (and (= (:given-name @guest) (:given-name @%))
-                                            (= (:surname @guest) (:surname @%))))) 
-                            @guest-list/guests)
-          spouse (:spouse @guest)] 
+    (let [bachelors (filter #(and (bachelor? %)
+                                  (adult? %)
+                                  (not (same-person? guest %))) 
+                            @censorius.guest-list/guests)
+          spouse (spouse guest)] 
       
       (util/log "spouse " spouse "; bachelors " bachelors)
       
       (cond 
         
-        (not= :adult (:ticket-type @guest))
+        (not= (adult? @guest))
         [:div {:key "lugal-kid"}
-         (if (some (partial staff/lugal+?) @guest-list/guests)
+         (if (some (partial staff/lugal+?) @censorius.guest-list/guests)
            [:p {:class "hint"} 
             (str  "Are you  my "
                   (rand-nth ["mommy" "daddy"])
@@ -183,7 +222,7 @@
        Registration to have the discount applied.")]
            [:p {:class "hint"} "Discounted (child) admission with adult admission."])]
         
-        (and (nil? spouse)
+        (and (bachelor? guest)
              (empty? bachelors))
         [:span]
         
@@ -428,13 +467,13 @@
          [:div {:class "pop-out"}
           [name-edit-box guest]
           
-          (when (< 1 (count @guest-list/guests))
+          (when (< 1 (count @censorius.guest-list/guests))
             [:div [:button {:class "false"
                             :on-click (fn [_]
                                         (when (js/confirm (str "Remove "
                                                                (or (:called-by @guest) (:given-name @guest))
                                                                " from your party?"))
-                                          (swap! guest-list/guests mmap remove (fn [it] (= (deref it) @guest))))
+                                          (swap! censorius.guest-list/guests mmap remove (fn [it] (= (deref it) @guest))))
                                         true)}
                    "Remove from party"]])
           
@@ -489,54 +528,61 @@
             (abbr* "📞" phone)
             (abbr* "⃠" "No telephone number"))])])))
 
+(defn staff-discount-applied-box [guest]
+  [:div 
+   [:p {:class "hint"} 
+    "Staff members receive discounted admission."]
+   [:p (or (:called-by @guest) (:given-name @guest))
+    " is in the " 
+    (or (:name (get staff/+departments+ 
+                    (:staff-department @guest)))
+        (:staff-department @guest)) 
+    " Department."]
+   [:button {:on-click (fn [_]
+                         (swap! guest assoc :staff-department nil)
+                         true)
+             :class "false"}
+    " ✗ Not a staff member"]])
+
+(defn lugal+-discount-applied [guest]
+  [:div
+   [:h3 {:style {:font-size "48pt"}}
+    "𒈗 Lugal+"]
+   [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
+            is free. You may also admit your spouse at a discounted rate, and
+            apply discounted rates to spouse and children's cabin or
+            lodge bunks."]])
+
 (defn edit-ticket-cell [guest editing]
   [:div {:class "pop-out"}
    (cond
      (staff/lugal+? @guest)
-     [:div
-      [:h3 {:style {:font-size "48pt"}}
-       "𒈗 Lugal+"]
-      [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
-            is free. You may also admit your spouse at a discounted rate, and
-            apply discounted rates to spouse and children's cabin or
-            lodge bunks."]]
+     [lugal+-discount-applied guest]
      
      (staff/staff? @guest)
-     [:div 
-      [:p {:class "hint"} 
-       "Staff members receive discounted admission."]
-      [:p (or (:called-by @guest) (:given-name @guest))
-       " is in the " 
-       (or (:name (get staff/+departments+ 
-                       (:staff-department @guest)))
-           (:staff-department @guest)) 
-       " Department."]
-      [:button {:on-click (fn [_]
-                            (swap! guest assoc :staff-department nil)
-                            true)
-                :class "false"}
-       " ✗ Not a staff member"]]
+     [staff-discount-applied-box guest]
      
      :else
      (let [tag-list [[:adult (str "🎫" (person-icon guest) " Adult"
                                   (if (lugal+-spouse? @guest)
                                     " (Lugal+ spouse discount)"
                                     ""))]]
-           tag-list (if (nil? (:spouse @guest))
+           tag-list (if (bachelor? @guest)
                       (conj 
                        (conj tag-list 
                              [:child "🎫🚸 Child (ages 5→17)"])
                        [:baby "🎫👶 Child (birth→4 years)"])
+                      ;; married: no becoming a kid.
                       tag-list)]
        [:div 
         [radio/radio-set {:label "Ticket type"
                           :cursor guest
                           :key :ticket-type
                           :tags tag-list}]
-        (when (not= :baby (:ticket-type @guest))
+        (when (not (baby? guest))
           [suggest-staff-apply guest])]))
    
-   [:div "With currently-selected days, " 
+   [:div "With current selections: " 
     (util/format-money (ticket-price guest))]
    
    [marital-edit guest]
@@ -544,24 +590,25 @@
 
 (defn ticket-cell-icon [guest editing]
   [:div (ed/click-edit editing :ticket-type)
-   (case (:ticket-type @guest)
-     :child (abbr* "🎫🚸" "Child" "Children from ages 5 through 17")
-     :baby (abbr* "🎫👶" "Baby" "Children from birth to 4 years old")
-     (abbr* (str "🎫" (person-icon guest))
-            "Adult" "Adults (18+)"))
-   
-   " "
    (cond
-     (staff/lugal+? @guest)
-     (abbr* "𒈗" "Lugal+" "Lugals head each department. This ticket type also
-     includes Division Coördinators or members of the Board of Directors.")
+     (child? guest) (abbr* "🎫🚸" "Child" "Children from ages 5 through 17")
+     (baby? guest) (abbr* "🎫👶" "Baby" "Children from birth to 4 years old")
      
-     (lugal+-spouse? @guest)
+     (staff/staff? guest) 
+     (abbr* "⛤" "Staff" "General staff members (not a lugal)")
+     
+     (staff/lugal+? guest)
+     (abbr* (str "🎫" (person-icon guest) "𒈗") 
+            "Lugal+" "Lugals head each department. This ticket type also
+     includes   Division   Coördinators   or  members   of   the   Board
+     of Directors.")
+     
+     (lugal+-spouse? guest)
      (abbr* (str "𒈗" (couple-icon guest (:spouse @guest))) "Lugal+ spouse"
             "Spouse of a lugal (or DC or board member)")
      
-     (staff/staff? @guest) 
-     (abbr* "⛤" "Staff" "General staff members (not a lugal)"))])
+     :else (abbr* (str "🎫" (person-icon guest))
+                  "Adult" "Adults (18+)"))])
 
 (defn ticket-cell [guest]
   (let [editing (atom false)]
@@ -588,14 +635,15 @@
    (abbr* (case (:days @guest)
             :day "Day"
             :week-end "Fri-Sun"
-            nil (str (if (staff/staff? @guest)
+            nil (str (if (staff/staff? guest) 
                        "Tue"
-                       "Wed") "-Sun"))
+                       "Wed") 
+                     "→Sun"))
           (case (:days @guest)
             :day "Any one day"
             :week-end "Week-end only, Friday→Sunday"
             nil (str "Full week, "
-                     (if (staff/staff? @guest)
+                     (if (staff/staff? guest)
                        "Tuesday"
                        "Wednesday") "→Sunday")))])
 
@@ -749,26 +797,17 @@
         (:coffee? guest)
         (:tote? guest))))
 
-(defn price-all-guests [] 
-  (when @guest-list/guests 
-    (reduce + (map price @guest-list/guests))))
-
-(defn guests-price-sum []
-  @guest-list/guests
-  [:span (util/format-money (or 99999 (price-all-guests)))])
-
-
 (defn guest-row [guest]
-  (let [name (util/gensymreally "guest")]
-    (fn [guest]
-      [:tr {:key (str (:given-name @guest) " " (:surname @guest))}
-       [name-cell guest]
-       [email-cell guest]
-       [phone-cell guest]
-       [ticket-cell guest]
-       [days-cell guest]
-       [lodging-cell guest]
-       [food-cell guest]
-       [t-shirt-cell guest]
-       [tote-bag-cell guest]
-       [mug-cell guest]])))
+  (util/log "guest-row called… ")
+  (util/log "guest-row called… guest=" guest)
+  [:tr {:key (personal-address guest)}
+   [name-cell guest]
+   [email-cell guest]
+   [phone-cell guest]
+   [ticket-cell guest]
+   [days-cell guest]
+   [lodging-cell guest]
+   [food-cell guest]
+   [t-shirt-cell guest]
+   [tote-bag-cell guest] 
+   [mug-cell guest]])

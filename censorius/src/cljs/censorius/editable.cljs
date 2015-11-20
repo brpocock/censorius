@@ -7,13 +7,14 @@
 
 (defn nightshade []
   (fn []
-    [:div {:id "nightshade" :style {:display (if @nightshade?
-                                               "block"
-                                               "none")}}]))
+    [:div {:id "nightshade"
+           :style {:display (if @nightshade?
+                              "block"
+                              "none")}}]))
 
 (defn click-edit [editing? label]
   {:on-click (fn [event]
-               (swap! editing? not)
+               (reset! editing? true)
                (reset! nightshade? @editing?)
                (.stopPropagation event))
    :class (str (.substring (str label) 1 (count (str label)))

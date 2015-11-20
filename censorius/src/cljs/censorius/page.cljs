@@ -28,33 +28,6 @@
 
 
 
-(defn guest-list-box-title []
-  [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
-   (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
-
-The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")])
-
-(defn guest-list-box []
-  (fn []
-    [:section
-     [guest-list-box-title]
-     [:section {:class "card" :key "guest-list-box"}
-      [:h2 [guest-list/party-title]]
-
-      [:table {:class "people"}
-       (when (pos? (count @guest-list/guests)) 
-         [guest-list/guests-thead])
-       [:tbody
-        (when false
-          (for [guest @guest-list/guests] 
-            [guest/guest-row guest]))]
-       [:tfoot
-        [guest-list/add-person-row]
-        [:tr {:key "☠|subtotal|"}
-         [:th {:col-span 7} "Subtotal"]
-         [:td {:col-span 3 :style {:align "right"}}
-          [guest/guests-price-sum]]]]]]]))
-
 (defn scholarship-box []
   [:section {:class "card"}
    [:h2 "Scholarship Donations"]
@@ -115,10 +88,9 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
 
 
 (defn registration-page []
-  @guest-list/guests
   [:div
-   [guest-list-box]
-   #_ [merch/merch-box]
+   [guest-list/guest-list-box]
+   [merch/merch-box]
    [vendor/vendor-box]
    [workshops/workshop-box]
    [scholarship-box]
@@ -215,7 +187,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
 
 
 
-(guest/marry! (get @guest-list/guests 0) (get @guest-list/guests 1))
+(guest/marry! (first @guest-list/guests) (second @guest-list/guests))
 
 
 ;; Initialize app

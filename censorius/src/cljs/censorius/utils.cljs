@@ -31,7 +31,10 @@
                                  (str key " ← " value ";  ")) 
                             (js->clj thing :keywordize-keys true)))
                (catch :default e
-                 thing))))
+                 (try 
+                   (pr-str thing)
+                   (catch :default e
+                     (str "#<unprintable, due to " e ">")))))))
       naïve)))
 
 (defn log [& stuff]
@@ -247,7 +250,7 @@
 (defn mkfun-area-code-reply [code]
   (fn [reply]
     (let [response (js->clj (.getResponseJson (.-target reply))
-                            :keywordize-keys true)]
+                        :keywordize-keys true)]
       (if (= "success" (:status response))
         (doseq [{:keys [area-code state]} (:area-codes response)]
           (swap! area-code-cache assoc area-code 
@@ -750,21 +753,22 @@
     
     (cond
       (integer? amount)
-      (gstring/format "$ %d." amount)
+      (str "$ " amount ".")
       
       (> 1 amount)
-      (gstring/format " %d ¢" (* 100 amount))
+      (str (* 100 amount) " ¢")
       
       (zero? amount)
       nil
       
       true
-      (gstring/format "$ %.02f" amount))))
+      (str "$ " (.toFixed amount 2)))))
 
 (defn money? [string]
-  (or (js/parseFloat (just-decimal string))
-      (let [[_ amount] (re-matches #"\$?\s*(\d*\.\d*)" string)]
-        (money? amount))))
+  (if-let [[_ pennies] (re-matches #"(\d+)\s*¢")]
+    (or (js/parseFloat (just-decimal string))
+        (let [[_ amount] (re-matches #"\$?\s*(\d*\.\d*)" string)]
+          (money? amount)))))
 
 (defn keyword->string [keyword]
   (cond

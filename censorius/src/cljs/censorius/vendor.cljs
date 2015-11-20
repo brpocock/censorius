@@ -16,13 +16,13 @@
 
 
 (defn vendor-agreement []
-  [:div [:h3 "Vendor agreement"]
+  [:div {:key "vendor-agreement"}
+   [:h3 "Vendor agreement"]
    [:p "Before you can become an vendor, you need to agree to the festival's vendor rules."]
    [:a {:href "http://fpgrocks.org/news/vendor-faq"
         :target "VendorFAQ"} 
     [:button {:class "true"} "Read Vendor Rules"]]
-   [:button {:on-click (fn [_] y
-                         (swap! vending assoc :agreement true))}
+   [:button {:on-click #(swap! vending assoc :agreement true)}
     "✓ Accept the vendor agreement"]])
 
 
@@ -61,27 +61,31 @@
 (defn price-vendor []
   (* (:vendor @d/prices) (:qty @vending)))
 
+(defn slip-box [slip]
+  (let [enough? (< (- slip 1) (:qty @vending))]
+    [:input {:key (str "vendor-slip-" slip)
+             :type "checkbox"
+             :checked enough?
+             :on-click #(swap! vending assoc :qty ((if enough? - +) (:qty @vending) 1)) }]))
+
 (defn vendor-slips []
-  [:div [text/text-input {:cursor vending
-                          :keys :qty
-                          :label "Quantity"
-                          :placeholder "0"
-                          :format util/just-number
-                          :validate #(and (or (= 1 (count %)) 
-                                              (and (= 2 (count %))
-                                                   (= \0 (.charAt % 0))))
-                                          (every? #{\1 \2 \3 \0} %))
-                          :rows 0
-                          :size 3}]
-   " vendor " (if (= 1 (:qty @vending)) "slip" "slips")
-   " (" (if (< 1 (:qty @vending))
-          [:strong (* 10 (:qty @vending))]
-          10)
-   "′×10′) @ " (util/format-money (:vendor @d/prices)) " each slip."
-   (when (< 1 (:qty @vending))
-     [:span {:class "hint"}
-      " (total " (util/format-money (price-vendor)) ")"])
-   (when (pos? (:qty @vending))
+  [:div {:key "vendor-slips"}
+   [slip-box 1]
+   [slip-box 2]
+   [slip-box 3]
+   (util/counting (:qty @vending) "vendor slip")
+   [:span {:key "slip-space"}
+    " (" (if (< 1 (:qty @vending))
+           [:strong (* 10 (:qty @vending))]
+           10)
+    "′×10′)"]
+   [:span {:key "slip-price"}
+    " @ " (util/format-money (:vendor @d/prices)) " each slip."]
+   (if (< 1 (:qty @vending))
+     [:span {:key "price-total" :class "hint"}
+      " (total " (util/format-money (price-vendor)) ")"]
+     [:span {:key "price-total"}])
+   (if (pos? (:qty @vending))
      [vendor-info])])
 
 
@@ -147,7 +151,7 @@
   (fn []
     [:section {:key "vending" :class "card"}
      [:h2 "Vending"]
-     [:div
+     [:div {:key "vending"}
       (cond (not (some #(and (nil? (:days @%))
                              (= (:ticket-type @%) :adult))
                        @guest-list/guests))

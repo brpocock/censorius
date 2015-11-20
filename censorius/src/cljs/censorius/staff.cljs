@@ -141,14 +141,14 @@
   (get +staff-mail+ mail))
 
 (defn staff? [person]
-  (let [staffy (or (and (:e-mail person)
-                        (highest-job? (staff-id (:e-mail person))))
+  (let [staffy (or (and (:e-mail @person)
+                        (highest-job? (staff-id (:e-mail @person))))
                    (:staff-department person))]
     #_ (util/log "Staff? → " staffy)
     staffy))
 
 (defn lugal+? [person]
-  (when-let [staff-id (staff-id (:e-mail person))]
+  (when-let [staff-id (staff-id (:e-mail @person))]
     #_ (util/log "Lugal+ for staff ID ? " staff-id)
     (let [job (highest-job? staff-id)]
       (when (#{:lugal :elder :advisory-board :dc :bod} job)
