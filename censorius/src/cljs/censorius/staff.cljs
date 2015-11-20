@@ -5,102 +5,104 @@
    [reagent.session :as session]
    [censorius.utils :as util]))
 
-(def +staff-mail+ {"ama422@aol.com" :ann-marie,
-                   "brpocock@star-hope.org" :brfp,
-                   "sage@star-hope.org" :sage
-                   "suannegould@gmail.com" :mystral
-                   "x1@example.com" :lady-rae
-                   "x2@example.com" :medea
-                   "x3@example.com" :teresa
-                   "x4@example.com" :paul
-                   "x5@example.com" :alysia
-                   "x6@example.com" :narissa
-                   "x7@example.com" :bobbi-jo
-                   "x8@example.com" :doug
-                   "x9@example.com" :sandi
-                   "xa@example.com" :thor
-                   "xb@example.com" :jade
-                   "xc@example.com" :paul
-                   "xd@example.com" :diane
-                   "xe@example.com" :dee
-                   "xf@example.com" :perseus
-                   "xg@example.com" :cowboy
-                   "xh@example.com" :roger
-                   "xi@example.com" :scion
-                   "xj@example.com" :amanda
-                   "xk@example.com" :jim
-                   "xl@example.com" :geoffrey
-                   "xm@example.com" :jessica
-                   "xn@example.com" :beth
-                   "xo@example.com" :stu
-                   "xp@example.com" :soren
-                   "xq@example.com" :aurora
-                   "xr@example.com" :jim-hines
-                   "xs@example.com" :beth
-                   "xt@example.com" :galan
-                   "xu@example.com" :thundar
-                   "xv@example.com" :guardian-bob
-                   "xw@example.com" :arachne
-                   "xx@example.com" :sqrl
-                   "xy@example.com" :fox
-                   "xz@example.com" :nicole})
+(def +staff-mail+ {"bjcalupca@aol.com" "bjcalupca@aol.com"
+                   "sandiberlinratliff@yahoo.com" "sandiberlinratliff@yahoo.com"
+                   "silvermoonlady9@yahoo.com" "silvermoonlady9@yahoo.com"
+                   "suannegould@gmail.com" "suannegould@gmail.com"
+                   "ama422@aol.com" "ama422@aol.com"
+                   "beccasturgill@gmail.com" "beccasturgill@gmail.com"
+                   "BRPocock@Star-Hope.org" "BRPocock@Star-Hope.org"
+                   "Bigredog14@gmail.com" "Bigredog14@gmail.com"
+                   "Constance.m.grimsley@gmail.com" "Constance.m.grimsley@gmail.com"
+                   "spence101878@gmail.com" "spence101878@gmail.com"
+                   "phyrphlyeyez@gmail.com" "phyrphlyeyez@gmail.com"
+                   "healthymom@hotmail.com" "healthymom@hotmail.com"
+                   "ddolph1n@yahoo.com" "ddolph1n@yahoo.com"
+                   "ladyunicornbeth@yahoo.com" "ladyunicornbeth@yahoo.com"
+                   "Dharmahog@gmail.com" "Dharmahog@gmail.com"
+                   "jade6969cp@yahoo.com" "jade6969cp@yahoo.com"
+                   "Nursejenn42@gmail.com" "Nursejenn42@gmail.com"
+                   "jennie0280@yahoo.com" "jennie0280@yahoo.com"
+                   "jess_carpenter@hotmail.com" "jess_carpenter@hotmail.com"
+                   "jim.dustman@gmail.com" "jim.dustman@gmail.com"
+                   "jpocock@star-hope.org" "jpocock@star-hope.org"
+                   "narissamyers@yahoo.com" "narissamyers@yahoo.com"
+                   "c4life1@gmail.com" "c4life1@gmail.com"
+                   "" ""
+                   "dethmoongypsy@yahoo.com" "dethmoongypsy@yahoo.com"
+                   "lrblackhood@aol.com" "lrblackhood@aol.com"
+                   "narissamyers@yahoo.com" "narissamyers@yahoo.com"
+                   "paultgarrett@gmail.com" "paultgarrett@gmail.com"
+                   "" ""
+                   "freakboy@nightbirdsjourney.com" "freakboy@nightbirdsjourney.com"
+                   "smshame@hotmail.com" "smshame@hotmail.com"
+                   "beccasturgill@gmail.com" "beccasturgill@gmail.com"
+                   "teresa.fpgstuff@gmail.com" "teresa.fpgstuff@gmail.com"
+                   "tajredhawk@aol.com" "tajredhawk@aol.com"
+                   })
 
-(def +bod+ [:ann-marie :lady-rae :medea :teresa :paul])
-(def +div+ {:cauldron {:coord :alysia :name "Bubbling Cauldron"}
-            :hearth {:coord :narissa :name "Guest Hearth"}
-            :ops {:coord :mystral :name "Operations"}
-            :registration {:coord :bobbi-jo :name "Registration"}
-            :site {:coord :doug :name "Site"}
-            :staff {:coord :sandi :name "Staff Services"}
-            :bod {:coord :ann-marie :name "Board of Directors' Division"}})
+(def +bod+ ["ama422@aol.com" 
+            "jennie0280@yahoo.com" 
+            "lrblackhood@aol.com" 
+            "paultgarrett@gmail.com" 
+            "teresa.fpgstuff@gmail.com" 
+            ])
+(def +div+ {:cauldron :name "Bubbling Cauldron"
+            :hearth {:coord "narissamyers@yahoo.com" :name "Guest Hearth"}
+            :ops {:coord "suannegould@gmail.com" :name "Operations"}
+            :registration {:coord "bjcalupca@aol.com" :name "Registration"}
+            :site {  :name "Site"}
+            :staff {:coord "sandiberlinratliff@yahoo.com" :name "Staff Services"}
+            :bod {:coord "ama422@aol.com" :name "Board of Directors' Division"}})
 
 (def +advisory+ [])
 (def +elders+ [:roger :galan :thundar :guardian-bob :arachne])
-(def +departments+ {:community {:lugal :thor
-                                :div :ops :name "Community Groups"}
-                    :comptroller {:lugal [:ray :jade]
+(def +departments+ {:community {:lugal "constance.m.grimsley@gmail.com"
+                                :div :ops :name "Community Center"}
+                    :comptroller {:lugal "jade6969cp@yahoo.com"
                                   :div :bod :name "Comptroller"}
-                    :concert {:lugal :paul
+                    :concert {:lugal "paultgarrett@gmail.com"
                               :div :bod :name "Concert Sound & Lights"}
-                    :design {:lugal [:mystral :diane :medea]
+                    :design {:lugal ["suannegould@gmail.com"
+                                     "ddolph1n@yahoo.com"]
                              :div :ops :name "Design Team"}
-                    :fire {:lugal :dee
+                    :fire {:lugal "healthymom@hotmail.com"
                            :div :site :name "Fire Circle"}
                     :gungans {:lugal :perseus
                               :div :site :name "Gungans"}
                     :hearth {:lugal :cowboy
                              :div :hearth :name "Guest Hearth"}
-                    :kids {:lugal :jennifer
+                    :kids {:lugal "nursejenn42@gmail.com"
                            :div :ops :name "Kids' Realm"}
-                    :parking {:lugal :geoffrey
+                    :parking {:lugal "Dharmahog@gmail.com"
                               :div :registration :name "Parking"}
-                    :web {:lugal :diane 
+                    :web {:lugal "ddolph1n@yahoo.com"
                           :div :bod :name "Photography & Web Design"}
-                    :registration {:lugal [:amanda :jim]
+                    :registration {:lugal ["jim.dustman@gmail.com"]
                                    :div :registration :name "Registration"}
-                    :ritual {:lugal [:roger :scion]
+                    :ritual {:lugal [:roger "spence101878@gmail.com"]
                              :div :bod :name "Ritual"}
-                    :site {:lugal [:cliff :joe]
+                    :site {:lugal ["c4life1@gmail.com" "Bigredog14@gmail.com"]
                            :div :site :name "Site & Strike"}
-                    :office {:lugal :jessica
+                    :office {:lugal "jess_carpenter@hotmail.com"
                              :div :staff :name "Ministry of Magic"}
-                    :staffing {:lugal :medea
+                    :staffing {:lugal "jennie0280@yahoo.com"
                                :div :bod :name "Staffing"}
-                    :store {:lugal :beth
+                    :store {:lugal "ladyunicornbeth@yahoo.com"
                             :div :ops :name "Store Runner"}
-                    :taxi {:lugal [:aurora :jim*hines]
+                    :taxi {:lugal ["phyrphlyeyez@gmail.com" :jim-hines]
                            :div :hearth :name "Taxi/Trolley"}
                     :teen {:lugal nil
                            :div :ops :name "Teen Forge"}
-                    :tech {:lugal :brfp
+                    :tech {:lugal "brpocock@star-hope.org"
                            :div :ops :name "Technology"}
                     :trash {:lugal :stu
                             :div :site :name "Trash"}
                     :tween {:lugal :soren
                             :div :ops :name "Tween Time"}
-                    :vendors {:lugal :sage
+                    :vendors {:lugal "jpocock@star-hope.org"
                               :div :ops :name "Vendors"}
-                    :workshops {:lugal :sage
+                    :workshops {:lugal "jpocock@star-hope.org"
                                 :div :ops :name "Workshops"}})
 
 (def +drummers+ #{:nicole})

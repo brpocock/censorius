@@ -35,22 +35,25 @@
 The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")])
 
 (defn guest-list-box []
-  #_ (util/log "Guests = " @guest-list/guests)
-  [:section
-   [guest-list-box-title]
-   [:section {:class "card" :key "guest-list-box"}
-    #_    [:h2 [guest-list/party-title]]
+  (fn []
+    [:section
+     [guest-list-box-title]
+     [:section {:class "card" :key "guest-list-box"}
+      [:h2 [guest-list/party-title]]
 
-    [:table {:class "people"}
-     (when-not (empty? @guest-list/guests) 
-       #_ [guest-list/guests-thead])
-     #_ [:tbody (map #([guest/guest-row %]) @guest-list/guests)]
-     [:tfoot
-      [guest-list/add-person-row]
-      [:tr {:key "☠|subtotal|"}
-       [:th {:col-span 7} "Subtotal"]
-       [:td {:col-span 3 :style {:align "right"}}
-        #_ [guest/guests-price-sum]]]]]]])
+      [:table {:class "people"}
+       (when (pos? (count @guest-list/guests)) 
+         [guest-list/guests-thead])
+       [:tbody
+        (when false
+          (for [guest @guest-list/guests] 
+            [guest/guest-row guest]))]
+       [:tfoot
+        [guest-list/add-person-row]
+        [:tr {:key "☠|subtotal|"}
+         [:th {:col-span 7} "Subtotal"]
+         [:td {:col-span 3 :style {:align "right"}}
+          [guest/guests-price-sum]]]]]]]))
 
 (defn scholarship-box []
   [:section {:class "card"}

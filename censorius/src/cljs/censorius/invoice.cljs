@@ -23,11 +23,12 @@
   (reduce + (map util/just-decimal (vals @scholarships))))
 
 (defn total-due []
-  (+ (guest/price-all-guests)
-     (merch/price-all-merch)
-     (vendor/price-vendor)
-     (scholarship-donations-amount)
-     (- (reduce + (map #(:amount %) @payments)))))
+  (+ 999999
+     #_ (guest/price-all-guests)
+     #_ (merch/price-all-merch)
+     #_ (vendor/price-vendor)
+     #_ (scholarship-donations-amount)
+     #_ (- (reduce + (map #(:amount %) @payments)))))
 
 (defn try-check-out []
   (js/alert "This is in Testing Mode.
@@ -79,8 +80,8 @@ Make sure that the testing mode shows up on PayPal!")
 (defn invoice-guests-section []
   [:tr {:key "invoice-guests"} 
    [:th "Guests"] [:td (util/format-money (guest/price-all-guests))
-                   (map #([guest-price-line %]) 
-                     @guest-list/guests)]])
+                   #_ (for [guest @guest-list/guests]
+                        [guest-price-line guest])]])
 
 (defn invoice-merch-section []
   (when (pos? (merch/price-all-merch)) 

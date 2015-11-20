@@ -67,45 +67,131 @@
     [(+ babies (if (pos? children) 1 0)) 
      adults children babies]))
 
-(defn purchased-for-guests [id style]
+(defn purchased-for-guests [id]
   (case id
     :coffee
-    (count (filter #(get @% :coffee?) @guests))
+    (count (filter #(:coffee? @%) @guests))
     :tote-bag
-    (count (filter #(get @% :tote?) @guests))
+    (count (filter #(:tote? @%) @guests))
     :festival-shirt
-    (count (filter #(= style (get @% :t-shirt)) @guests))
+    (count (filter #(:t-shirt @%) @guests))
     0))
 
 (defn guess-gender [name]
   (case name
-    "John" :m
-    "James" :m
+    "Amanda" :f
+    "Andrew" :m
+    "Ann" :f
+    "Ann-Marie" :f
+    "Beth" :f
+    "Bobbi" :f
+    "Bobbi-Jo" :f
+    "Brian" :m
+    "Brianna" :f
     "Bruce-Robert" :m
     "Bruce-robert" :m
-    "Suanne" :f
-    "Ann-Marie" :f
-    "Mary" :f
-    "Ann" :f
-    "Bobbi-Jo" :f
-    "Bobbi" :f
-    "Roberta" :f
-    "Paul" :m
+    "Catherine" :f
+    "Christopher" :m
+    "Cliff" :m
+    "Connue" :f
+    "Constance" :f
+    "Dave" :m
+    "David" :m
     "Dawn" :f
-    "Scott" :m
-    "Orianna" :f
-    "Narissa" :f
+    "Debora" :f
+    "Deborah" :f
+    "Debra" :f
+    "Diana" :f
+    "Diane" :f
+    "Dick" :m
+    "Donavon" :m
+    "Donna" :f
+    "Donovan" :m
+    "Doug" :m
+    "Douglas" :m
+    "Elizabeth" :f
+    "Ellen" :f
+    "Eric" :m
+    "Erick" :m
+    "Erik" :m
+    "Erin" :f
+    "Evan" :m
+    "Faith" :f
+    "George" :m
+    "Geoffrey" :m
     "Georgiana" :f
     "Georgianna" :f
     "Heather" :f
-    "Susan" :f
-    "Brian" :m
-    "Brianna" :f
-    "Soren" :f
-    "Faith" :f
-    "Constance" :f
+    "Holly" :f
+    "Jackie" :f
+    "Jacqueline" :f
+    "Jade" :f
+    "James" :m
     "Jayden" :m
+    "Jeffrey" :m
+    "Jennifer" :f
+    "Jessica" :f
+    "Jo" :f
+    "Joe" :m
+    "John" :m
+    "Joseph" :m
+    "Josephine" :f
+    "Katrina" :f
+    "Laura" :f
+    "Lauren" :f
+    "Laurie" :f
+    "Leigh" :f
+    "Lori" :f
+    "Mark" :m
+    "Mary" :f
+    "Mandy" :f
+    "Melissa" :f
+    "Millicent" :f
+    "Morgana" :f
+    "Narissa" :f
+    "Nikko" :m
+    "Orianna" :f
+    "Patrick" :m
+    "Paul" :m
+    "Penny" :f
+    "Rachel" :f
     "Randy" :m
+    "Rene" :m
+    "Renee" :f
+    "René" :m
+    "Renée" :f
+    "Richard" :m
+    "Ricardo" :m
+    "Rick" :m
+    "Roberta" :f
+    "Roger" :m
+    "Robin" :m
+    "Ruth" :f
+    "Sara" :f
+    "Sandra" :f
+    "Sarah" :f
+    "Scarlet" :f
+    "Scott" :m
+    "Sean" :m
+    "Seán" :m
+    "Shaun" :m
+    "Shawn" :m
+    "Shellie" :f
+    "Soren" :f
+    "Steven" :m
+    "Stephen" :m
+    "Stephanie" :f
+    "Stewart" :m
+    "Stuart" :m
+    "Suanne" :f
+    "Susan" :f
+    "Tami" :f
+    "Tammy" :f
+    "Teresa" :f
+    "Thayne" :m
+    "Tina" :f
+    "Troy" :m
+    "Wilsner" :m
     nil))
 
 (defn guess-nickname [given surname]
@@ -331,6 +417,4 @@ Add other members of your party, and watch the Assistant box for advice.")
 
 (defn count-adults []
   (count (filter #(= (:ticket-type @%) :adult) @guests)))
-
-
 

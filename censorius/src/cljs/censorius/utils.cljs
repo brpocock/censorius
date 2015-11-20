@@ -247,7 +247,7 @@
 (defn mkfun-area-code-reply [code]
   (fn [reply]
     (let [response (js->clj (.getResponseJson (.-target reply))
-                        :keywordize-keys true)]
+                            :keywordize-keys true)]
       (if (= "success" (:status response))
         (doseq [{:keys [area-code state]} (:area-codes response)]
           (swap! area-code-cache assoc area-code 
@@ -434,13 +434,18 @@
                                     (str (subs singular 0 (- (count singular) 1)) "ie")
                                     singular) "s")))
   ([number singular plural]
-   (cond
-     (> 0 number) (str "Negative " (counting (- number) singular plural))
-     (zero? number) (str "No " plural)
-     (= 1 number) (str "One " singular)
-     (and (integer? number)
-          (> 13 number)) (str (nth +numbers+ number) " " plural)
-     true (str number " " plural))))
+   (when-not (and singular plural (pos? (count singular)) (pos? (count plural)) (number? number))
+     (js/console.warn (str "Counting bug, " number "×" singular "(" plural ")")))
+   (let [singular (or (and (pos? (count singular)) singular) "thingie")
+         plural (or (and (pos? (count plural)) plural) "thingies")]
+     (cond
+       (not (number? number)) (str "¿? " plural)
+       (> 0 number) (str "Negative " (counting (- number) singular plural))
+       (zero? number) (str "No " plural)
+       (= 1 number) (str "One " singular)
+       (and (integer? number)
+            (> 13 number)) (str (nth +numbers+ number) " " plural)
+       true (str number " " plural)))))
 
 (assert (= (counting 4 "dog") "Four dogs"))
 (assert (= (counting 0 "pony") "No ponies"))

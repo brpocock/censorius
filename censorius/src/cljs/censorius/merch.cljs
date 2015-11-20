@@ -143,59 +143,70 @@
           (fn [i element] (when (predicate element) i))
           sequence)))
 
+(defn purchase< [item style style-index can<?]
+  [:td {:key (str (:id @item) "∋" (:id style) "/less")}
+   [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
+                               (max 0
+                                    (dec (get-in @item [:styles style-index :qty]))))
+             :class (when can<? "false")
+             :disabled (not can<?)}
+    "-"]])
+
+(defn purchase> [item style style-index can>?]
+  [:td {:key (str (:id @item) "∋" (:id style) "/more")}
+   [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
+                               (min (get-in @item [:styles style-index :inventory]) 
+                                    (inc (:qty style))))
+             :class (when can>? "true")
+             :disabled (not can>?)}
+    "+"]])
+
+(defn sellout-warning [item style]
+  [:tr {:key (str (:id @item) "∋" (:id style) "⚠")} 
+   [:td {:key (str (:id @item) "∋" (:id style) "⚠☉")} ""]
+   [:td {:key (str (:id @item) "∋" (:id style) "⚠sellout") 
+         :col-span 3 :class "hint"} 
+    (str "only " (util/counting (:inventory style) "item") " left")]])
+
+(defn sold-out [item style]
+  [:tr {:key (str (:id @item) "∋" (:id style))}
+   [:td {:key (str (:id @item) "∋" (:id style))
+         :col-span 4}
+    [:small (:title style) " — Sold out."]]])
+
+(defn no-such-style [item style]
+  [:tr {:key (str (:id @item) "∋" (:id style))}
+   [:td {:key (str (:id @item) "∋" (:id style))
+         :col-span 4}
+    [:small (:title style) " — not available"]]])
+
 (defn product-style [item style]
-  (let [style-index (position-if #(= (:id %) style) (:styles @item))
+  (let [style-index (position-if #(= (:id %) (:id style)) (:styles @item))
         sold (+ (:qty style)
-                (guest-list/purchased-for-guests (:id @item) (:id style)))]
+                (guest-list/purchased-for-guests (:id @item)))]
     (util/log "item " (:id @item) " style " style " index " style-index)
     (if (nil? style-index)
-      [:tr {:key (str (:id @item) "∋" (:id style))}
-       [:td {:key (str (:id @item) "∋" (:id style))
-             :col-span 4}
-        [:small (:title style) " — ∞ we don't do that no more"]]]
+      [no-such-style item style]
       
       (if (zero? (:inventory style))
-        [:tr {:key (str (:id @item) "∋" (:id style))}
-         [:td {:key (str (:id @item) "∋" (:id style))
-               :col-span 4}
-          [:small (:title style) " — Sold out."]]]
-        ;; available in inventory
-        (let [can< (pos? (:qty style))
-              can> (< sold (:inventory style))]
-          [:tr {:key (str (:id @item) "∋" (:id style) "/styles")}
-           ;; # sold
-           [:td {:key (str (:id @item) "∋" (:id style) "/sold")
-                 :style {:margin-right "1ex"}}
-            [:strong sold "×" (.toUpperCase (str (:id style)))]]
-           ;; <
-           [:td {:key (str (:id @item) "∋" (:id style) "/less")}
-            [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
-                                        (max 0
-                                             (dec (get-in @item [:styles style-index :qty]))))
-                      :class (when can< "false")
-                      :disabled (not can<)}
-             "-"]]
-           ;; qty sold
-           [:td {:key (str (:id @item) "∋" (:id style) "/qty")}
-            (util/counting sold (:title style))]
-           ;; >
-           [:td {:key (str (:id @item) "∋" (:id style) "/more")}
-            [:button {:on-click #(swap! item assoc-in [:styles style-index :qty] 
-                                        (min (get-in @item [:styles style-index :inventory]) 
-                                             (inc (:qty style))))
-                      :class (when can> "true")
-                      :disabled (not can>)}
-             "+"]]
-           ;; sellout warning
-           (when (> (max 10 (- sold 5)) (:inventory style))
-             [:tr {:key (str (:id @item) "∋" (:id style) "⚠")} 
-              [:td {:key (str (:id @item) "∋" (:id style) "⚠☉")} ""]
-              [:td {:key (str (:id @item) "∋" (:id style) "⚠sellout") 
-                    :col-span 3 :class "hint"} (util/counting (:inventory style) "item") " left"]])])))))
+        [sold-out item style]
+        [:tr {:key (str (:id @item) "∋" (:id style) "/styles")}
+         ;; # sold
+         [:td {:key (str (:id @item) "∋" (:id style) "/sold")
+               :style {:margin-right "1ex"}}
+          [:strong sold "×" (.toUpperCase (str (:id style)))]]
+         [purchase< item style style-index (pos? (:qty style))]
+         ;; qty sold
+         [:td {:key (str (:id @item) "∋" (:id style) "/qty")}
+          (util/counting sold (:title style))]
+         [purchase> item style style-index (< sold (:inventory style))]
+         ;; sellout warning
+         (when (> (max 10 (- sold 5)) (:inventory style))
+           [sellout-warning item style])]))))
 
 
 (defn available-styles [item]
-  (map :title (filter #(not (zero? (:inventory %))) (:styles @item))))
+  (filter #(pos? (:inventory %)) (:styles item)))
 
 (defn style-names-string [styles]
   (if (< 3 (count styles))
@@ -205,30 +216,36 @@
     styles))
 
 
-(defn plus-grid-sales [item style]
-  (let [purchased (guest-list/purchased-for-guests (:id @item) (:id style))]
-    (if (pos? purchased)
+(defn plus-grid-sales [item]
+  (let [purchased (guest-list/purchased-for-guests (:id @item))]
+    (when (pos? purchased)
       [:p {:class "hint"}
-       "*Including " (util/counting purchased (:title @item)) " purchased for "
+       "*Plus, " (util/counting purchased (:title @item)) " purchased for "
        (if (= 1 purchased) " a guest " " guests ")
        " (above)."])))
 
 (defn product-style-hidden [item open?]
+  [:td {:key (str (:id @item) "-styles-hidden")
+        :on-click (fn [_] (swap! open? (fn [_] true)) nil)
+        :class "zoom"}
+   [:strong "Styles: "] 
+   [:small (string/join ", " (style-names-string (map :title (available-styles @item))))]
+   [:button "⍐"]])
+
+(defn product-style-open [item open?]
+  [:td {:key (str (:id @item) "-styles")}
+   [:table
+    (for [style (available-styles @item)] 
+      [product-style item style])]
+   [plus-grid-sales item]
+   (when (zero? (reduce + (map :qty (:styles @item))))
+     (editable/close open?))])
+
+(defn product-style-auto-hide [item open?]
   (if (and (zero? (reduce + (map :qty (:styles @item))))
            (not @open?)) 
-    [:td {:key (str (:id @item) "-styles-hidden")
-          :on-click (fn [_] (swap! open? (fn [_] true)) nil)
-          :class "zoom"}
-     [:strong "Styles: "] 
-     [:small (string/join ", " (style-names-string (available-styles item)))]
-     [:button "⍐"]]
-    ;; opened
-    [:td {:key (str (:id @item) "-styles")}
-     [:table
-      (map #([product-style item %]) (available-styles @item))]
-     (plus-grid-sales (:id @item) (:id (first (:styles @item))))
-     (when (zero? (reduce + (map :qty (:styles @item))))
-       (editable/close open?))]))
+    [product-style-hidden item open?]
+    [product-style-open item open?]))
 
 (defn product-row [item]
   (let [open? (atom false)]
@@ -241,6 +258,7 @@
              [:img {:src (:image @item)
                     :class "merch-thumb"}])
         [:p {:class "hint"} (:description @item)]]
+       
        [:td {:key (str "merch-" (:id item) "/price")}
         (util/format-money (:price @item))]
        
@@ -249,14 +267,17 @@
          [:td {:key (str "merch-" (:id @item) "/monostyle")}
           [:table [:tbody [product-style item (first (:styles @item))]]]]
          
-         [product-style-hidden item open?])
+         [product-style-auto-hide item open?])
        
        [:td {:key (str "merch-" (:id @item) "/cost")}
         (util/format-money (purchased-items-price item))]])))
 
-(defn price-t-shirt [] (:price (deref (:festival-shirt @merch))))
-(defn price-coffee-mug [] (:price (deref (:coffee @merch))))
-(defn price-tote [] (:price (deref (:tote-bag @merch))))
+(defn find-by-id [id]
+  @(first (filter (= (:id #) id) @merch)))
+
+(defn price-t-shirt [] (:price (find-by-id :festival-shirt)))
+(defn price-coffee-mug [] (:price (find-by-id :coffee)))
+(defn price-tote [] (:price @(find-by-id :tote-bag)))
 
 (defn merch-header-row []
   [:thead [:tr {:key "merch-header-row"}
@@ -282,7 +303,8 @@
      [:p "This section is being revised and styles/sizes will display erratically for now. TODO"]
      [:table {:class "extras"}
       [merch-header-row]
-      [:tbody (map #([product-row %]) (available-products))]
+      [:tbody (for [product (available-products)] 
+                [product-row product] )]
       [:tfoot [:tr {:key "merch-footer-row"} 
                [:th {:key "merch-footer/subtotal-label" :col-span 3} "Subtotal"]
                [:td {:key "merch-footer/subtotal"} [sum-merch-prices]]]]]]))

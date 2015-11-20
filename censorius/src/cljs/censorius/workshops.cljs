@@ -1,6 +1,5 @@
 (ns censorius.workshops
   (:require
-   [alandipert.storage-atom :refer [local-storage]]
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.data :as d]
@@ -8,8 +7,7 @@
    [censorius.radio :as radio]
    [censorius.text :as text]))
 
-(defonce workshops (local-storage (reagent/atom [])
-                                  :reg-workshops))
+(defonce workshops (reagent/atom []))
 
 (defn workshop-info [workshop]
   [:tr [:td (:long-name @workshop)]
@@ -88,6 +86,16 @@
      "⁂ Present a workshop"
      "+ Add another")])
 
+(defn all-possible-presenters []
+  (map (fn [guest]
+         (let [n (or (:formal-name @guest)
+                     (str (or (:called-by @guest)
+                              (:given-name @guest))
+                          " "
+                          (:surname @guest)))]
+           [n n]))
+    @guest-list/guests))
+
 (defn add-workshop-box []
   (let [new (atom {:title "" :presenter nil})]
     (fn []  
@@ -100,14 +108,7 @@
                     [radio/radio-set {:label "Presenter" 
                                       :cursor new
                                       :key :presenter
-                                      :tags (map (fn [guest]
-                                                   (let [n (or (:formal-name @guest)
-                                                               (str (or (:called-by @guest)
-                                                                        (:given-name @guest))
-                                                                    " "
-                                                                    (:surname @guest)))]
-                                                     [n n]))
-                                              @guest-list/guests)}]
+                                      :tags (all-possible-presenters)}]
                     (when (and (:presenter new)
                                (not (empty? (:title new)))) 
                       [add-workshop-button new])]]])))

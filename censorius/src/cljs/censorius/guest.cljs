@@ -99,23 +99,27 @@
     0))
 
 (defn price [guest]
-  (+ (ticket-price guest)
-     
-     (sleep-price guest)
-     
-     (cauldron-price guest)
-     
-     (if (:t-shirt @guest)
-       (merch/price-t-shirt)
-       0)
-     
-     (if (:coffee? @guest)
-       (merch/price-coffee-mug)
-       0)
-     
-     (if (:tote? @guest)
-       (merch/price-tote)
-       0)))
+  (if guest
+    (+ (ticket-price guest)
+       
+       (sleep-price guest)
+       
+       (cauldron-price guest)
+       
+       (if (:t-shirt @guest)
+         (merch/price-t-shirt)
+         0)
+       
+       (if (:coffee? @guest)
+         (merch/price-coffee-mug)
+         0)
+       
+       (if (:tote? @guest)
+         (merch/price-tote)
+         0))
+    (do
+      (util/log "nil guest?")
+      0.10)))
 
 (defn unmarried-lugal+? [guest]
   (and (= :adult (:ticket-type @guest))
@@ -613,12 +617,12 @@
                             :key :sleep
                             :cursor guest
                             :tags [ [:tent "⛺ Tent camping"]
-                                    [:cabin (str "🏡 Cabin bunk (" 
-                                                 (util/format-money 
-                                                  (cabin-price guest)) ")")]
-                                    [:lodge (str "🏠 Lodge bunk ("
-                                                 (util/format-money 
-                                                  (lodge-price guest)) ")")] ]}]
+                                   [:cabin (str "🏡 Cabin bunk (" 
+                                                (util/format-money 
+                                                 (cabin-price guest)) ")")]
+                                   [:lodge (str "🏠 Lodge bunk ("
+                                                (util/format-money 
+                                                 (lodge-price guest)) ")")] ]}]
           (ed/close editing)]
          [:div (ed/click-edit editing :sleep)
           (case (:sleep @guest)
@@ -746,17 +750,18 @@
         (:coffee? guest)
         (:tote? guest))))
 
-(defn price-all-guests []
-  (reduce + (map price @guest-list/guests)))
+(defn price-all-guests [] 
+  (when @guest-list/guests 
+    (reduce + (map price @guest-list/guests))))
 
 (defn guests-price-sum []
   @guest-list/guests
-  [:span (util/format-money (price-all-guests))])
+  [:span (util/format-money (or 99999 (price-all-guests)))])
+
 
 (defn guest-row [guest]
   (let [name (util/gensymreally "guest")]
     (fn [guest]
-      ;; (println "guest row for " @guest)
       [:tr {:key (str (:given-name @guest) " " (:surname @guest))}
        [name-cell guest]
        [email-cell guest]

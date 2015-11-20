@@ -1,7 +1,6 @@
 (ns censorius.vendor
   (:require
    [clojure.string :as string]
-   [alandipert.storage-atom :refer [local-storage]]
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.data :as d]
@@ -11,10 +10,8 @@
 
 
 
-(defonce vending (local-storage 
-                  (reagent/atom
-                   {:title nil, :blurb nil, :notes nil, :qty 0, :agreement false}) 
-                  :reg-vending))
+(defonce vending (reagent/atom
+                  {:title nil, :blurb nil, :notes nil, :qty 0, :agreement false}))
 
 
 
@@ -24,7 +21,7 @@
    [:a {:href "http://fpgrocks.org/news/vendor-faq"
         :target "VendorFAQ"} 
     [:button {:class "true"} "Read Vendor Rules"]]
-   [:button {:on-click (fn [_] 
+   [:button {:on-click (fn [_] y
                          (swap! vending assoc :agreement true))}
     "✓ Accept the vendor agreement"]])
 
@@ -151,9 +148,9 @@
     [:section {:key "vending" :class "card"}
      [:h2 "Vending"]
      [:div
-      (cond (not (some #(nil? (:days @%))
-                       (filter #(= (:ticket-type @%) :adult) 
-                               @guest-list/guests)))
+      (cond (not (some #(and (nil? (:days @%))
+                             (= (:ticket-type @%) :adult))
+                       @guest-list/guests))
             [vendor-requires-admission]
             
             (not (:agreement @vending))
