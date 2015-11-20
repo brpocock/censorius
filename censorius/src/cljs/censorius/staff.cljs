@@ -10,36 +10,31 @@
                    "silvermoonlady9@yahoo.com" "silvermoonlady9@yahoo.com"
                    "suannegould@gmail.com" "suannegould@gmail.com"
                    "ama422@aol.com" "ama422@aol.com"
-                   "beccasturgill@gmail.com" "beccasturgill@gmail.com"
-                   "BRPocock@Star-Hope.org" "BRPocock@Star-Hope.org"
-                   "Bigredog14@gmail.com" "Bigredog14@gmail.com"
-                   "Constance.m.grimsley@gmail.com" "Constance.m.grimsley@gmail.com"
+                   "brpocock@star-hope.org" "brpocock@star-hope.org"
+                   "bigredog14@gmail.com" "bigredog14@gmail.com"
+                   "constance.m.grimsley@gmail.com" "constance.m.grimsley@gmail.com"
                    "spence101878@gmail.com" "spence101878@gmail.com"
                    "phyrphlyeyez@gmail.com" "phyrphlyeyez@gmail.com"
                    "healthymom@hotmail.com" "healthymom@hotmail.com"
                    "ddolph1n@yahoo.com" "ddolph1n@yahoo.com"
                    "ladyunicornbeth@yahoo.com" "ladyunicornbeth@yahoo.com"
-                   "Dharmahog@gmail.com" "Dharmahog@gmail.com"
+                   "dharmahog@gmail.com" "dharmahog@gmail.com"
                    "jade6969cp@yahoo.com" "jade6969cp@yahoo.com"
-                   "Nursejenn42@gmail.com" "Nursejenn42@gmail.com"
+                   "nursejenn42@gmail.com" "nursejenn42@gmail.com"
                    "jennie0280@yahoo.com" "jennie0280@yahoo.com"
                    "jess_carpenter@hotmail.com" "jess_carpenter@hotmail.com"
                    "jim.dustman@gmail.com" "jim.dustman@gmail.com"
                    "jpocock@star-hope.org" "jpocock@star-hope.org"
                    "narissamyers@yahoo.com" "narissamyers@yahoo.com"
                    "c4life1@gmail.com" "c4life1@gmail.com"
-                   "" ""
                    "dethmoongypsy@yahoo.com" "dethmoongypsy@yahoo.com"
                    "lrblackhood@aol.com" "lrblackhood@aol.com"
-                   "narissamyers@yahoo.com" "narissamyers@yahoo.com"
                    "paultgarrett@gmail.com" "paultgarrett@gmail.com"
-                   "" ""
                    "freakboy@nightbirdsjourney.com" "freakboy@nightbirdsjourney.com"
                    "smshame@hotmail.com" "smshame@hotmail.com"
                    "beccasturgill@gmail.com" "beccasturgill@gmail.com"
                    "teresa.fpgstuff@gmail.com" "teresa.fpgstuff@gmail.com"
-                   "tajredhawk@aol.com" "tajredhawk@aol.com"
-                   })
+                   "tajredhawk@aol.com" "tajredhawk@aol.com" })
 
 (def +bod+ ["ama422@aol.com" 
             "jennie0280@yahoo.com" 
@@ -47,7 +42,7 @@
             "paultgarrett@gmail.com" 
             "teresa.fpgstuff@gmail.com" 
             ])
-(def +div+ {:cauldron :name "Bubbling Cauldron"
+(def +div+ {:cauldron { :name "Bubbling Cauldron"}
             :hearth {:coord "narissamyers@yahoo.com" :name "Guest Hearth"}
             :ops {:coord "suannegould@gmail.com" :name "Operations"}
             :registration {:coord "bjcalupca@aol.com" :name "Registration"}

@@ -118,7 +118,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
   @guest-list/guests
   [:div
    [guest-list-box]
-   [merch/merch-box]
+   #_ [merch/merch-box]
    [vendor/vendor-box]
    [workshops/workshop-box]
    [scholarship-box]
