@@ -8,39 +8,39 @@
    [censorius.staff :as staff]
    [censorius.utils :as util]))
 
-(defonce guests (reagent/atom 
-                 [ (reagent/atom { :called-by "Sage"
-                                  :given-name "John"
-                                  :surname "Fenn Pocock"
-                                  :formal-name nil
-                                  :presenter-bio nil
-                                  :presenter-requests nil
-                                  :e-mail "sage@star-hope.org"
-                                  :telephone nil
-                                  :sleep :tent
-                                  :eat nil
-                                  :day nil
-                                  :gender :m
-                                  :ticket-type :adult
-                                  :t-shirt :xs
-                                  :coffee? false
-                                  :tote? false })
-                  (reagent/atom { :called-by nil
-                                 :given-name "Bruce-Robert"
-                                 :surname "Fenn Pocock"
-                                 :formal-name nil
-                                 :presenter-bio nil
-                                 :presenter-requests nil
-                                 :e-mail "brpocock@star-hope.org"
-                                 :telephone nil
-                                 :sleep :tent
-                                 :eat nil
-                                 :day nil
-                                 :gender :m
-                                 :ticket-type :adult
-                                 :t-shirt :s
-                                 :coffee? false
-                                 :tote? false })]))
+(defonce guests (reagent/atom []
+                              #_ [ (reagent/atom { :called-by "Sage"
+                                                  :given-name "John"
+                                                  :surname "Fenn Pocock"
+                                                  :formal-name nil
+                                                  :presenter-bio nil
+                                                  :presenter-requests nil
+                                                  :e-mail "sage@star-hope.org"
+                                                  :telephone nil
+                                                  :sleep :tent
+                                                  :eat nil
+                                                  :day nil
+                                                  :gender :m
+                                                  :ticket-type :adult
+                                                  :t-shirt :xs
+                                                  :coffee? false
+                                                  :tote? false })
+                                  (reagent/atom { :called-by nil
+                                                 :given-name "Bruce-Robert"
+                                                 :surname "Fenn Pocock"
+                                                 :formal-name nil
+                                                 :presenter-bio nil
+                                                 :presenter-requests nil
+                                                 :e-mail "brpocock@star-hope.org"
+                                                 :telephone nil
+                                                 :sleep :tent
+                                                 :eat nil
+                                                 :day nil
+                                                 :gender :m
+                                                 :ticket-type :adult
+                                                 :t-shirt :s
+                                                 :coffee? false
+                                                 :tote? false })]))
 (util/log "Seeded guest list : " @guests)
 
 (defn need-adult-email []
@@ -403,7 +403,7 @@ Add other members of your party, and watch the Assistant box for advice.")
 (defn address-mixed-party [leader guests] 
   (if (every? #(= (:surname @%) (:surname @leader)) @guests)
     (str "The " (:surname @leader) " Party of " (util/counting (count @guests) "Guest"))
-    (str (guest/personal-address leader)
+    (str (censorius.guest/personal-address leader)
          " &  " (util/counting (- (count @guests) 1) "Guest"))))
 
 (defn party-title []
@@ -413,7 +413,7 @@ Add other members of your party, and watch the Assistant box for advice.")
              "New Party: Please Register"
              
              1
-             (personal-address leader)
+             (censorius.guest/personal-address leader)
              
              2
              (address-couple leader (second @guests))
@@ -442,16 +442,14 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
 
 (defn maybe-guest-list []
   (util/log "Maybe guest list")
-  (when (have-guests)
-    (util/log "We have guests")
-    (let [prog1 [:tbody
-                 (doall (for [guest @guests] 
-                          (do (util/log "Let's print a row for this guest …")
-                              (util/log "Let's print a row for this guest; guest=" guest)
-                              (censorius.guest/guest-row guest))))]]
-      (util/log "generated a tree")
-      (util/log "tree looks like: " (str prog1))
-      prog1)))
+  [:tbody (when (have-guests)
+            (util/log "We have guests")
+            (let [prog1 (doall (for [guest @guests] 
+                                 (do (util/log "Let's print a row for this guest …")
+                                     (util/log "Let's print a row for this guest; guest=" @guest)
+                                     (censorius.guest/guest-row guest))))]
+              (util/log "generated a tree")
+              prog1))])
 
 (defn guest-list-box []
   (fn []

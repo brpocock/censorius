@@ -187,7 +187,7 @@
 
 
 
-(guest/marry! (first @guest-list/guests) (second @guest-list/guests))
+#_ (guest/marry! (first @guest-list/guests) (second @guest-list/guests))
 
 
 ;; Initialize app

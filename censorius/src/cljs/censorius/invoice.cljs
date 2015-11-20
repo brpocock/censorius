@@ -1,5 +1,6 @@
 (ns censorius.invoice
   (:require
+   [clojure.string :as string]
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.data :as d]
@@ -23,8 +24,7 @@
   (reduce + (map util/just-decimal (vals @scholarships))))
 
 (defn total-due []
-  (+ 999999
-     (guest-list/price-all-guests)
+  (+ (guest-list/price-all-guests)
      (merch/price-all-merch)
      (vendor/price-vendor)
      (scholarship-donations-amount)
@@ -234,16 +234,15 @@ legally binding.)"]
    [text/text-input {:cursor d/general
                      :keys :waiver-signature
                      :label "Sign here"
-                     :placeholder (map #(str (:given-name @%) " " (:surname @%))
-                                    (first 
-                                     (filter #(= (:ticket-type @%) :adult)
-                                             @guest-list/guests)))
+                     :placeholder (guest/legal-name
+                                   (first (filter guest/adult?
+                                                  @guest-list/guests)))
                      :rows 1}]])
 
 (defn waiver-signed? []
   (some #(= % (:waiver-signature @d/general))
-        (map #(str (:given-name @%) " " (:surname @%))
-          (filter #(= (:ticket-type @%) :adult)
+        (map guest/legal-name
+          (filter guest/adult?
                   @guest-list/guests))))
 
 
@@ -270,6 +269,38 @@ legally binding.)"]
 
 
 (defn check-out-button-box []
+  [:div
+   [:h3 "ID Check!"]
+   [:p "At Registration, you will  need valid, State-issued photo ID for
+   each adult  member of your  party. Please  be sure that  your party's
+   legal names are: "
+    (string/join ", " (map guest/legal-name @guest-list/guests))]
+   [:h4 "Fast Check-In Help"]
+   [:p "If you, " (:waiver-signature @d/general) 
+    ", have a Florida ID or Driver's License, you may be able to use our
+ new  Quick  Check-In   by  swiping  your  ID  card   to  retrieve  your
+ reservations. In  order to  confirm that  you are  “you,” and  not some
+ other person  with the  same name,  would you  mind entering  these two
+ extra pieces of information?"]
+   [:p {:class "hint"}
+    "These are completely optional, but  if you supply them now, they'll
+be used at  check-in to identify your reservation. You  can enter either
+or both. The Quick Check-In scanner will only work if you have a Florida
+ID with the magnetic stripe on the back."]
+   [:div
+    [text/text-input {:cursor d/general
+                      :keys :fast-check-in-address
+                      :label "The house/building number on your street address (digits only)"
+                      :placeholder "1234"
+                      :validate util/just-digits?
+                      :rows 1}]]
+   [:div
+    [text/text-input {:cursor d/general
+                      :keys :fast-check-in-zip-code
+                      :label "Your home ZIP code"
+                      :placeholder "33000"
+                      :validate util/fl-zip-code?
+                      :rows 1}]]]
   [:div {:class "buttonBox"}
    (when (pos? (total-due)) 
      [:button

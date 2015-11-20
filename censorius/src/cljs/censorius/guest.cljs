@@ -11,12 +11,10 @@
    [censorius.text :as text]
    [censorius.utils :as util]))
 
-#_ (defn abbr* [short & more]
-     [:abbr {:title (str short " " (string/join " " more))}
-      short])
+(defn abbr* [short & more]
+  [:abbr {:title (str short ":  " (string/join " " more))}
+   short])
 
-(defn abbr* [& args]
-  (apply util/abbr args))
 
 (defn mmap [m f a] (->> m (f a) (into (empty m))))
 
@@ -30,12 +28,18 @@
 
 (defn everyone-else-but [guest]
   (filter #(not (same-person? guest %))
-          censorius.guest-list/guest-list))
+          censorius.guest-list/guests))
 
 (defn spouse [guest]
-  (when-let [marriage (:spouse @guest)]
-    (first (filter #(= (:spouse @%) marriage)
-                   (everyone-else-but guest)))))
+  (util/log " guest " (personal-address guest) " married? " (if (:spouse @guest) "married" "no"))
+  (when (:spouse @guest)
+    (let [spouse (first (filter #(= (:spouse @%) 
+                                    (:spouse @guest))
+                                (everyone-else-but guest)))]
+      (if spouse
+        (util/log " found spouse " (personal-address spouse))
+        (util/log " no spouse?"))
+      spouse)))
 
 (defn bachelor? [guest]
   (nil? (:spouse @guest)))
@@ -111,11 +115,11 @@
         (:adult (:ticket @d/prices))))))
 
 (defn cabin-price [guest]
-  ((if (staff/staff? @guest) :staff :regular)
+  ((if (staff/staff? guest) :staff :regular)
    (:cabin @d/prices)))
 
 (defn lodge-price [guest]
-  ((if (staff/staff? @guest) :staff :regular)
+  ((if (staff/staff? guest) :staff :regular)
    (:lodge @d/prices)))
 
 (defn sleep-price [guest]
@@ -149,7 +153,7 @@
 
 (defn unmarried-lugal+? [guest]
   (and (= :adult (:ticket-type @guest))
-       (staff/lugal+? @guest)
+       (staff/lugal+? guest)
        (bachelor? guest)))
 
 (defn married-line [{:keys [from to]} children self]
@@ -161,11 +165,14 @@
      :f "wife"
      "married")
    " to "
-   (when (staff/lugal+? @to)
+   (when (staff/lugal+? to)
      "𒈗 ")
    (or (:called-by @to) (:given-name @to))
    " "
    (:surname @to)])
+
+(defn legal-name [guest]
+  (str (:given-name @guest) " " (:surname @guest)))
 
 (defn personal-address [guest]
   (str (case (:gender @guest)
@@ -211,7 +218,7 @@
       
       (cond 
         
-        (not= (adult? @guest))
+        (not (adult? guest))
         [:div {:key "lugal-kid"}
          (if (some (partial staff/lugal+?) @censorius.guest-list/guests)
            [:p {:class "hint"} 
@@ -226,7 +233,7 @@
              (empty? bachelors))
         [:span]
         
-        (lugal+-spouse? @guest)
+        (lugal+-spouse? guest)
         [:div {:key "divorce-lugal"}
          [:label [:input {:type "checkbox"
                           :on-change #(divorce! guest spouse)
@@ -437,7 +444,7 @@
                              true)}
         "←"]]
       
-      (or (staff/staff? @guest)
+      (or (staff/staff? guest)
           (:staff-verify? @guest))
       [staff-department-select guest]
       
@@ -492,41 +499,45 @@
   (let [editing (atom false)] 
     (fn [guest]
       [:td 
-       (if @editing
-         [:div {:class "pop-out"}
-          [text/text-input {:cursor guest
-                            :keys :e-mail
-                            :label "eMail address"
-                            :placeholder (.toLowerCase (str (first (:given-name @guest))
-                                                            (:surname @guest)
-                                                            "@example.com"))
-                            :format util/format-email
-                            :validate util/email?
-                            :rows 1}]
-          (ed/close editing) ]
-         [:div (ed/click-edit editing :mail)
-          (if-let [mail (:e-mail @guest)]
-            (abbr* "✉" mail)
-            (abbr* "⃠" "No e-mail address"))])])))
+       (if (adult? guest)
+         (if @editing
+           [:div {:class "pop-out"}
+            [text/text-input {:cursor guest
+                              :keys :e-mail
+                              :label "eMail address"
+                              :placeholder (.toLowerCase (str (first (:given-name @guest))
+                                                              (:surname @guest)
+                                                              "@example.com"))
+                              :format util/format-email
+                              :validate util/email?
+                              :rows 1}]
+            (ed/close editing) ]
+           [:div (ed/click-edit editing :mail)
+            (if-let [mail (:e-mail @guest)]
+              (abbr* "✉" mail)
+              (abbr* "⃠" "No e-mail address"))])
+         "—")])))
 
 (defn phone-cell [guest]
   (let [editing (atom false)]
     (fn [guest]
       [:td
-       (if @editing
-         [:div {:class "pop-out"}
-          [text/text-input {:cursor guest
-                            :keys :telephone
-                            :label "Phone number"
-                            :placeholder "(305) 555-1234"
-                            :format util/format-phone
-                            :validate util/phone-number?
-                            :rows 1}]
-          (ed/close editing)]
-         [:div  (ed/click-edit editing :phone)
-          (if-let [phone (:telephone @guest)]
-            (abbr* "📞" phone)
-            (abbr* "⃠" "No telephone number"))])])))
+       (if (adult? guest)
+         (if @editing
+           [:div {:class "pop-out"}
+            [text/text-input {:cursor guest
+                              :keys :telephone
+                              :label "Phone number"
+                              :placeholder "(305) 555-1234"
+                              :format util/format-phone
+                              :validate util/phone-number?
+                              :rows 1}]
+            (ed/close editing)]
+           [:div  (ed/click-edit editing :phone)
+            (if-let [phone (:telephone @guest)]
+              (abbr* "📞" phone)
+              (abbr* "⃠" "No telephone number"))])
+         "—")])))
 
 (defn staff-discount-applied-box [guest]
   [:div 
@@ -556,18 +567,18 @@
 (defn edit-ticket-cell [guest editing]
   [:div {:class "pop-out"}
    (cond
-     (staff/lugal+? @guest)
+     (staff/lugal+? guest)
      [lugal+-discount-applied guest]
      
-     (staff/staff? @guest)
+     (staff/staff? guest)
      [staff-discount-applied-box guest]
      
      :else
      (let [tag-list [[:adult (str "🎫" (person-icon guest) " Adult"
-                                  (if (lugal+-spouse? @guest)
+                                  (if (lugal+-spouse? guest)
                                     " (Lugal+ spouse discount)"
                                     ""))]]
-           tag-list (if (bachelor? @guest)
+           tag-list (if (bachelor? guest)
                       (conj 
                        (conj tag-list 
                              [:child "🎫🚸 Child (ages 5→17)"])
@@ -619,7 +630,7 @@
 
 (defn editing-days-cell [guest editing]
   [:div {:class "pop-out"}
-   (if (staff/staff? @guest)
+   (if (staff/staff? guest)
      [:div "Tuesday→Sunday"
       [:div {:class "hint"} "Staff members are always a full week admission"]]
      [radio/radio-set {:label "Days attending"

@@ -778,8 +778,7 @@ abbr {
     left: 50%;
     top: 50%;
     z-index: 11;
-    transform: translate(-50%, -50%);
-    transform: rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
 }
 
 .pop-out>button.close {

@@ -73,7 +73,7 @@
                               :div :registration :name "Parking"}
                     :web {:lugal "ddolph1n@yahoo.com"
                           :div :bod :name "Photography & Web Design"}
-                    :registration {:lugal ["jim.dustman@gmail.com"]
+                    :registration {:lugal "jim.dustman@gmail.com"
                                    :div :registration :name "Registration"}
                     :ritual {:lugal [:roger "spence101878@gmail.com"]
                              :div :bod :name "Ritual"}

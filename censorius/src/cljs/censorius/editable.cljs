@@ -15,7 +15,7 @@
 (defn click-edit [editing? label]
   {:on-click (fn [event]
                (reset! editing? true)
-               (reset! nightshade? @editing?)
+               (reset! nightshade? false #_ @editing?)
                (.stopPropagation event))
    :class (str (.substring (str label) 1 (count (str label)))
                " editable-clickable "
@@ -28,7 +28,6 @@
             :on-click (fn [event] 
                         (reset! nightshade? false)
                         (reset! editing? false)
-                        (.stopPropagation event)
-                        true)} 
+                        (.stopPropagation event))} 
    "✓ Close"])
 

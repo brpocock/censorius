@@ -127,6 +127,9 @@
 (defn t-shirt-size-short-name [size]
   (string/upper-case (util/keyword->string size)))
 
+(defn count-sold [item]
+  (reduce + (map :qty (:styles @item))))
+
 (defn purchased-items-price [item]
   (* (count-sold item)
      (:price @item)))
@@ -221,9 +224,6 @@
               (str "and "
                    (.toLowerCase (util/counting (- (count styles) 4) "other")))])
     styles))
-
-(defn count-sold [item]
-  (reduce + (map :qty (:styles @item))))
 
 (defn plus-grid-sales [item]
   (let [purchased (censorius.guest-list/purchased-for-guests (:id @item))]
