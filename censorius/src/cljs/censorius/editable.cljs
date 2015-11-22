@@ -1,7 +1,8 @@
 (ns censorius.editable
   (:require
    [clojure.string :as string]
-   [reagent.core :as reagent :refer [atom]]))
+   [reagent.core :as reagent :refer [atom]]
+   [censorius.utils :as util]))
 
 (def nightshade? (atom false))
 
@@ -17,6 +18,8 @@
                (reset! editing? true)
                (reset! nightshade? false #_ @editing?)
                (.stopPropagation event))
+   :style {:display (if @editing? "none" "block")}
+   ;; :key (util/keyword->string label)
    :class (str (.substring (str label) 1 (count (str label)))
                " editable-clickable "
                (if @editing?

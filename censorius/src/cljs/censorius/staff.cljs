@@ -40,8 +40,8 @@
             "jennie0280@yahoo.com" 
             "lrblackhood@aol.com" 
             "paultgarrett@gmail.com" 
-            "teresa.fpgstuff@gmail.com" 
-            ])
+            "teresa.fpgstuff@gmail.com"])
+
 (def +div+ {:cauldron { :name "Bubbling Cauldron"}
             :hearth {:coord "narissamyers@yahoo.com" :name "Guest Hearth"}
             :ops {:coord "suannegould@gmail.com" :name "Operations"}
@@ -141,11 +141,9 @@
   (get +staff-mail+ mail))
 
 (defn staff? [person]
-  (let [staffy (or (and (:e-mail @person)
-                        (highest-job? (staff-id (:e-mail @person))))
-                   (:staff-department person))]
-    #_ (util/log "Staff? → " staffy)
-    staffy))
+  (or (and (:e-mail @person)
+           (highest-job? (staff-id (:e-mail @person))))
+      (:staff-department @person)))
 
 (defn lugal+? [person]
   (when-let [staff-id (staff-id (:e-mail @person))]

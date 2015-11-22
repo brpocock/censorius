@@ -52,6 +52,10 @@
   "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
   :test #'equal)
 
+(define-constant +archive-mail+
+  "\"Registration Archive\" <reg-archive@flapagan.org>"
+  :test #'equal)
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (load (make-pathname :name "herald-mysql"
                        :defaults (user-homedir-pathname))))
@@ -64,7 +68,7 @@
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
 
 (eval-when (:compile-toplevel)
-  (format *trace-output* "~&Compiling Herald with baked-in configuration:
+  (format t "~&Compiling Herald with baked-in configuration:
  • User home directory: ~a
  • DB: ~:[Unknown/incorrect type~;MariaDB/MySQL~] database
     • host: ~a 
@@ -75,6 +79,7 @@
  • Sysop mail: ~a
  • Herald mail: ~a
  • Registrar mail: ~a
+ • Archive mail: ~a
  • Compile-time version marker: ~36r~2%"
           (user-homedir-pathname)
           herald-db-config:+mysql+ 
@@ -86,6 +91,7 @@
           +sysop-mail+
           +herald-mail+
           +registrar-mail+
+          +archive-mail+
           +compile-time+))
 
 
@@ -222,9 +228,9 @@ each of them; but if given only one, return it as an atom."
 ;;; they're unbound at the top-level SO THAT trying to access them will
 ;;; signal an error.
 
-(defvar *cgi*)
-(defvar *request*)
-(defvar *db*)
+(defvar *cgi* :cgi)
+(defvar *request* nil)
+(defvar *db* :disconnected)
 
 
 
@@ -303,7 +309,7 @@ must use a string.)"
 must be the numeric HTTP status code."
   (reply (list :raw
                (format nil
-                       "Status: ~d~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}"
+                       "Status: ~d~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}~2%"
                        (first conditions)
                        (mapcar #'princ-to-string (rest conditions))))))
 
@@ -343,7 +349,8 @@ real numbers."
   (etypecase object
     (string (princ (html-escape object) stream))
     (integer (princ (html-escape (format nil "~:d" object)) stream))
-    (condition (princ (print-condition/html object) stream))))
+    (condition (princ (print-condition/html object) stream))
+    (t (princ (html-escape (princ-to-string object)) stream))))
 
 (defun cl-user::edn (stream object colonp atp &rest parameters)
   (assert (not colonp))
@@ -364,6 +371,41 @@ real numbers."
                  (vector (format stream "[~{~/edn/~^ ~}]" (coerce object 'list)))
                  (list (format stream "{~{~/edn/ ~/edn/~^, ~}}" object))))))
 
+(defun backtrace-to-list (line-format)
+  (let ((accumulator ())
+        (depth 0))
+    (trivial-backtrace:map-backtrace
+     (lambda (frame)
+       (when (> (incf depth) 3)
+         (appendf accumulator
+                  (cons (format nil line-format
+                                (trivial-backtrace::frame-func frame)
+                                (mapcar
+                                 (lambda (var)
+                                   (list (trivial-backtrace::var-name var)
+                                         (trivial-backtrace::var-value var)))
+                                 (trivial-backtrace::frame-vars frame))
+                                (trivial-backtrace::frame-source-filename frame)
+                                (trivial-backtrace::frame-source-pos frame))
+                        nil)))))
+    accumulator))
+
+(defun print-condition/html (c)
+  (format nil "<section class=\"error\">
+<h2> A condition of type ~/html/ was signaled. </h2>
+<h3>~/html/</h3>
+<ol class=\"backtrace\">
+~/html/
+</ol>
+</section>"
+          (type-of c)
+          c
+          (with-output-to-string (s)
+            (uiop/image:print-condition-backtrace c)
+            s)))
+
+#+ (or)
+
 (defun print-condition/html (c)
   (format nil "<section class=\"error\">
 <h2> A condition of type ~a was signaled. </h2>
@@ -374,27 +416,37 @@ real numbers."
 </section>"
           (html-escape (type-of c))
           (html-escape c)
-          (let ((accumulator ())
-                (depth 0))
-            (trivial-backtrace:map-backtrace
-             (lambda (frame)
-               (when (> (incf depth) 3)
-                 (appendf
-                  accumulator
-                  (cons
-                   (format
-                    nil
-                    "ƒ~:(~a~)⋅(~{~{~:(~a~)=<tt>~s</tt>~}~^, ~}) (~a~@[, form ~a~])"
-                    (trivial-backtrace::frame-func frame)
-                    (mapcar
-                     (lambda (var)
-                       (list (trivial-backtrace::var-name var)
-                             (trivial-backtrace::var-value var)))
-                     (trivial-backtrace::frame-vars frame))
-                    (trivial-backtrace::frame-source-filename frame)
-                    (trivial-backtrace::frame-source-pos frame))
-                   nil)))))
-            accumulator)))
+          (backtrace-to-list "ƒ~:(~/html/~)⋅(~{~{~:(~/html/~)=<tt>~/html/</tt>~}~^, ~}) (~/html/~@[, form ~/html/~])")))
+
+(defun mail-error (condition)
+  (cl-sendmail:with-email
+      (mail-reg +sysop-mail+
+                :cc +herald-mail+
+                :subject (concatenate 'string "[herald-error] " (let ((condition$ (format nil "~a" condition)))
+                                                                  (subseq condition$ 0 (min (length condition$)
+                                                                                            20))))
+                :from +herald-mail+
+                :other-headers (list (list "References" (concatenate 'string "condition." (type-of condition) "." +herald-mail+))
+                                     '("Organization" "Temple of Earth Gathering, Inc.")
+                                     (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
+                :charset :utf-8
+                :type "text" :subtype "plain")
+    "A condition of type ~a was signaled.
+
+~a
+
+Query params:
+~s
+
+Backtrace:
+~{~% → ~a~}
+
+\(end of line)"
+    (type-of condition)
+    (or condition "Ø")
+    (ignore-errors (query-params))
+    ;;(ignore-errors (backtrace-to-list "ƒ~:(~a~)⋅(~{~{~:(~a~)=~s~}~^, ~}) (~a~@[, form ~a~])"))
+    (with-output-to-string (s) (uiop/image:print-condition-backtrace c) s)))
 
 (defun reply-error/html (conditions)
   (reply (list :raw
@@ -404,7 +456,7 @@ Content-Type:text/html
 <!DOCTYPE html>
 <html>
   <title> HTTP Error ~:*~d </title>
- <link rel=\"stylesheet\" href=\"/reg/css/style.css\" >
+  <link rel=\"stylesheet\" href=\"/reg/css/style.css\" >
 </head>
 <body>
 
@@ -416,7 +468,7 @@ Content-Type:text/html
 <p>Your request could not be processed because of the following
 condition:</p>
 
-~{~a~2%~}
+~{<div>~/html/</div>~%~}
 
 </section>
 
@@ -428,28 +480,26 @@ Censorius Herald running in ~a service; compile-time cookie ~36r
 be reached at: ~a </p>
 
 </body></html>~%"
-                       (princ-to-string (first conditions))
+                       (first conditions)
                        (cond
                          ((= (first conditions) 404)
                           (list "The resource which you requested was not found."))
-                         (t (mapcar (lambda (c)
-                                      (typecase c
-                                        (condition (print-condition/html c))
-                                        (t (format nil "<div>~/html/</div>" c))))
-                                    (rest conditions))))
+                         
+                         (t (rest conditions)))
                        *cgi*
                        +compile-time+
-                       (first
-                        (split-sequence
-                         #\>
-                         (second (split-sequence
-                                  #\<
-                                  +sysop-mail+))))))))
+                       (first (split-sequence 
+                               #\>
+                               (second (split-sequence
+                                        #\<
+                                        +sysop-mail+))))))))
 
 (defun reply-error (conditions)
   (cond
     ((accept-type-p "text/html") (reply-error/html conditions))
-    (t (reply-error/text conditions))))
+    (t (reply-error/text conditions)))
+  (format *trace-output* "ERROR condition: ~{~a~^  ~}" conditions)
+  (mail-error (first conditions)))
 
 (defun reply (structure)
   (ecase (car structure)
@@ -462,15 +512,16 @@ be reached at: ~a </p>
     '(:note)
   :test #'equalp)
 
-
 (defun mail-reg (destination subject reference &rest message-fmt+args)
   (cl-sendmail:with-email
       (mail-reg destination
-                :bcc +sysop-mail+
+                :bcc +sysop-mail+ 
+                :cc +archive-mail+
                 :subject subject
                 :from +herald-mail+
                 :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail+))
-                                     '("Organization" "Temple of Earth Gathering, Inc."))
+                                     '("Organization" "Temple of Earth Gathering, Inc.")
+                                     (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
                 :charset :utf-8
                 :type "text" :subtype "plain")
     (apply (curry #'format mail-reg) message-fmt+args)))
@@ -743,7 +794,7 @@ cookie says “~36r.”
     (and invoice
          token
          (every #'digit-char-p invoice)
-         (equal (invoice->token invoice token))
+         (equal (invoice->token invoice) token)
          (parse-integer invoice))))
 
 (defmethod handle-verb ((verb (eql :save)))
@@ -792,7 +843,7 @@ cookie says “~36r.”
   (error "Imagine I just tested PayPal with this."))
 
 (defun dispatch ()
-  (format *trace-output* "~& → verb = ~a~%" (field :verb))
+  (format *trace-output* "~& DISPATCH:  verb = ~a~%" (field :verb))
   (handle-verb (make-keyword (string-upcase (field :verb)))))
 
 (defun admin-key (invoice)
@@ -835,15 +886,16 @@ cookie says “~36r.”
       (handler-case
           (dispatch)
         (error (c)
+          (reply `(:error 500 ,c))
           (fresh-line *error-output*)
           (trivial-backtrace:print-condition c *error-output*)
-          (trivial-backtrace:print-backtrace-to-stream *error-output*)
+          (uiop/image:print-condition-backtrace c :stream *error-output*)
           (mail-reg +sysop-mail+ (format nil "Herald error: ~a" (princ-to-string c))
                     (format nil "Error/~a" (string (type-of c)))
                     "~a~2%~a"
                     (princ-to-string c)
-                    (trivial-backtrace:backtrace-string c))
-          (reply `(:error 500 ,c))
+                    ;; (trivial-backtrace:backtrace-string c)
+                    (with-output-to-string (s) (uiop/image:print-condition-backtrace c) s))
           (return-from fastcgi nil))))))
 
 (defun remote-user ()
@@ -874,11 +926,13 @@ cookie says “~36r.”
           (let ((output (with-output-to-string (output)
                           (funcall fun)
                           output)))
-            (write output))
+            (reply (list :raw output)))
         (error (c)
           (fresh-line *error-output*)
-          (trivial-backtrace:print-condition c *error-output*)
-          (trivial-backtrace:print-backtrace-to-stream *error-output*)
+          (format *error-output* " --- Error signaled: ~a" c)
+          ;; (trivial-backtrace:print-condition c *error-output*)
+          ;; (trivial-backtrace:print-backtrace-to-stream *error-output*)
+          (uiop/image:print-condition-backtrace c :stream *error-output*)
           (reply `(:error 500 ,c))
           (return-from cgi nil))))))
 
@@ -908,9 +962,7 @@ cookie says “~36r.”
                           (cons "SIGNATURE" *paypal-signature*))
                     (loop for (param value) on args by #'cddr
                           collect (cons (symbol-name param)
-                                        (if (stringp value)
-                                            value
-                                            (princ-to-string value))))))
+                                        (princ-to-string value)))))
     (unless (= 200 http-status)
       (error 'http-request-error :http-status http-status :response-string response-string))
     (let ((response (cl-paypal::decode-response response-string)))
@@ -1090,7 +1142,8 @@ where invoice=~d"
             :subject (format nil "Invoice ~a: Incorrect Currency" token)
             :from +herald-mail+
             :other-headers (list (list "References" (concatenate 'string (string token) "." +herald-mail+))
-                                 '("Organization" "Temple of Earth Gathering, Inc."))
+                                 '("Organization" "Temple of Earth Gathering, Inc.")
+                                 (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
             :charset :utf-8
             :type "text" :subtype "plain")
     (format nil  "Hi! This  is the Censorius Herald  program. I'm the software  agent that
@@ -1318,12 +1371,26 @@ where (`starting` is null or `starting` <= date(now()))
   (declare (ignore command-line))
   (with-sql (paypal-cancel.cgi)))
 
+(defun cgi-debugger (condition wrapper)
+  (declare (ignore wrapper))
+  (if-let (continue (find-restart 'continue))
+    (progn 
+      (mail-error condition)
+      (invoke-restart continue))
+    (reply-error condition)))
+
 (defun exec-cgi (command-line)
   (declare (ignore command-line))
-  (with-sql (herald-cgi)))
+  (let ((*debugger-hook* #'cgi-debugger))
+    (handler-case
+        (with-sql (herald-cgi))
+      (error (c) (cgi-debugger c nil)))))
 
 (defun exec-fcgi (command-line)
-  (with-sql (herald-fcgi (first command-line))))
+  (let ((*debugger-hook* #'cgi-debugger))
+    (handler-case
+        (with-sql (herald-fcgi (first command-line)))
+      (error (c) (cgi-debugger c nil)))))
 
 (defun exec-repl (command-line)
   (ql:quickload :prepl)
@@ -1331,6 +1398,19 @@ where (`starting` is null or `starting` <= date(now()))
     (mapcar (compose #'eval #'read-from-string) command-line)
     (funcall (intern "REPL" :prepl))))
 
+(defmethod handle-verb ((verb (eql :test-error)))
+  (error "This is a fake error, to test error handling."))
+
+(defmethod handle-verb ((verb (eql :about)))
+  (format *trace-output* " Herald version is ~36r" +compile-time+)
+  (format t "Content-Type: text/plain
+
+Censorius Herald, © 2013-2015, Bruce-Robert Fenn Pocock.
+
+ • Compile-time version marker: ~36r
+
+"
+          +compile-time+))
 
 (defun init-db ()
   (with-sql
@@ -1386,7 +1466,7 @@ foreign key (invoice) references invoices (invoice))"
                     "create table `invoice-vending` (invoice bigint unsigned not null primary key,
 title varchar(72),
 blurb text, notes text, qty integer unsigned not null default 1, `agreement-p` boolean,
-mqa-license varchar(15) null, bpr-license varchar(15) null,
+`mqa-license` varchar(15) null, `bpr-license` varchar(15) null,
 foreign key (invoice) references invoices (invoice))"
                     "create table payments (invoice bigint unsigned not null,
 via varchar(100), source varchar(200),
@@ -1412,33 +1492,31 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
     (loop for year from 2000 upto 2016
           do (loop for (season month) in '(("Beltane" 5)
                                            ("Samhain" 11))
-                   do (db-query (format nil "insert into festivals (season, year, `starting`,ending) values (?,?,'~a-~d-1','~a-~d-1')"
-                                        year month year month)
-                                season year)))
+                   do (with-simple-restart (skip "Skip this one")
+                        (db-query (format nil "insert into festivals (season, year, `starting`,ending) values (?,?,'~a-~d-1','~a-~d-1')"
+                                          year month year month)
+                                  season year))))
     (db-query "alter table invoices auto_increment=4000")
     (loop for (id title description image price styles)
             in '(("general-shirt" "FPG general T-shirt"
-                  "The FPG general T-shirt" "/merch/tshirt_Gen.png" 175
-                  (("XS" "Extra-small" 0)
-                   ("S" "Small" 2)
-                   ("M" "Medium" 0)
-                   ("L" "Large" 0)
-                   ("XL" "Extra-large" 0)
-                   ("X2L" "Double extra-large" 1)
-                   ("X3L" "Triple extra-large" 3)
-                   ("X4L" "Quadruple extra-large" 2)
-                   ("X5L" "Quintuple extra-large" 2)))
+                  "The FPG general T-shirt" "/merch/tshirt_Gen.png" 15
+                  (("XS" "Extra-small" 999)
+                   ("S" "Small" 999)
+                   ("M" "Medium" 999)
+                   ("L" "Large" 999)
+                   ("XL" "Extra-large" 999)
+                   ("X2L" "Double extra-large" 999)
+                   ("X3L" "Triple extra-large" 999)
+                   ("X4L" "Quadruple extra-large" 999)
+                   ("X5L" "Quintuple extra-large" 999)))
                  ("tote-bag" "FPG Tote Bag"
-                  "FPG Tote Bag" "/merch/tote-bag.jpeg" 325
-                  (("tote" "Tote Bag" 13)))
+                  "FPG Tote Bag" "/merch/tote-bag.jpeg" 10
+                  (("tote" "Tote Bag" 999)))
                  ("coffee" "FPG Coffee Mug"
-                  "The FPG thermal coffee mug is great for other beverages, too" 325
-                  (("coffee" "Coffee mug" 140)))
-                 ("water" "FPG Water bottle"
-                  "FPG Water bottle" 325
-                  (("water" "Water bottle" 62)))
+                  "The FPG thermal coffee mug is great for other beverages, too" 5
+                  (("coffee" "Coffee mug" 999)))
                  ("festival-shirt" "Festival T-shirt"
-                  "The new T-shirt for the next festival" "/merch/tshirt_next.png" 798
+                  "The new T-shirt for the next festival" "/merch/tshirt_next.png" 15
                   (("XS" "Extra-small" 999)
                    ("S" "Small" 999)
                    ("M" "Medium" 999)

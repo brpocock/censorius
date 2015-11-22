@@ -1,7 +1,6 @@
 * {
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     /* make transparent link selection, adjust last value opacity 0 to 1.0 */
-
     transition: all 1s ease .1s; 
 }
 
@@ -221,6 +220,16 @@ br+br { display: none; }
     background-color: #d8d8c8;
 }
 
+table.extras button {
+    border: 2pt solid #222;
+    color: #227;
+    border-radius: 1in;
+}
+
+table.extras button:hover {
+    font-weight: bold;
+}
+
 button {
     min-height: 1cm;
     min-width: 1cm;
@@ -238,6 +247,7 @@ button {
     background-color: #dde;
     border-radius: 1ex;
     transform: rotate(0);
+    cursor: context-menu;
 }
 
 .editable-clickable:hover{
@@ -252,7 +262,7 @@ button {
 
 .card:hover button {
     transform: rotate(.25deg);
-    margin: 6pt 3pt 9pt 9pt;
+    /* margin: 6pt 3pt 9pt 9pt; */
     box-shadow: 3pt 3pt 3pt #999;
 }
 
@@ -264,7 +274,7 @@ button:active {
 .card button:hover {
     background-color: #eef;
     color: #224;
-    margin: 9pt 0pt 6pt 12pt;
+    /* margin: 9pt 0pt 6pt 12pt */;
     box-shadow: none;
 }
 
@@ -389,7 +399,7 @@ button {
 
 .card:hover button {
     transform: rotate(2deg);
-    margin: 6pt 3pt 9pt 9pt;
+    /* margin: 6pt 3pt 9pt 9pt */;
     box-shadow: 3pt 3pt 3pt #999;
 }
 
@@ -401,7 +411,7 @@ button:active {
 .card button:hover {
     background-color: #eef;
     color: #224;
-    margin: 9pt 0pt 6pt 12pt;
+    /* margin: 9pt 0pt 6pt 12pt */;
     box-shadow: none;
 }
 
@@ -525,16 +535,16 @@ fieldset>legend {
 
 /* not yet in the CSS standard, so we repeat ourselves a bunch */
 ::-webkit-input-placeholder {
-    color: #0cf;
+    color: #08c;
 }
 :-moz-placeholder { /* Firefox 18- */
-    color: #0cf;
+    color: #08c;
 }
 ::-moz-placeholder {  /* Firefox 19+ */
-    color: #0cf;
+    color: #08c;
 }
 :-ms-input-placeholder {
-    color: #0cf;
+    color: #08c;
 }
 
 ::selection {
@@ -687,8 +697,9 @@ table.people>tbody>tr>td {
     background-color: #ddd;
 }
 
-table.people>tbody>tr:hover>td>abbr {
+table.people>tbody>tr:hover>td abbr {
     cursor: pointer;
+    cursor: context-menu;
 }
 
 table.people>tbody>tr:hover>td {
@@ -862,6 +873,10 @@ table {
 @media print {
     body.is-dev:before {
         content: "☠ Warning: this is a DEVELOPMENT version of this application."
+    }
+
+    .editable-clickable {
+        border: none;
     }
 
     body.is-dev:after {
@@ -1109,7 +1124,61 @@ center.centerboth {
     margin: auto auto auto auto;
 }
 
-.signature {
+.signature, #waiver-signature {
     font-family: 'Herr Von Muellerhoff', cursive;
 }
+
+#vendor-slips {
+    background: #27ae60;
+    background: -webkit-linear-gradient(top, #27ae60 0%, #145b32 100%);
+    background: linear-gradient(to bottom, #27ae60 0%, #145b32 100%);
+    box-shadow: inset 0px 1px 1px white, 0px 1px 3px rgba(0, 0, 0, 0.5);
+    display: inline-block;
+    padding: 1ex:
+    width: 7em;
+}
+
+#vendor-slips>.slip {
+    display: inline-block;
+    width: 2em;
+    height: 1.5em;
+    position: relative;
+    margin: 1ex auto;
+}
+/* 
+ * #vendor-slips>.slip label {
+ *     width: 20px;
+ *     height: 20px;
+ *     position: absolute;
+ *     top: 4px;
+ *     left: 4px;
+ *     cursor: pointer;
+ *     background: -webkit-linear-gradient(top, #222222 0%, #45484d 100%);
+ *     background: linear-gradient(to bottom, #222222 0%, #45484d 100%);
+ *     box-shadow: inset 0px 1px 1px rgba(0, 0, 0, 0.5), 0px 1px 0px white;
+ * }
+ */
+#vendor-slips>.slip label:after {
+    content: '';
+    width: 1em;
+    height: 1em;
+    position: absolute;
+    top: .5ex;
+    left: .5ex;
+    background: #fcfff4;
+    background: -webkit-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+    background: linear-gradient(to bottom, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+    box-shadow: inset 0px 1px 1px white, 0px 1px 3px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+}
+#vendor-slips>.slip label:hover::after {
+    opacity: 0.5;
+}
+#vendor-slips>.slip input[type=checkbox] {
+    visibility: hidden;
+}
+#vendor-slips>.slip input[type=checkbox]:checked + label:after {
+    opacity: 1;
+}
+
 

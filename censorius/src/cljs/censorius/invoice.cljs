@@ -21,7 +21,7 @@
 
 
 (defn scholarship-donations-amount []
-  (reduce + (map util/just-decimal (vals @scholarships))))
+  (reduce + (map js/parseFloat (map util/just-decimal (vals @scholarships)))))
 
 (defn total-due []
   (+ (guest-list/price-all-guests)
@@ -44,7 +44,11 @@ Make sure that the testing mode shows up on PayPal!")
 
 (defn save-action []
   (cond (empty? (:note @d/general))
-        (js/alert "Please supply a note for the Regsitration staff as to what needs to be done.")
+        (js/alert "Please supply a note for the Regsitration staff as to what needs to be done.
+
+If your registration is being suspended, one of our Registration staff will contact you to make payment arrangements. Please note that some prices (admission tickets) are discounted when you pre-register. This discount will be removed if your registration is not paid.
+
+Cabin and lodge bunks are first-come, first-serve at the time that you pay for your registration.")
         
         (guest-list/need-adult-email)
         (js/alert "At least one adult's  eMail address must be supplied. Otherwise,  the   Registration  staff   will  not  be   able  to  contact you.")
@@ -65,11 +69,11 @@ Make sure that the testing mode shows up on PayPal!")
         "(none)")]])
 
 (defn invoice-header []
-  (when (:invoice @d/general) 
-    [:thead
-     [:tr {:key "invoice-header"}
-      [:th "Invoice Number"]
-      [:td (str (:invoice @d/general))]]]))
+  [:thead
+   [:tr {:key "invoice-header"
+         :style {:display (if (:invoice @d/general) "table-row" "none")}}
+    [:th "Invoice Number"]
+    [:td (str (:invoice @d/general))]]])
 
 (defn guest-price-line [guest]
   [:li {:key (str "guest-price-" (:given-name @guest) "-" (:surname @guest)) }
@@ -78,30 +82,32 @@ Make sure that the testing mode shows up on PayPal!")
    (or (:called-by @guest) (:given-name @guest))])
 
 (defn invoice-guests-section []
-  [:tr {:key "invoice-guests"} 
+  [:tr {:key "invoice-guests"
+        :style {:display (if (pos? (count @guest-list/guests)) "table-row" "none")}} 
    [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))
                    (for [guest @guest-list/guests]
                      [guest-price-line guest])]])
 
 (defn invoice-merch-section []
-  (when (or true (pos? (merch/price-all-merch))) 
-    [:tr {:key "invoice-extras"}
-     [:th "Extras"] [:td (util/format-money (merch/price-all-merch))]]))
+  [:tr {:key "invoice-extras"
+        :style {:display (if (pos? (merch/price-all-merch)) "table-row" "none")}}
+   [:th "Extras"] [:td (util/format-money (merch/price-all-merch))]])
 
 (defn invoice-vendor-section []
-  (when (pos? (vendor/price-vendor))
-    [:tr {:key "invoice-vending"}
-     [:th "Vending"] [:td (util/format-money (vendor/price-vendor))]]))
+  
+  [:tr {:key "invoice-vending"
+        :style {:display (if (pos? (vendor/price-vendor)) "table-row" "none")}}
+   [:th "Vending"] [:td (util/format-money (vendor/price-vendor))]])
 
 (defn invoice-scholarships-section []
-  (when (pos? (scholarship-donations-amount)) 
-    [:tr {:key "invoice-scholarships"} 
-     [:th "Scholarships"] [:td (util/format-money (scholarship-donations-amount))]]))
+  [:tr {:key "invoice-scholarships"
+        :style {:display (if (pos? (scholarship-donations-amount)) "table-row" "none")}} 
+   [:th "Scholarships"] [:td (util/format-money (scholarship-donations-amount))]])
 
 (defn invoice-payments-section []
-  (when (pos? (count @payments))
-    [:tr {:key "invoice-payments"}
-     [:th "Payments"] [:td (doall (map display-payment @payments))]]))
+  [:tr {:key "invoice-payments"
+        :style {:display (if (pos? (count @payments)) "table-row" "none")}}
+   [:th "Payments"] [:td (doall (map display-payment @payments))]])
 
 (defn invoice-footer []
   [:tfoot
@@ -123,8 +129,13 @@ Make sure that the testing mode shows up on PayPal!")
 
 
 
-(defn sign-fpg-waiver []
-  [:div 
+(defn waiver-signed? []
+  (some #(= % (:waiver-signature @d/general))
+        (map guest/legal-name (filter guest/adult? @guest-list/guests))))
+
+(defn sign-fpg-waiver [pay?]
+  [:div {:style {:display (if (and pay? (not (waiver-signed?)))
+                            "block" "none")}}
    [:h2 "Sign the FPG Release"]
    
    [:h3 "Release, Waiver, and Indemnity Agreement"]
@@ -231,24 +242,21 @@ Make sure that the testing mode shows up on PayPal!")
 (Florida Statute 668.004 provides that your electronic signature is
 legally binding.)"]
    
-   [text/text-input {:cursor d/general
-                     :keys :waiver-signature
-                     :label "Sign here"
-                     :placeholder (guest/legal-name
-                                   (first (filter guest/adult?
-                                                  @guest-list/guests)))
-                     :rows 1}]])
-
-(defn waiver-signed? []
-  (some #(= % (:waiver-signature @d/general))
-        (map guest/legal-name
-          (filter guest/adult?
-                  @guest-list/guests))))
+   [:div {:id "waiver-signature"}
+    [text/text-input {:cursor d/general
+                      :keys :waiver-signature
+                      :label "Sign here"
+                      :placeholder (let [grown (first (filter guest/adult?
+                                                              @guest-list/guests))]
+                                     (if grown (guest/legal-name grown) "John Hancock"))
+                      :rows 1}]]])
 
 
 
 (defn adult-email-prevent-checkout []
-  [:p {:class "warning"}
+  [:p {:class "warning"
+       :style {:display (if (guest-list/need-adult-email)
+                          "block" "none")}}
    "At  least  one  adult  eMail  address  is  needed,  before  you  can
    check out."
    
@@ -262,14 +270,18 @@ legally binding.)"]
              can apply any discounts."]])
 
 (defn need-adults-warning []
-  [:p {:class "warning"}
+  [:p {:class "warning"
+       :style {:display (if (let [[adults-needed adults & _] (guest-list/adults-needed)]
+                              (> adults-needed adults))
+                          "block" "none")}}
    "There are  not enough adults  registered for the  number of
             children. (Check the " [:strong [:q "Ticket"]] " column.)"])
 
 
 
-(defn check-out-button-box []
-  [:div
+(defn check-out-check-in [pay?]
+  [:div {:style {:display (if (and pay? (waiver-signed?))
+                            "block" "none")}}
    [:h3 "ID Check!"]
    [:p "At Registration, you will  need valid, State-issued photo ID for
    each adult  member of your  party. Please  be sure that  your party's
@@ -300,42 +312,41 @@ ID with the magnetic stripe on the back."]
                       :label "Your home ZIP code"
                       :placeholder "33000"
                       :validate util/fl-zip-code?
-                      :rows 1}]]]
+                      :rows 1}]]])
+
+(defn check-out-button-box [pay?]
+  [check-out-check-in @pay?]
   [:div {:class "buttonBox"}
-   (when (pos? (total-due)) 
-     [:button
-      {:on-click try-check-out}
-      "Ready, Make Payment →"])])
+   [:button
+    {:on-click #(reset! pay? true) #_ try-check-out
+     :style {:display (if (and (pos? (total-due))
+                               (not @pay?))
+                        "inline" "none")}}
+    "Ready, Make Payment →"]])
 
 (defn check-out-notes []
   [:div {:key "notes-div"}
    [text/text-input {:cursor d/general
                      :keys :note
                      :label "Notes or comments"
-                     :placeholder "Cabin assignment requests? Special discounts or notes?"
+                     :placeholder "Special discounts or notes? Mailing your payment?"
                      :rows 3}]
    [:p {:key "note-hint" :class "hint no-print"}
     "If there's  something else that  you want to get  sorted-out, enter
  a note above,  and your registration will be "  [:em "suspended"] " and
- brought to the attention of our Registration staff. "
+ brought to the attention of our  Registration staff. (You may also want
+ to print out this page if you're mailing your payment.)"
     (when (guest-list/need-adult-email)
       [:big "You " [:em "must"] 
        " have at least one adult's eMail address entered as well."])]])
 
 (defn check-out-action []
   (let [pay? (atom false)]
-    (fn []
-      (cond (let [[adults-needed adults & _] (guest-list/adults-needed)]
-              (> adults-needed adults))
-            [need-adults-warning]
-            
-            (guest-list/need-adult-email) [adult-email-prevent-checkout]
-            
-            (and @pay? (waiver-signed?)) "Signed. sealed, delivered."
-            
-            @pay? [sign-fpg-waiver]
-            
-            :ready [check-out-button-box]))))
+    [:div
+     [need-adults-warning]
+     [adult-email-prevent-checkout]
+     [sign-fpg-waiver @pay?]
+     [check-out-button-box pay?]]))
 
 (defn check-out-box []
   (if (and false
@@ -349,7 +360,5 @@ ID with the magnetic stripe on the back."]
      [check-out-invoice]
      [check-out-action]
      [check-out-notes]
-     [:button {:on-click save-action
-               :disabled (or (empty? (:note @d/general))
-                             (guest-list/need-adult-email))}
+     [:button {:on-click save-action}
       "Suspend registration and send to Reg. staff"]]))

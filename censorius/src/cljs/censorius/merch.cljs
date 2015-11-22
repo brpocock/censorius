@@ -18,16 +18,10 @@
                                  :styles [{:id :tote :title "Tote Bag" :qty 0 :inventory 13}]})
                  (reagent/atom {:id :coffee
                                 :title "FPG Coffee Mug"
-                                :price 7
+                                :price 5
                                 :description "The FPG thermal coffee mug is great for other beverages, too"
                                 :image "/merch/tote-bag.jpeg"
                                 :styles [{:id :mug :title "Coffee mug" :qty 0 :inventory 140}]})
-                 (reagent/atom {:id :water
-                                :title "FPG Water Bottle"
-                                :price 25
-                                :description "The FPG water bottle is great for other beverages, too"
-                                :image "/merch/tote-bag.jpeg"
-                                :styles [{:id :water :title "Water bottle" :qty 0 :inventory 62}]})
                  (reagent/atom {:id :festival-shirt
                                 :title "Festival T-Shirt"
                                 :description "The new T-shirt for this festival"
@@ -56,45 +50,6 @@
                                          {:id :x3l :title "Triple extra-large" :qty 0 :inventory 999}
                                          {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 999}
                                          {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 999}]})
-                 (reagent/atom {:title "Beltane 2013 T-shirt"
-                                :description "The T-shirt from Beltane 2013"
-                                :image "/merch/tshirtB13.png"
-                                :price 798
-                                :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                         {:id :s :title "Small" :qty 0 :inventory 0}
-                                         {:id :m :title "Medium" :qty 0 :inventory 0}
-                                         {:id :l :title "Large" :qty 0 :inventory 0}
-                                         {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                                         {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                                         {:id :x3l :title "Triple extra-large" :qty 0 :inventory 3}
-                                         {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
-                                         {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
-                 (reagent/atom {:title "Samhain 2013 T-shirt"
-                                :description "The T-shirt from Samhain 2013"
-                                :image "/merch/tshirtS13.png"
-                                :price 798
-                                :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                         {:id :s :title "Small" :qty 0 :inventory 0}
-                                         {:id :m :title "Medium" :qty 0 :inventory 0}
-                                         {:id :l :title "Large" :qty 0 :inventory 0}
-                                         {:id :xl :title "Extra-large" :qty 0 :inventory 0}
-                                         {:id :x2l :title "Double extra-large" :qty 0 :inventory 3}
-                                         {:id :x3l :title "Triple extra-large" :qty 0 :inventory 0}
-                                         {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 1}
-                                         {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 1}]})
-                 (reagent/atom {:title "Samhain 2013 Tank top"
-                                :description "The Tank top shirt from Samhain 2013"
-                                :image "/merch/tshirtS13.png"
-                                :price 798
-                                :styles [{:id :xs :title "Extra-small" :qty 0 :inventory 0}
-                                         {:id :s :title "Small" :qty 0 :inventory 1}
-                                         {:id :m :title "Medium" :qty 0 :inventory 3}
-                                         {:id :l :title "Large" :qty 0 :inventory 3}
-                                         {:id :xl :title "Extra-large" :qty 0 :inventory 3}
-                                         {:id :x2l :title "Double extra-large" :qty 0 :inventory 1}
-                                         {:id :x3l :title "Triple extra-large" :qty 0 :inventory 1}
-                                         {:id :x4l :title "Quadruple extra-large" :qty 0 :inventory 0}
-                                         {:id :x5l :title "Quintuple extra-large" :qty 0 :inventory 0}]})
                  (reagent/atom {:id :staff-shirt
                                 :title "Staff T-Shirt"
                                 :description "The staff T-shirt"
@@ -140,18 +95,13 @@
 (defn sum-merch-prices []
   [:span (util/format-money (price-all-merch))])
 
-(defn position-if [predicate sequence]
-  (first (keep-indexed
-          (fn [i element] (when (predicate element) i))
-          sequence)))
-
 (defn purchase< [item style style-index can<?]
   [:td {:key (str (:id @item) "∋" (:id style) "/less")}
    [:button {:on-click #(swap! item assoc-in [:styles style-index :qty]
                                (max 0
                                     (dec (get-in @item [:styles style-index :qty]))))
-             :class (when can<? "false")
-             :disabled (not can<?)}
+             :class "false"
+             :style {:display (if can<? "inline" "none")}}
     "-"]])
 
 (defn purchase> [item style style-index can>?]
@@ -159,12 +109,14 @@
    [:button {:on-click #(swap! item assoc-in [:styles style-index :qty]
                                (min (get-in @item [:styles style-index :inventory])
                                     (inc (:qty style))))
-             :class (when can>? "true")
-             :disabled (not can>?)}
+             :class "true"
+             :style {:display (if can>? "inline" "none")}}
     "+"]])
 
-(defn sellout-warning [item style]
-  [:tr {:key (str (:id @item) "∋" (:id style) "⚠")}
+(defn sellout-warning [item style sold]
+  [:tr {:key (str (:id @item) "∋" (:id style) "⚠")
+        :style {:display (if (> (max 10 (- sold 5)) (:inventory style))
+                           "table-row" "none")}}
    [:td {:key (str (:id @item) "∋" (:id style) "⚠☉")} ""]
    [:td {:key (str (:id @item) "∋" (:id style) "⚠sellout")
          :col-span 3 :class "hint"}
@@ -188,29 +140,27 @@
 
 (defn item-for-sale [item style style-index]
   (let [sold (+ (:qty style)
-                (censorius.guest-list/purchased-for-guests (:id @item) style))]
+                (censorius.guest-list/purchased-for-guests (:id @item) (:id style)))]
     [:tr {:key (str (:id @item) "∋" (:id style) "/styles")}
 
      [:td {:key (str (:id @item) "∋" (:id style) "/sold")
            :style {:margin-right "1ex"}}
       [:strong {:style {:float "left"}}
-       sold "×" (.toUpperCase (util/keyword->string (:id style)))]]
+       (:qty style) "×" (.toUpperCase (util/keyword->string (:id style)))]]
      [purchase< item style style-index (pos? (:qty style))]
-     [qty-cell item style sold]
+     [qty-cell item style (:qty style)]
      [purchase> item style style-index (< sold (:inventory style))]
-     [:span {:key "sellout"} 
-      (when (> (max 10 (- sold 5)) (:inventory style))
-        [sellout-warning item style])]]))
+     [sellout-warning item style sold]]))
 
 (defn product-style [item style]
-  (let [style-index (position-if #(= (:id %) (:id style)) (:styles @item)) ]
+  (let [style-index (util/position-if #(= (:id %) (:id style)) (:styles @item)) ]
     (util/log "item " (:id @item) " style " style " index " style-index)
     (cond (nil? style-index)
           [no-such-style item style]
 
           (zero? (:inventory style))
           [sold-out item style]
-          
+
           :else
           [item-for-sale item style style-index])))
 
@@ -227,11 +177,12 @@
 
 (defn plus-grid-sales [item]
   (let [purchased (censorius.guest-list/purchased-for-guests (:id @item))]
-    (when (pos? purchased)
-      [:p {:class "hint"}
-       "*Plus, " (util/counting purchased (:title @item)) " purchased for "
-       (if (= 1 purchased) " a guest " " guests ")
-       " (above)."])))
+    [:p {:class "hint"
+         :style {:display (if (pos? purchased)
+                            "block" "none")}}
+     "Plus, " (util/counting purchased (:title @item)) " purchased for "
+     (if (= 1 purchased) " a guest " " guests ")
+     " (above)."]))
 
 (defn product-style-hidden [item open?]
   [:td {:key (str (:id @item) "-styles-hidden")
@@ -239,7 +190,8 @@
         :class "zoom"}
    [:strong "Styles: "]
    [:small (string/join ", " (style-names-string (map :title (available-styles @item))))]
-   [:button "⍐"]])
+   [:button {:class "zoom"} "🛍"]
+   [plus-grid-sales item]])
 
 (defn product-style-open [item open?]
   [:td {:key (str (:id @item) "-styles")}
@@ -247,8 +199,10 @@
     (for [style (available-styles @item)]
       [product-style item style])]
    [plus-grid-sales item]
-   (when (zero? (count-sold item))
-     (editable/close open?))])
+   [:div {:style {:display (if (zero? (count-sold item))
+                             "block"
+                             "none")}}
+    (editable/close open?)]])
 
 (defn product-style-auto-hide [item open?]
   (if (and (zero? (count-sold item))
@@ -274,7 +228,8 @@
        (if (= 1 (count (:styles @item)))
 
          [:td {:key (str "merch-" (:id @item) "/monostyle")}
-          [:table [:tbody [product-style item (first (:styles @item))]]]]
+          [:table [:tbody [product-style item (first (:styles @item))]]]
+          [plus-grid-sales item]]
 
          [product-style-auto-hide item open?])
 
@@ -286,10 +241,10 @@
 
 (defn price-t-shirt [] (:price (find-by-id :festival-shirt)))
 (defn price-coffee-mug [] (:price (find-by-id :coffee)))
-(defn price-tote [] (:price @(find-by-id :tote-bag)))
+(defn price-tote [] (:price (find-by-id :tote-bag)))
 
 (defn merch-header-row []
-  [:thead {:style {:border-bottom "2pt solid green"}} 
+  [:thead {:style {:border-bottom "2pt solid green"}}
    [:tr {:key "merch-header-row"}
     [:th {:class "merch-item-col"} "Item"]
     [:th {:class "merch-price-col"} "Price"]
@@ -302,18 +257,19 @@
   ;; “staff-”
   (filter (if (censorius.guest-list/staff-in-party?)
             identity
-            #(not= (.substring (str (:id %)) 0 7)
-                   ":staff-"))
+            #(= -1 (.indexOf (util/keyword->string (:id @%)) "staff")))
           @merch))
 
 (defn merch-box []
-  (when (pos? (count @censorius.guest-list/guests))
-    [:section {:class "card" :key "merch-box"}
-     [:h2 "Extras"]
-     [:table {:class "extras"}
-      [merch-header-row]
-      [:tbody (for [product (available-products)]
-                [product-row product] )]
-      [:tfoot [:tr {:key "merch-footer-row"}
-               [:th {:key "merch-footer/subtotal-label" :col-span 3} "Subtotal"]
-               [:td {:key "merch-footer/subtotal"} [sum-merch-prices]]]]]]))
+  [:section {:class "card" :key "merch-box"
+             :style {:display (if (pos? (count @censorius.guest-list/guests))
+                                "block" "none")}}
+   [:h2 "Extras"]
+   [:table {:class "extras"}
+    [merch-header-row]
+    [:tbody (for [product (available-products)]
+              [product-row product] )]
+    [:tfoot [:tr {:key "merch-footer-row"
+                  :style {:border-top "2pt solid green"}}
+             [:th {:key "merch-footer/subtotal-label" :col-span 3} "Subtotal"]
+             [:th {:key "merch-footer/subtotal"} [sum-merch-prices]]]]]])

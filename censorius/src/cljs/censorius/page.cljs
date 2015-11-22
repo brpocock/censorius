@@ -82,13 +82,22 @@
     [:em "not"]
     " indicate proof  of payment. However, we hope that  it will provide
     a convenient record of your Festival plans."]
+   [:p "If you are mailing a payment, send a printed copy of this registration form to us; but, please "
+    [:em "also"]
+    " suspend the on-line registration."]
+   [:div {:style {:margin "1in"
+                  :font-size "14pt"}}
+    [:div "TEG Registrations"] 
+    [:div "PO Box 1784"]
+    [:div "Pinellas Park, FL 33780"]]
    [:p "Produced by Censorius Herald software. Software copyright © 2013-2015."]
-   [:p "Your web browser or other user agent is " js/navigator.userAgent]])
+   [:p "Your web browser (or other user agent application) is " js/navigator.userAgent]])
 
 
 
 (defn registration-page []
   [:div
+   [guest/staff-applications]
    [guest-list/guest-list-box]
    [merch/merch-box]
    [vendor/vendor-box]
@@ -139,7 +148,7 @@
 
 
 (defn vendor-quiz []
-  [:section [:h1 "Staff Application"]
+  [:section [:h1 "Vendor Quiz"]
    [:div {:class "card"}
     ]
    [:div {:class "card"}

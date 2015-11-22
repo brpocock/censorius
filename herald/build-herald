@@ -1,6 +1,7 @@
 #!/bin/sh
 PATH=~/bin:$PATH
 cd ~/herald
+mv --backup=numbered herald herald.backup
 buildapp --output herald \
 	--logfile herald.buildapp.log \
 	--load ~/quicklisp/setup.lisp \
@@ -11,6 +12,11 @@ buildapp --output herald \
 	--dispatched-entry herald.fcgi/herald-fcgi::exec-fcgi \
 	--dispatched-entry /herald-fcgi::exec-cgi \
 	--dispatched-entry herald.repl/herald-fcgi::exec-repl \
-&& ln -f ./herald ../fpgrocks.org/herald.cgi \
+&& ln -f ./herald ../fpgrocks.org/reg/herald.cgi \
 && ln -f ./herald ../bin/herald.repl \
-&& echo 'Victory is mine.'
+&& echo '  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  Victory is mine.'
+
+tail -n 20 herald.buildapp.log
+
+wget 'http://www.fpgrocks.org/reg/herald.cgi?verb=about'
+

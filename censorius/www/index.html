@@ -5,16 +5,20 @@
     <meta charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
     <meta name="format-detection" content="telephone=no" >
     <meta name="msapplication-tap-highlight" content="no" >
+    <meta name="description" content="Register to attend Florida Pagan Gathering, the Southeast's largest gathering of minority religions." >
     <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, target-density-dpi=device-dpi" >
 
     <script>
       function cool_label (label) {
-      document.getElementById("censorius").getElementsByTagName("center")[0].getElementsByTagName("h2")[0].innerHTML = label
+        document.getElementById("censorius").getElementsByTagName("center")[0].getElementsByTagName("h2")[0].innerHTML = label
       }
       
-      slow_load_warning = function ()
-      { cool_label ("¿Loading trouble? (" + document.title + ")");
-      alert("There seems to be a problem loading this application. \n\n" + document.title + "\n\nYou may  need to check your  network connection, or make  sure you have the latest update for your web browser (" + navigator.userAgent.substring(navigator.userAgent.lastIndexOf(" ")+1,navigator.userAgent.lastIndexOf("/")) + ").\n\nI'll keep trying for now, but if it  doesn't load in a few moments more,  you might want  to click “Reload” to try again.");
+      slow_load_warning = function () {
+        cool_label ("¿Loading trouble? (" + document.title + ")");
+        alert("There seems to be a problem loading this application. \n\n" + document.title +
+              "\n\nYou may  need to check your  network connection, or make  sure you have the latest update for your web browser (" +
+              navigator.userAgent.substring(navigator.userAgent.lastIndexOf(" ")+1,navigator.userAgent.lastIndexOf("/")) +
+              ").\n\nI'll keep trying for now, but if it  doesn't load in a few moments more,  you might want  to click “Reload” to try again.");
       }
       </script>
 
@@ -34,6 +38,11 @@
       <center class="centerboth"
 	      style="min-height: 10em; max-height: 75%">
         <img src="css/spinner.gif" alt="Please wait… Loading">
+
+        
+        <h1 style="font-size: 48pt"> WARNING Programmer debugging in progress WARNING </h1>
+
+        
         <br>
         <h2>Loading</h2>
         <br>
@@ -41,14 +50,13 @@
 
       <h3>Having trouble?</h3>
 
-      <p     class="hint"><a     href="http://getfirefox.com/">Mozilla
-          Firefox</a> is the  most popular <abbr for="Firefox  is free —
-                                                      like  “free   speech”  —  as   well  as  free  —   like  “free
-                                                      beer.”">free</abbr>  web  browser   for  <abbr  for="Android™,
-                                                                                                           Linux®,  MacOS®,  or  Microsoft™ Windows">most  computers  and
-          devices</abbr>.    <a   href="http://getfirefox.com/">Download
-          Firefox</a>  to  safely  access   this,  and  other  web-based
-        applications. </p>
+      <p class="hint"><a href="http://getfirefox.com/">Mozilla
+          Firefox</a> is the most popular
+        <abbr for="Firefox is free —  like “free speech” — as well as free — like “free beer.”">free</abbr>
+        web browser for <abbr for="Android™, Linux®, MacOS®, or Microsoft™ Windows">most
+          computers and devices</abbr>. <a href="http://getfirefox.com/">Download
+          Firefox</a> to safely access this, and other web-based
+          applications. </p>
 
       <p class="hint"> This application should also work in Chromium, Google
         Chrome, Safari, Opera, and any  other web browser that follows
@@ -60,18 +68,13 @@
       
       <p class"hint"><a href="mailto:brpocock@star-hope.org">brpocock@star-hope.org</a>
         is the programmer building this application.</p>
-      
-      <script>
-        var not_loaded=setTimeout(slow_load_warning,10000);
-      </script>
     </div>
     <script>document.title="(Loading: 0/4) Registration — TEG FPG";
-      cool_label("Loading …");
-    clearTimeout(not_loaded); not_loaded=setTimeout(slow_load_warning,10000);</script>
+      cool_label("Loading …"); not_loaded=setTimeout(slow_load_warning,10000);</script>
     <script language="javascript" src="js/goog/base.js"></script>
     <script>document.title="(Loading: 1/4) Registration — TEG FPG";
       cool_label("Loading … (1/4)");
-    clearTimeout(not_loaded); not_loaded=setTimeout(slow_load_warning,10000);</script>
+    clearTimeout(not_loaded); not_loaded=setTimeout(slow_load_warning,30000);</script>
     <script language="javascript" src="http://fb.me/react-0.14.2.js"></script>
     <script>document.title="(Loading: 2/4) Registration — TEG FPG";
       cool_label("Loading … (2/4)");
