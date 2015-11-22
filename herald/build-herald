@@ -18,5 +18,5 @@ buildapp --output herald \
 
 tail -n 20 herald.buildapp.log
 
-wget 'http://www.fpgrocks.org/reg/herald.cgi?verb=about'
+curl 'http://www.fpgrocks.org/reg/herald.cgi?verb=about'
 

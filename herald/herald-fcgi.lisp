@@ -7,8 +7,6 @@
                            :flexi-streams
                            :memoize
                            :split-sequence
-                           :trivial-backtrace
-
                            :dbd-mysql
                            #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)))
 
@@ -20,7 +18,6 @@
 (require :flexi-streams)
 (require :memoize)
 (require :split-sequence)
-(require :trivial-backtrace)
 
 (require :dbd-mysql)
 (require #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
@@ -59,6 +56,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (load (make-pathname :name "herald-mysql"
                        :defaults (user-homedir-pathname))))
+
 
 
 ;; compile-time constants
@@ -369,26 +367,7 @@ real numbers."
                  (integer (prin1 object stream))
                  (real (prin1 (* 1.0 object) stream))
                  (vector (format stream "[~{~/edn/~^ ~}]" (coerce object 'list)))
-                 (list (format stream "{~{~/edn/ ~/edn/~^, ~}}" object))))))
-
-(defun backtrace-to-list (line-format)
-  (let ((accumulator ())
-        (depth 0))
-    (trivial-backtrace:map-backtrace
-     (lambda (frame)
-       (when (> (incf depth) 3)
-         (appendf accumulator
-                  (cons (format nil line-format
-                                (trivial-backtrace::frame-func frame)
-                                (mapcar
-                                 (lambda (var)
-                                   (list (trivial-backtrace::var-name var)
-                                         (trivial-backtrace::var-value var)))
-                                 (trivial-backtrace::frame-vars frame))
-                                (trivial-backtrace::frame-source-filename frame)
-                                (trivial-backtrace::frame-source-pos frame))
-                        nil)))))
-    accumulator))
+                 (list (format stream "{~{~/edn/ ~/edn/~^,~%~t~}}" object))))))
 
 (defun print-condition/html (c)
   (format nil "<section class=\"error\">
@@ -403,20 +382,6 @@ real numbers."
           (with-output-to-string (s)
             (uiop/image:print-condition-backtrace c)
             s)))
-
-#+ (or)
-
-(defun print-condition/html (c)
-  (format nil "<section class=\"error\">
-<h2> A condition of type ~a was signaled. </h2>
-<h3>~a</h3>
-<ol class=\"backtrace\">
-~{~%<li>~a</li>~}
-</ol>
-</section>"
-          (html-escape (type-of c))
-          (html-escape c)
-          (backtrace-to-list "ƒ~:(~/html/~)⋅(~{~{~:(~/html/~)=<tt>~/html/</tt>~}~^, ~}) (~/html/~@[, form ~/html/~])")))
 
 (defun mail-error (condition)
   (cl-sendmail:with-email
@@ -445,7 +410,6 @@ Backtrace:
     (type-of condition)
     (or condition "Ø")
     (ignore-errors (query-params))
-    ;;(ignore-errors (backtrace-to-list "ƒ~:(~a~)⋅(~{~{~:(~a~)=~s~}~^, ~}) (~a~@[, form ~a~])"))
     (with-output-to-string (s) (uiop/image:print-condition-backtrace c) s)))
 
 (defun reply-error/html (conditions)
@@ -888,13 +852,12 @@ cookie says “~36r.”
         (error (c)
           (reply `(:error 500 ,c))
           (fresh-line *error-output*)
-          (trivial-backtrace:print-condition c *error-output*)
+          (format *error-output* "~a" c)
           (uiop/image:print-condition-backtrace c :stream *error-output*)
           (mail-reg +sysop-mail+ (format nil "Herald error: ~a" (princ-to-string c))
                     (format nil "Error/~a" (string (type-of c)))
                     "~a~2%~a"
                     (princ-to-string c)
-                    ;; (trivial-backtrace:backtrace-string c)
                     (with-output-to-string (s) (uiop/image:print-condition-backtrace c) s))
           (return-from fastcgi nil))))))
 
@@ -930,8 +893,6 @@ cookie says “~36r.”
         (error (c)
           (fresh-line *error-output*)
           (format *error-output* " --- Error signaled: ~a" c)
-          ;; (trivial-backtrace:print-condition c *error-output*)
-          ;; (trivial-backtrace:print-backtrace-to-stream *error-output*)
           (uiop/image:print-condition-backtrace c :stream *error-output*)
           (reply `(:error 500 ,c))
           (return-from cgi nil))))))
@@ -1195,29 +1156,16 @@ Details: Invoice token ~s;
   `(dbi:with-connection (*db* :mysql ,@herald-db-config:+params+)
      ,@body))
 
-(defmacro select ((query &rest q-args) &body body)
-  `(multiple-value-bind (rows columns)
-       (db-query ,query ,@q-args)
-     (let ((columns (mapcar (compose #'make-keyword #'string-upcase)
-                            columns)))
-       ,@body)))
-
-(defmacro select-1-plist (query &rest q-args)
-  `(select (,query ,@q-args)
-     (when rows
-       (assert (=  1 (length rows)))
-       (mapcan #'interleave2 columns (first rows)))))
-
 (defun read-vending (&optional invoice)
-  (select-1-plist "select * from \"invoice-vending\" where invoice=~/sql/"
-                  invoice))
+  (car (db-query "select * from \"invoice-vending\" where invoice=?"
+                 invoice)))
 
 (defun read-workshops (&optional invoice)
   (declare (ignore invoice)))           ; TODO
 
 (defun read-general (&optional invoice)
-  (select-1-plist "select * from `invoices` where invoice=~/sql/"
-                  invoice))
+  (car (db-query "select * from `invoices` where invoice=?"
+                 invoice)))
 
 (defun read-invoice (invoice)
   (list
@@ -1297,58 +1245,50 @@ from `invoice-guests` where invoice=~:d
                  'vector)))))
 
 (defun prices->edn ()
-  (format t "~%(defonce prices (atom ~/edn/))"
+  (format nil "~%(defonce prices (atom ~/edn/))"
           (read-prices)))
 
 (defun read-prices ()
-  (select ("select * from prices
+  (let ((price-list (db-query ("select * from prices
 where (`starting` is null or `starting` <= date(now()))
-   and (ending is null or ending >= date(now()));")
-    (let ((rows-plist (mapcar (curry #'interleave2 columns)
-                              rows)))
-      (macrolet
-          ((with-prices ((&rest symbols) &body body)
-             `(let* (,@(mapcar
-                         (lambda (symbol)
-                           `(,symbol (or (getf (find
-                                                (string-downcase
-                                                 (string ',symbol))
-                                                rows-plist
-                                                :test #'equal
-                                                :key (rcurry #'getf :item))
-                                               :price)
-                                         ,(when (not (eql symbol
-                                                          (car symbols)))
-                                            (car symbols))
-                                         1000)))
-                         symbols))
-                ,@body)))
-        (with-prices (adult-ticket
-                      child-ticket week-end-ticket day-pass
-                      lugal-so-ticket staff-ticket vendor
-                      cauldron-fri-sun cauldron-adult
-                      cauldron-child cauldron-under5
-                      salad-bar
-                      cabin staff-cabin
-                      lodge staff-lodge)
-          (list :ticket
-                (list :adult adult-ticket
-                      :child child-ticket
-                      :week-end week-end-ticket
-                      :day-pass day-pass
-                      :lugal-so lugal-so-ticket
-                      :staff staff-ticket)
-                :vendor vendor
-                :cauldron (list  :fri-sun cauldron-fri-sun
-                                 :adult cauldron-adult
-                                 :child cauldron-child
-                                 :under5 cauldron-under5)
-                :salad-bar salad-bar
-                :cabin (list :regular cabin :staff staff-cabin)
-                :lodge (list :regular lodge :staff staff-lodge)))))))
+   and (ending is null or ending >= date(now()));"))))
+    (macrolet
+        ((with-prices ((&rest symbols) &body body)
+           `(let* (,@(mapcar
+                       (lambda (symbol)
+                         `(,symbol (or (getf (find symbol price-list
+                                                   :key (rcurry #'getf :|item|)
+                                                   :test #'string-equal)
+                                             :|price|)
+                                       1000)))
+                       symbols))
+              ,@body)))
+      (with-prices (adult-ticket
+                    child-ticket week-end-ticket day-pass
+                    lugal-so-ticket staff-ticket vendor
+                    cauldron-fri-sun cauldron-adult
+                    cauldron-child cauldron-under5
+                    salad-bar
+                    cabin staff-cabin
+                    lodge staff-lodge)
+        (list :ticket
+              (list :adult adult-ticket
+                    :child child-ticket
+                    :week-end week-end-ticket
+                    :day-pass day-pass
+                    :lugal-so lugal-so-ticket
+                    :staff staff-ticket)
+              :vendor vendor
+              :cauldron (list  :fri-sun cauldron-fri-sun
+                               :adult cauldron-adult
+                               :child cauldron-child
+                               :under5 cauldron-under5)
+              :salad-bar salad-bar
+              :cabin (list :regular cabin :staff staff-cabin)
+              :lodge (list :regular lodge :staff staff-lodge))))))
 
 (defun next-festival ()
-  (car (db-query "select season, year from festivals where `starting` > now()  order by `starting` limit 1")))
+  (car (db-query "select season, year, `starting`, `ending` from festivals where `starting` > now()  order by `starting` limit 1")))
 
 (defun next-festival-season ()
   (car (db-query "select season from festivals where `starting` > now() order by `starting` limit 1")))
@@ -1356,12 +1296,26 @@ where (`starting` is null or `starting` <= date(now()))
 (defun next-festival-year ()
   (car (db-query "select year from festivals where `starting` > now() order by `starting`  limit 1")))
 
+(defun cl-user::yyyy-mm-dd (stream object colonp atp &rest parameters)
+  (format stream "~a" object))
+
 (defun festival->edn ()
-  (format nil "(defonce festival (atom ~{{:season ~s :year ~s}~}))"
+  (format nil "(defonce festival (atom ~{{:season ~/edn/ :year ~/edn/ :starting \"~/yyyy-mm-dd/\" :ending \"~/yyyy-mm-dd/\"}~}))"
           (next-festival)))
 
 (defmethod handle-verb ((verb (eql :data)))
-  (format t "Content-Type: "))
+  (format t "Content-Type: text/plain
+
+(ns censorius.data
+    (:require 
+     [clojure.string :as string]
+     [reagent.core :as reagent :refer [atom]]))
+
+~{~a~%~}"
+          (list (festival->edn)
+                (guests->edn)
+                (merch->edn)
+                (prices->edn))))
 
 (defun exec-paypal-return.cgi (command-line)
   (declare (ignore command-line))
@@ -1427,8 +1381,7 @@ id varchar(6) not null, title varchar(100) not null, inventory integer unsigned 
 constraint itemstyle unique(item,id), constraint itemstylename unique(item, title),
 foreign key (item) references merch(id) on delete restrict)"
                     "create table prices (`starting` date default null, ending date default null, price decimal (6,2), item varchar(20) not null,
-constraint itemstart unique(item, `starting`), constraint itemend unique key(item, ending),
- foreign key  (item) references merch(id) on delete restrict)"
+constraint itemstart unique(item, `starting`), constraint itemend unique key(item, ending))"
                     "create table `invoice-merch` (invoice bigint unsigned not null,
  item varchar(20), style varchar(6), qty integer unsigned not null default 1,
 unique key(invoice, item, style),
@@ -1532,4 +1485,5 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
           do (loop for (style-id style-title inventory) in styles
                    do (db-query "insert into `merch-styles` (item, id, title, inventory) values (?,?,?,?)"
                                 id style-id style-title inventory)))))
+
 

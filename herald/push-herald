@@ -6,3 +6,5 @@ rsync -r -essh ./censorius/www/*  fpgrocks@fpgrocks.org:fpgrocks.org/reg/
 rsync -essh ./herald/herald-fcgi.lisp ./herald/build-herald fpgrocks@fpgrocks.org:herald/
 ssh -l fpgrocks fpgrocks.org /home/fpgrocks/herald/build-herald
 
+echo " → update finished; $(date)"
+
