@@ -7,7 +7,11 @@
    [censorius.radio :as radio]
    [censorius.text :as text]))
 
+
+
 (defonce workshops (reagent/atom []))
+
+
 
 (defn workshop-info [workshop]
   [:tr [:td (:long-name @workshop)]

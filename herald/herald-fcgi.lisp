@@ -1,4 +1,3 @@
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (mapcar #'ql:quickload '(:alexandria
                            :cl-paypal
@@ -34,7 +33,7 @@
 
 ;; control cards
 
-(define-constant +host-name+ "http://fpgrocks.org"
+(define-constant +host-name+ "http://flapagan.org"
   :test #'equal)
 
 (define-constant +url-prefix+ "/reg/herald.cgi"
@@ -875,7 +874,7 @@ cookie says “~36r.”
   (let ((qty (field "vendor" "qty")))
     (when (and qty (plusp qty))
       (sql-insert-invoice-fields (vending)
-                                 (total blurb notes qty agreement-p)))))
+                                 (blurb notes qty agreement-p)))))
 (defun accept-workshops (invoice)
   (declare (ignore invoice))
   (warn "not accepting workshops (TODO)"))
@@ -909,10 +908,9 @@ cookie says “~36r.”
                             (item style qty)))
 
 (defun update-vendor (invoice)
-  (let ((qty (field :|vending∋qty|)))
-    (when (and qty (plusp qty))
-      (sql-update-invoice-fields (vending)
-                                 (total blurb notes qty agreement-p)))))
+  (let ((qty (or (field "vending" "qty") 0)))
+    (sql-update-invoice-fields (vending)
+                               (blurb notes qty agreement-p))))
 (defun update-workshops (invoice)
   (declare (ignore invoice))
   (warn "not accepting workshops (TODO)"))
@@ -977,10 +975,16 @@ cookie says “~36r.”
   (apply #'format *trace-output* format+args)
   (apply #'mail-reg +sysop-mail+ "Whining from Herald" (get-universal-time) format+args))
 
+(defun disquote (string)
+  (when (and string
+             (< 3 (length string))
+             (char= #\" (first-elt string) (last-elt string)))
+    (subseq string 1 (- (length string) 1))))
+
 (defmethod handle-verb ((verb (eql :recall)))
-  (let ((invoice (ignore-errors (parse-integer (field :invoice) :radix 36)) )
-        (admin-key (field :admin-key))
-        (user-key (field :verify)))
+  (let ((invoice (ignore-errors (parse-integer (disquote (field :invoice)) :radix 36)) )
+        (admin-key (disquote (field :admin-key)))
+        (user-key (disquote (field :verify))))
     (format *trace-output* "~&Requested recall of invoice ~a ~@[as admin~]"
             invoice admin-key)
     (cond
@@ -1371,7 +1375,7 @@ where invoice=~d"
   (let* ((parts (split-sequence #\/ token))
          (invoice (parse-integer (second parts)))
          (checksum (checksum invoice)))
-    (assert (= checksum (third parts)))
+    (assert (= checksum (parse-integer (third parts))))
     invoice))
 
 (defun invoice->token (invoice)
@@ -1500,7 +1504,6 @@ where invoice=?"
 (defun read-merch (&optional invoice)
   (let ((ordered-qty (when invoice (read-merch-ordered invoice))))
     (loop for row in (db-query "select * from merch")
-       collect (getf row :|id|)
        collect
          (destructuring-bind (&key |id| |title| |description| |image| |price| 
                                    &allow-other-keys) row

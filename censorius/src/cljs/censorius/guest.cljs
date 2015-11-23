@@ -365,19 +365,22 @@
                      :size 2
                      :rows 1}]
    [:label [:input {:type "checkbox"
-                    :on-click #(swap! guest assoc :driver? (not (:driver? @guest)))
+                    :on-change #(swap! guest assoc :driver? (not (:driver? @guest)))
                     :checked (:driver? @guest)}]
     "Licensed driver"]
    [text/text-input {:cursor guest
                      :keys :social-network
                      :label "Social group info"
                      :rows 3
-                     :placeholder (rand-nth "Looney Bin"
-                                            "Muintir Asylum"
-                                            "Emerald City"
-                                            "Rackdeer Landing"
-                                            "Cernunnos's Witnesses"
-                                            "Pirate Camp")}]
+                     :placeholder (rand-nth ["Looney Bin"
+                                             "Muintir Asylum"
+                                             "Emerald City"
+                                             "Viking Camp"
+                                             "Dirty Foot Tribe"
+                                             "Gator Camp"
+                                             "Rackdeer Landing"
+                                             "Cernunnos's Witnesses"
+                                             "Pirate Camp"])}]
    [text/text-input {:cursor guest
                      :keys :coven
                      :label "Coven/group affiliations"
@@ -387,13 +390,13 @@
                      :keys :spiritual-path
                      :label "Spiritual path"
                      :rows 1
-                     :placeholder (rand-nth "Standing Stones Wicca"
-                                            "Faerie Path"
-                                            "Asatru"
-                                            "Hindu"
-                                            "Buddhist"
-                                            "Wicca"
-                                            "Heathen")}]
+                     :placeholder (rand-nth ["Standing Stones Wicca"
+                                             "Faerie Path"
+                                             "Asatru"
+                                             "Hindu"
+                                             "Buddhist"
+                                             "Wicca"
+                                             "Heathen"])}]
    [text/text-input {:cursor guest
                      :keys :staff-rec
                      :label "Staff member(s) who recommended you"
@@ -439,7 +442,7 @@
                             [nil "I've changed my mind. Disregard this."]]}]
    [:p "Staff applications are submitted with your registration."]
    [:label [:input {:type "checkbox" :checked true
-                    :on-click #(swap! guest assoc :staff-apply? false)}]
+                    :on-change #(swap! guest assoc :staff-apply? false)}]
     "Show staff application"]])
 
 (defn staff-applications []

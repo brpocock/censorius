@@ -1,0 +1,906 @@
+Express Checkout API Getting Started Guide
+
+This service helps you streamline the checkout process for a buyer. The payment experience is on paypal.com (a redirection from the merchant's site) and then the buyer is returned to the merchant's site for payment confirmation. To use this service, the merchant must have a PayPal merchant account.
+
+You can see a demo of Express Checkout on the Demo Portal.
+Key Concepts
+
+The key participants in Express Checkout are the person making a payment (payer), the person receiving the funds (payee), and the application that is calling Express Checkout. You can add buttons on the checkout and payment method web pages to call the Express Checkout API. These enable PayPal users to bypass pages about shipping and about the payment method.
+Typical Checkout Flow
+
+The typical checkout flow, without Express Checkout, is the following:
+
+    Select checkout → Provide shipping info → Select payment method    → Review summary for approval → See confirmation of transaction 
+
+In contrast, you can use Express Checkout to create an easier, faster checkout flow. For example, here is a common Express Checkout flow:
+
+The following steps describe one of the call flows in Express Checkout. For how to use all four steps, see How to Create One-Time Payments Using Express Checkout.
+
+    Call SetExpressCheckout to set up the transaction and define the URL to which the customer is returned after the customer authorizes payment.
+    Redirect the customer to PayPal for authorization of the payment.
+    Call GetExpressCheckoutDetails to obtain customer information, e.g. for customer review before payment.
+    Call DoExpressCheckoutPayment to complete the transaction.
+
+You can make calls in these formats:
+Request method, format 	Response format
+HTTP GET 	Name/value pairs 	JSON
+HTTP POST 	SOAP (1.1, 1.2) 	SOAP
+
+There are calls you can make to handle exceptions, e.g. you can void a transaction when a buyer cancels out of checkout.
+Making Your First Call
+
+The following example calls SetExpressCheckout in the Sandbox with the specified app (signified by combination of USER, PWD, and SIGNATURE) to initiate a $10 payment.
+
+    Obtain the endpoint for the service and environment you are addressing.
+
+    https://api-3t.sandbox.paypal.com/nvp
+
+    This is the endpoint for making calls in name/value pair style in the Sandbox. For the SOAP endpoint, see API endpoints.
+    Provide the authentication, as shown in the SetExpressCheckout call below:
+
+    // Sandbox API credentials for the API caller account
+    USER : // user id
+    PWD : // password
+    SIGNATURE : // signature
+    VERSION : // the release version of the API
+
+    Provide parameters needed by the specific call being made (for this example, see SetExpressCheckout).
+
+    METHOD : SetExpressCheckout
+    PAYMENTREQUEST_0_AMT : // payment amount
+    PAYMENTREQUEST_0_PAYMENTACTION : // type of transaction
+    PAYMENTREQUEST_0_CURRENCYCODE : // payment currency code
+    returnUrl : // redirect URL for use if the customer authorizes payment
+    cancelUrl : // redirect URL for use if the customer does not authorize payment
+
+    Make the call. (For an example, see Try It below.)
+    Evaluate the response.
+
+    If you run the Try It example below, the response could be similar to the following (which has been split to multiple lines for readability):
+
+    ACK=Success
+    // a reference to the payment transaction that can be processed on paypal.com
+    &TOKEN=EC%2d5T410414TT256914A
+    // additional data about the API call
+    &TIMESTAMP=2011%2d08%2d09T18%3a21%3a32Z&CORRELATIONID=29bfef7d4d383&VERSION=78&BUILD=2020243LM-SJN-00711105:
+
+    (If the call fails with an ACK value of Failure, consider the details in the error message. )
+
+Try it!
+
+This example shows a SetExpressCheckout Sandbox call that initiates a $10 payment. The combination of the USER, PWD, and SIGNATURE values identifies the app that makes the API call.
+
+    Copy this cURL command:
+
+    curl -s --insecure  https://api-3t.sandbox.paypal.com/nvp  -d  "USER=platfo_1255077030_biz_api1.gmail.com&PWD=1255077037&SIGNATURE=Abg0gYcQyxQvnf2HDJkKtA-p6pqhA1k-KTYE0Gcy1diujFio4io5Vqjf&METHOD=SetExpressCheckout&VERSION=78&PAYMENTREQUEST_0_PAYMENTACTION=SALE&PAYMENTREQUEST_0_AMT=19&PAYMENTREQUEST_0_CURRENCYCODE=USD&cancelUrl=http://www.example.com/cancel.html&returnUrl=http://www.example.com/success.html"
+
+    Run the cURL command. (If the curl command is not found on your computer, download the free cURL executable.)
+
+
+
+
+
+
+
+
+Express Checkout
+
+Express Checkout is the most commonly used PayPal payments API, where payments are made on a PayPal hosted checkout page. Send your API calls to one of the following endpoints, depending on whether you are making a Name-Value Pair — NVP or SOAP call. Make sure you have the correct API credentials to use this API.
+
+Try the API Explorer to browse the Express Checkout API structures, or see the reference information below.
+Express Checkout Endpoints
+Authentication 	Format 	Live and Sandbox Endpoints
+API Certificate 	Name-Value Pair 	Live: 	https://api.paypal.com/nvp
+Sandbox: 	https://api.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api.paypal.com/2.0/
+Sandbox: 	https://api.sandbox.paypal.com/2.0/
+API Signature 	Name-Value Pair 	Live: 	https://api-3t.paypal.com/nvp
+Sandbox: 	https://api-3t.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api-3t.paypal.com/2.0/
+Sandbox: 	https://api-3t.sandbox.paypal.com/2.0/
+Express Checkout API Operations
+Alphabetical List 	Grouped by Feature
+AddressVerify NVP, SOAP
+BAUpdate NVP,SOAP
+BillOutstandingAmount NVP, SOAP
+Callback NVP
+CreateBillingAgreement NVP, SOAP
+CreateRecurringPaymentsProfileNVP, SOAP
+DoAuthorization NVP, SOAP
+DoCapture NVP, SOAP
+DoExpressCheckoutPayment NVP, SOAP
+DoReauthorization NVP, SOAP
+DoReferenceTransaction NVP, SOAP
+DoVoid NVP, SOAP
+GetBalance NVP, SOAP
+GetBillingAgreementCustomerDetails NVP, SOAP
+GetExpressCheckoutDetails NVP, SOAP
+GetPalDetails NVP, SOAP
+GetRecurringPaymentsProfileDetails NVP, SOAP
+GetTransactionDetails NVP, SOAP
+ManageRecurringPaymentsProfileStatus NVP, SOAP
+RefundTransaction NVP, SOAP
+SetCustomerBillingAgreement NVP, SOAP
+SetExpressCheckout NVP, SOAP
+TransactionSearch NVP, SOAP
+UpdateAuthorization NVP, SOAP
+UpdateRecurringPaymentsProfile NVP, SOAP 	Express Checkout
+SetExpressCheckout NVP, SOAP
+GetExpressCheckoutDetails NVP, SOAP
+DoExpressCheckoutPayment NVP, SOAP
+Callback NVP
+
+Authorization and Capture
+DoAuthorizationNVP, SOAP
+DoCapture NVP, SOAP
+DoReauthorization NVP, SOAP
+DoVoid NVP, SOAP
+UpdateAuthorization NVP, SOAP
+
+Recurring Payments / Reference Transactions
+BAUpdate NVP,SOAP
+BillOutstandingAmount NVP, SOAP
+CreateBillingAgreement NVP, SOAP
+CreateRecurringPaymentsProfile NVP, SOAP
+DoReferenceTransaction NVP, SOAP
+GetBillingAgreementCustomerDetails NVP, SOAP — Deprecated after version 54.0
+GetRecurringPaymentsProfileDetails NVP, SOAP
+ManageRecurringPaymentsProfileStatus NVP, SOAP
+SetCustomerBillingAgreement NVP, SOAP — Deprecated after version 54.0
+UpdateRecurringPaymentsProfile NVP, SOAP
+
+Refunds
+RefundTransaction NVP, SOAP
+
+Inventory Management
+GetTransactionDetailsNVP, SOAP
+TransactionSearch NVP, SOAP
+
+PayPal Accounts
+AddressVerify NVP, SOAP
+GetBalance NVP, SOAP
+GetPalDetails NVP, SOAP
+
+Adaptive Payments
+
+Adaptive Payments is another PayPal payments API with some advanced marketplace payment features, such as split and chained payments. Try the API Explorer to browse the Adaptive Payments API structures, or see the reference information below.
+Adaptive Payments Endpoints
+
+Include an AppID with your API credentials when making Adaptive Payments API calls.
+For Sandbox testing, use the following Sandbox AppID: APP-80W284485P519543T
+API / Service 	Format 	Live and Sandbox Endpoints
+Adaptive Payments 	SOAP, XML 	https://svcs.paypal.com/AdaptivePayments/<API-Operation>
+https://svcs.sandbox.paypal.com/AdaptivePayments/<API-Operation>
+Adaptive Payments API Operations
+
+Click the following links to view the API reference documentation.
+
+CancelPreapproval
+ConvertCurrency
+ExecutePayment
+GetFundingPlans
+GetPaymentOptions
+GetPrePaymentDisclosure
+GetShippingAddresses
+Pay
+PaymentDetails
+Preapproval
+PreapprovalDetails
+Refund
+SetPaymentOptions
+
+ 
+Credit Card Payments
+
+Host your own checkout pages or use PayPal hosted checkout pages for accepting credit and other payment card transactions on your website, in addition to PayPal payments.
+
+Payflow Gateway
+
+    PayPal Payments Pro and PayPal Payments Advanced — PayPal is the acquirer and merchant bank.
+    Payflow Pro and Payflow Link — Choose your own processing platform and merchant bank.
+
+The Payflow Gateway is a secure, open payment gateway supporting PayPal Payments Pro / Advanced and Payflow Pro / Link and is the preferred integration method for these products. You can choose to have PayPal host your payment pages or have total control over the payment process on your website.
+
+With PayPal Payments Pro and Advanced, PayPal is your merchant bank, or with Payflow Pro and Link, you can use your existing merchant bank. Regardless which of these products you select, the Payflow Gateway allows you to accept debit and credit card payments. It also allows you to accept PayPal Express Checkout and PayPal Credit® (formerly Bill Me Later®) payments all within one API.
+
+Payflow Endpoints
+
+Send your API calls to one of the following endpoints, depending on whether you are making a call to the live environment or the pilot (test) environment. Be sure to pass the correct user credentials set in your account on https://manager.paypal.com/.
+Format 	Live and Sandbox Endpoints
+Name-Value Pair 	https://payflowpro.paypal.com
+https://pilot-payflowpro.paypal.com
+
+Payflow Parameters
+
+If you would like PayPal to host your payment pages, see Configuring Hosted Checkout Pages. For direct API calls, click on the following API reference links:
+
+    Payflow Basic Transaction Parameters
+    Payflow Credit Card Transaction Parameters
+
+Note For Transparent Redirect information, see PCI Compliance Without Hosted Pages.
+
+Advanced Parameters
+
+    Processors Requiring Additional Parameters
+    Purchasing Card Level 2 and 3 Transaction Parameters
+    TeleCheck Parameters
+
+Additional Features
+
+Payflow also offers the following features:
+
+    Fraud Protection Service
+    Recurring Billing
+
+Website Payments Pro
+
+Note Website Payments Pro is a legacy product and has been replaced by PayPal Payments Pro. Website Payments Pro is still supported for existing merchants.
+
+Try the API Explorer to browse the Merchant API structures, or click the following links to read the API reference documentation.
+Website Payments Pro Endpoints
+
+Send your API calls to one of the following endpoints, depending on whether you are making a Name-Value Pair (NVP) or SOAP call. Make sure you have the correct API credentials to use this API.
+Authentication 	Format 	Live and Sandbox Endpoints
+API Certificate 	Name-Value Pair 	Live: 	https://api.paypal.com/nvp
+Sandbox: 	https://api.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api.paypal.com/2.0/
+Sandbox: 	https://api.sandbox.paypal.com/2.0/
+API Signature 	Name-Value Pair 	Live: 	https://api-3t.paypal.com/nvp
+Sandbox: 	https://api-3t.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api-3t.paypal.com/2.0/
+Sandbox: 	https://api-3t.sandbox.paypal.com/2.0/
+Website Payments Pro API Operations
+Alphabetical List 	Grouped by Feature
+BillOutstandingAmount NVP, SOAP
+CreateRecurringPaymentsProfile NVP, SOAP
+DoCapture NVP, SOAP
+DoDirectPayment NVP, SOAP
+DoNonReferencedCredit NVP, SOAP
+DoReauthorization NVP, SOAP
+DoReferenceTransaction NVP, SOAP
+DoVoid NVP, SOAP
+GetBalance NVP, SOAP
+GetRecurringPaymentsProfileDetails NVP, SOAP
+GetTransactionDetails NVP, SOAP
+ManagePendingTransactionStatus NVP, SOAP
+ManageRecurringPaymentsProfileStatus NVP, SOAP
+RefundTransaction NVP, SOAP
+TransactionSearch NVP, SOAP
+UpdateAuthorization NVP, SOAP
+UpdateRecurringPaymentsProfile NVP, SOAP 	Direct Credit Card Payment
+Use this API operation for Sale or Authorization transactions on a payment card.
+DoDirectPayment NVP, SOAP
+
+Authorization and Capture
+DoAuthorization NVP, SOAP
+DoCapture NVP, SOAP
+DoDirectPayment NVP, SOAP
+DoReauthorization NVP, SOAP
+DoVoid NVP, SOAP
+UpdateAuthorization NVP, SOAP
+
+Recurring Payments / Reference Transactions
+BillOutstandingAmount NVP, SOAP
+CreateRecurringPaymentsProfileNVP, SOAP
+DoReferenceTransactionNVP, SOAP
+GetRecurringPaymentsProfileDetails NVP, SOAP
+ManageRecurringPaymentsProfileStatus NVP, SOAP
+UpdateRecurringPaymentsProfile NVP, SOAP
+
+Refunds
+DoNonReferencedCredit NVP, SOAP
+RefundTransaction NVP, SOAP
+
+Fraud Management Filters
+ManagePendingTransactionStatus NVP, SOAP
+
+Transaction Management
+GetTransactionDetails NVP, SOAP
+TransactionSearch NVP, SOAP
+
+PayPal Accounts
+GetBalance NVP, SOAP
+
+Additional Features
+
+Website Payments Pro also offers the following features:
+
+    Fraud Management Filters
+    Recurring Payments
+
+Website Payments Pro Hosted Solution (outside the US)
+
+This product is for merchants and developers that want to integrate with PayPal’s Hosted Solution to add transaction processing to their website. The solution is available in Australia, France, Hong Kong, Italy, Japan, Spain, and the UK. See the integration guide for a particular country.
+Country 	Local Product Name 	Language of Integration Guide
+Australia 	Website Payments Pro Hosted Solution 	English
+France 	PayPal Intégral Evolution 	English, French
+Hong Kong 	Website Payments Pro Hosted Solution 	English
+Italy 	PayPal Pro 	English, Italian
+Japan 	Website Payments Plus 	English, Japanese
+Singapore 	Website Payments Pro Hosted Solution 	English
+Spain 	Pasarela Integral 	English, Spanish
+United Kingdom 	Website Payments Pro Hosted Solution 	English
+
+ 
+Advanced Payment Solutions
+
+Mass Payments
+
+Merchants use Mass Payments to send money instantly to up to 250 recipients at once. To send payments to multiple recipients, merchants only need the recipient’s PayPal account email address, the payment amount, and the currency code. Merchants can manually upload a file listing payments or create them programmatically using the MassPay API. For manual payment information, refer to the Sending Mass Payments from your PayPal Account.
+Mass Payments Endpoints
+
+Send your API calls to one of the following endpoints, depending on whether you are making a Name-Value Pair (NVP) or SOAP call. Make sure you have the correct API credentials to use this API.
+Authentication 	Format 	Live and Sandbox Endpoints
+API Certificate 	Name-Value Pair 	Live: 	https://api.paypal.com/nvp
+Sandbox: 	https://api.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api.paypal.com/2.0/
+Sandbox: 	https://api.sandbox.paypal.com/2.0/
+API Signature 	Name-Value Pair 	Live: 	https://api-3t.paypal.com/nvp
+Sandbox: 	https://api-3t.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api-3t.paypal.com/2.0/
+Sandbox: 	https://api-3t.sandbox.paypal.com/2.0/
+
+ 
+Mass Payments API Operation
+
+Click the following links to view the API reference documentation.
+
+MassPay NVP, SOAP
+
+Adaptive Accounts
+
+The Adaptive Accounts API allows you to create and manage PayPal accounts for PayPal users. Try the API Explorer to browse the Adaptive Accounts API structures, or see the reference information below.
+Adaptive Accounts Endpoints
+
+Include an AppID with your API credentials when making Adaptive Accounts API calls.
+For Sandbox testing, use the following Sandbox AppID: APP-80W284485P519543T
+API / Service 	Format 	Live and Sandbox Endpoints
+Adaptive Accounts 	SOAP, XML 	https://svcs.paypal.com/AdaptiveAccounts/<API-Operation>
+https://svcs.sandbox.paypal.com/AdaptiveAccounts/<API-Operation>
+Adaptive Accounts API Operations
+
+Click the following links to view the API reference documentation.
+
+AddBankAccount
+AddPaymentCard
+CheckComplianceStatus
+CreateAccount
+GetUserAgreement
+GetVerifiedStatus
+SetFundingSourceConfirmed
+UpdateComplianceStatus
+
+Invoicing
+
+You can use the Invoicing Service API to create, send, and manage invoices using PayPal. Try the API Explorer to browse the Invoicing API structures, or see the reference information below.
+Invoicing Endpoints
+
+Include an AppID with your API credentials when making API calls to the Invoicing service.
+
+For Sandbox testing, use the following Sandbox AppID: APP-80W284485P519543T
+API / Service 	Format 	Live and Sandbox Endpoints
+Invoicing Service 	SOAP, XML 	https://svcs.paypal.com/Invoice/<API-Operation>
+https://svcs.sandbox.paypal.com/Invoice/<API-Operation>
+Invoicing API Operations
+
+Click the following links to view the API reference documentation.
+
+CancelInvoice
+CreateAndSendInvoice
+CreateInvoice
+DeleteInvoice
+GenerateInvoiceNumber
+GetInvoiceDetails
+MarkInvoiceAsPaid
+MarkInvoiceAsRefunded
+MarkInvoiceAsUnpaid
+RemindInvoice
+SearchInvoices
+SendInvoice
+UpdateInvoice
+
+Permissions
+
+The Permissions Service enables you to obtain permission to execute PayPal API operations on behalf of PayPal account holders. Try the API Explorer to browse the Permissions API structures, or see the reference information below.
+Permissions Endpoints
+
+Include an AppID with your API credentials when making API calls to the Permissions service.
+
+For Sandbox testing, use the following Sandbox AppID: APP-80W284485P519543T
+API / Service 	Format 	Live and Sandbox Endpoints
+Permissions Service 	SOAP, XML 	https://svcs.paypal.com/Permissions/<API-Operation>
+https://svcs.sandbox.paypal.com/Permissions/<API-Operation>
+Permissions API Operations
+
+Click the following links to view the API reference documentation.
+
+CancelPermissions
+GetAccessToken
+GetAdvancedPersonalData
+GetBasicPersonalData
+GetPermissions
+RequestPermissions
+
+PayPal Payments Standard
+
+If you have a PayPal Business or Premier account, you can use the PayPal Button Factory to create the HTML code needed to place a PayPal button on your website. The generated HTML code, when pasted into one of your website pages, displays a PayPal button that lets customers use their PayPal account to purchase the item(s) associated with the button. Adding a PayPal button to your website does not require advanced coding experience.
+
+To modify your PayPal buttons directly using HTML code, refer to:
+
+    PayPal Button HTML Variables reference
+    PayPal button image reference
+
+Button Manager
+
+For more advanced PayPal button manipulation, use the ButtonManager API.
+
+Button Manager Endpoints
+
+Send your API calls to one of the following endpoints, depending on whether you are making a Name-Value Pair – NVP or SOAP call. Make sure you have the correct API credentials to use this API.
+Authentication 	Format 	Live and Sandbox Endpoints
+API Certificate 	Name-Value Pair 	Live: 	https://api.paypal.com/nvp
+Sandbox: 	https://api.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api.paypal.com/2.0/
+Sandbox: 	https://api.sandbox.paypal.com/2.0/
+API Signature 	Name-Value Pair 	Live: 	https://api-3t.paypal.com/nvp
+Sandbox: 	https://api-3t.sandbox.paypal.com/nvp
+SOAP 	Live: 	https://api-3t.paypal.com/2.0/
+Sandbox: 	https://api-3t.sandbox.paypal.com/2.0/
+Button Manager API Operations
+
+Click the following links to view the API reference documentation.
+
+BMButtonSearch — NVP, SOAP
+BMCreateButton — NVP, SOAP
+BMGetButtonDetails —NVP, SOAP
+BMGetInventory — NVP, SOAP
+BMManageButtonStatus — NVP, SOAP
+BMSetInventory — NVP, SOAP
+BMUpdateButton — NVP, SOAP
+
+
+
+
+
+Express Checkout
+Integration Overview
+
+This guide provides you with the basic information and best practices guidelines you'll need to integrate Express Checkout on your website. It is intended for you, the merchant, to help you create an online shopping experience that can increase sales and customer loyalty by building a checkout process that is fast, easy and intuitive.
+Contents
+
+What is Express Checkout?
+How Express Checkout works
+ 
+Designing an Optimal Checkout Flow
+ 
+Integration Use Cases
+Obtaining an Express Checkout button and PayPal Mark
+Use Case 1: A Sale Transaction
+Setting Up the Express Checkout Transaction
+Obtaining Express Checkout Transaction Details
+Completing the Express Checkout Transaction
+Use Case 2: Auth / Capture
+Use Case Example for Authorization
+Use Case 3: Refunds / Voids
+ 
+Managing Response Codes
+ 
+Testing your Integration
+ 
+Going Live with your Express Checkout Integration
+ 
+Sample Code
+Which Interface Am I Using?
+Express Checkout Sample Code
+ 
+Documentation
+Online References
+
+
+ Note: For comprehensive integration information, see the Express Checkout Integration Guide.
+What is Express Checkout?
+
+Express Checkout provides a seamless checkout experience via an API-based integration for buyers who want to use their PayPal accounts or Credit Cards (even without logging into a PayPal account). Buyers select their payment methods and shipping information on PayPal, then return to your website to finalize their purchases. Express Checkout allows your buyers to complete transactions in very few steps. It eliminates one of the major causes of checkout abandonment by giving buyers all the transaction details at once, including order details, shipping options and tax totals. Use Express Checkout to complement your existing payment solutions and:
+
+    Accept payments from buyers using credit cards or from any PayPal account.
+    Reduce checkout abandonment by eliminating the need for customers to reenter personal information
+    including shipping, billing and payment information.
+    Keep customers on your site after they complete their transactions.
+
+How Express Checkout Works
+
+Buyers use Express Checkout to pay you on PayPal's secure site and return to your site to complete the transaction. When buyers complete their purchases, your website makes an API call (unseen by the customer) to PayPal to request payment. The payment transaction is initiated and PayPal sends buyers email receipts for the payments.
+
+Express Checkout API Calls Flow
+
+The following diagram shows the Express Checkout API operations that are called during a typical payment transaction. For integration details, see Use case 1: A Sale transaction.
+
+Designing an Optimal Checkout Flow
+
+PayPal has identified specific elements which can help you optimize the checkout experience and get the most out of using PayPal Express Checkout. These elements were identified through years of A/B testing, industry research and qualitative studies with merchants and buyers. Implementing these guidelines can:
+
+    Result in higher sales conversions.
+    Create an online shopping experience that can increase sales and customer loyalty.
+    Build a checkout process that is fast, easy and intuitive.
+
+The following easy steps can help you optimize your checkout flow and increase conversion by improving your buyer experience.
+
+    Show what payment options you offer on your Home and Product Details pages. Buyers start thinking about how they will pay for their purchases before they see the final payment page. Placing payment messaging early and often allows buyers to make that payment choice quicker which can increase the likelihood of a purchase.
+
+    Add Express Checkout Shortcut to the Shopping cart page to the right or left, top or bottom of your checkout button.
+
+    The Checkout with PayPal button should:
+        Always be clickable.
+        Be placed right below or next to each of your own cart's checkout buttons.
+        Appear before your website collects any billing or shipping details, and before any other payment.
+        Be aligned vertically or horizontally with your own buttons.
+        Include a What is PayPal? link.
+
+    When the buyer clicks the PayPal button:
+        Call the SetExpressCheckout API request to initiate the transaction. See Setting Up the Express Checkout Transaction for integration details.
+        After receiving the SetExpressCheckout API response, redirect the customer to PayPal.
+     
+     
+    Show PayPal as a payment option near the other payment options on your Payment Methods page. Adding a PayPal radio button to your existing payment choices helps buyers read and understand the payment options in a clearer way.
+
+    Provide a What is PayPal? link when using any PayPal banner, button or placement. Explaining what PayPal is helps new buyers understand the benefits of choosing PayPal.
+    Pass your store logo and business name to the PayPal login and review pages. Passing your store logo and business name to be displayed on PayPal checkout pages creates a seamless transition for your buyers and reassures them that they are still in your checkout flow.
+
+    To set up this feature, log into your PayPal business account, navigate to the My selling tools section on the My Profile page by clicking the Profile icon at the top of the page, then selecting Profile and settings in the Business Profile menu. (If you do not see the profile icon at the top of the page, select Profile which appears in the top menu when the My Account tab is selected.) Click My selling tools. In the Selling online section, click Update next to Custom payment pages, then click Add.
+
+    Note: Ensure that your logo is stored on a secure server so that your buyer's web browser does not display a message that the payment page contains nonsecure items.
+    Pass line item details to PayPal, including the breakdown of items and total purchase costs. Passing line item details also helps create a seamless transition from your site to the PayPal checkout flows and makes buyers feel more confident in their transactions because they can see their purchase details from start to end.
+     
+    Customize the PayPal Payment Pages to match the style of your website. You can tailor PayPal's payment pages to match the style of your website and give buyers a seamless payment experience. To customize the PayPal payment pages, log into your PayPal business account. For detailed instructions, refer to the customizing the PayPal payment page guide.
+     
+    Pass any customer information you collect to PayPal to pre-fill billing information. If your website collects customer information about your buyer, you can pass that information to PayPal to pre-populate the corresponding customer information fields. This saves your buyers time and eliminates the need to re-enter their information.
+     
+    Set the credit card statement name. Ensure your business name or website name is correctly set to show up on your buyers' credit card statements to avoid any confusion and potential chargebacks. To set the credit card statement name, log into your PayPal business account, and navigate to the Payment Receiving Preferences page. For detailed instructions, see Setting Up and Maintaining Your Account.
+
+You can customize the PayPal payment pages to provide a seamless experience for your buyers. Be sure to do the following:
+	
+
+    Pass your store logo and store name to PayPal to display.
+    Pass full line item details, including the breakdown of items and total costs.
+    Customize colors to match your website.
+    Pre-populate billing fields with any customer information your website collects.
+
+Integration Use Cases
+
+Implementing Express Checkout requires you to set up a PayPal button and call the appropriate API's for the type of payments you want to offer. You must also enable the buyer to select PayPal as the payment method after the buyer starts to check out on your site. That means you must offer PayPal on your website in at least the following two places in the checkout flow:
+
+    As a checkout option on your Shopping Cart page
+    As a payment option on your Payment Methods page
+
+Obtaining an Express Checkout Button and PayPal Mark
+
+PayPal provides buttons and images for you to place on your website. To implement Express Checkout, you must:
+
+    Place the following button on your shopping cart page. To create a checkout button, log into your PayPal account, select Tools > All Tools at the top of the page, then click the PayPal Buttons item on the Tools page. (If you do not see Tools at the top of the page, click the Merchant Services tab, and then select the Create payment buttons for your website link.) The My Saved Buttons page opens. After you create a button, copy the button HTML code to your website.
+
+    Offer PayPal as a payment choice on your payment options page using radio buttons. You can find html code to copy and paste on your site here.
+
+    Include the words "What is PayPal?" next to the Express Checkout Shortcut Button, next to the PayPal Mark on your payment options page, and next to any PayPal banners or messaging. You can find the html code to copy and paste on your site here.
+
+Use Case 1: A Sale Transaction
+
+The following integration use cases highlight the basics of setting up a simple Express Checkout flow. For more advanced functionality, including how to set up recurring payments (subscriptions), reference transactions and implementing Express Checkout for Mobile and Digital Goods, please see the Express Checkout Integration Guide.
+
+To create the simplest Express Checkout integration, you specify Sale as the payment action enabling you to receive the money right away. You can also set up a payment to be collected later, or refund a payment.
+
+The simplest Express Checkout integration requires the following PayPal API operations:
+
+    SetExpressCheckout
+    GetExpressCheckout Details (optional)
+    DoExpressCheckoutPayment
+
+Setting Up the Express Checkout Transaction
+
+To set up an Express Checkout transaction, you must invoke the SetExpressCheckout API operation to provide sufficient information to initiate the payment flow. Then redirect to PayPal if the operation is successful.
+
+Note: This example assumes that you have set up the mechanism you will use to communicate with the PayPal server and have a PayPal business account with API credentials. It also assumes that the payment action is a final sale.
+
+When you set up an Express Checkout transaction, you specify values in the SetExpressCheckout request and then call the API. The values you specify control the PayPal page flow and the options available to buyers. You should start by setting up a standard Express Checkout transaction, which can be modified to include additional options.
+
+To set up the simplest standard Express Checkout transaction:
+
+    Specify the amount of the transaction; include the currency if it is not in US dollars.
+    Specify the total amount of the transaction if it is known; otherwise, specify the subtotal.
+    For most currencies, the amount format must have a decimal point with exactly two digits to the right and an optional thousands separator to the left, which must be a comma. See the PayPal currency codes page for information about currencies that do not support decimals.
+
+    For example, EUR 2.000,00 must be specified as 2000.00 or 2,000.00. The specified amount cannot exceed USD $10,000.00, regardless of the currency used.
+
+    PAYMENTREQUEST_0_AMT=amount
+    PAYMENTREQUEST_0_CURRENCYCODE=currencyID
+    Specify the return URL
+    The return URL is your website page to which PayPal redirects the buyer's browser after the buyer logs into PayPal and approves the payment. Typically, this is a secure page (https://...) on your website.
+
+    Note: You can use the return URL to piggyback parameters between pages on your site. For example, you can set your Return URL to specify additional parameters using the https://www.yourcompany.com/page.html?param=value... syntax.
+        The parameters become available as request parameters on the page specified by the Return URL.
+
+        RETURNURL=return_url
+        Specify the cancel URL
+        The cancel URL is the page to which PayPal redirects the buyer's browser if the consumer does not approve the payment. Typically, this is the secure page (https://...) on your website from which you redirected the consumer to PayPal.
+
+     
+    You can pass SetExpressCheckout request values as parameters in your website's URL to have the values available, if necessary, after PayPal redirects to your website's URL.
+
+    CANCELURL=cancel_url
+    Specify the payment action.
+    Although the default payment action is a Sale, it is a best practice to explicitly specify the payment action as one of the following values:
+
+    PAYMENTREQUEST_0_PAYMENTACTION=Sale
+    PAYMENTREQUEST_0_PAYMENTACTION=Authorization
+    PAYMENTREQUEST_0_PAYMENTACTION=Order
+    Execute the SetExpressCheckout API operation to set up the Express Checkout transaction.
+     
+        Test that the response to the SetExpressCheckout API operation was successful (Ack=Success).
+        If calling the SetExpressCheckout API was successful, redirect the consumer's browser to PayPal and execute the _express-checkout command using the token returned in the SetExpressCheckout response.
+
+Obtaining Express Checkout Transaction Details
+
+To obtain details about an Express Checkout transaction, you can invoke the GetExpressCheckoutDetails API operation.
+
+Note: This example assumes that PayPal redirects to the your buyer's browser with a valid token after the consumer reviews the transaction on PayPal.
+
+    Although you are not required to invoke the GetExpressCheckoutDetails API operation, most Express Checkout implementations take this action to obtain information about the buyer.
+    You invoke the GetExpressCheckoutDetails API operation from the page specified by return URL, which you set in your call to the SetExpressCheckout API.
+    Typically, you invoke this operation as soon as the redirect occurs and use the information in the response to populate your review page.
+    To obtain a buyer's shipping address and Payer ID, specify the token returned by PayPal when it redirects the consumer's browser to your site.
+    PayPal returns the token to use in the token HTTP request parameter when redirecting to the URL you specified in your call to the SetExpressCheckout API.
+
+    TOKEN=tokenValue
+    Execute the GetExpressCheckoutDetails API operation to obtain information about your buyer.
+        Access the fields in the GetExpressCheckoutDetails API response.
+
+        Note: Only populated fields are returned in the response.
+
+Completing the Express Checkout Transaction
+
+To complete an Express Checkout transaction, you must invoke the DoExpressCheckoutPayment API operation.
+
+Note: This example assumes that PayPal redirects the buyer's browser to your website with a valid token after you call the SetExpressCheckout API. Optionally, you may call the GetExpressCheckoutDetails API before calling the DoExpressCheckoutPayment API.
+
+    In the simplest case, set the total amount of the order when you call the SetExpressCheckout API.
+        However, you can change the amount before calling the DoExpressCheckoutPayment API if you did not know the total amount when you called the SetExpressCheckout API.
+
+    Note: This example assumes the simplest case, in which the total amount was specified in the return URL when calling the SetExpressCheckout API. Although you can specify additional options, this example does not use any additional options.
+    Specify the token returned by PayPal when it redirects the consumer's browser to your site.
+    PayPal returns the token to use in the token HTTP request parameter when redirecting to the URL you specified in your call to the SetExpressCheckout API.
+
+    TOKEN=tokenValue
+    Specify the Payer ID returned by PayPal when it redirects the buyer's browser to your website.
+    PayPal returns the Payer ID to use in the token HTTP request parameter when redirecting to the URL you specified in your call to the SetExpressCheckout API. Optionally, you can obtain the Payer ID by calling the GetExpressCheckoutDetails API.
+
+    PAYERID=id
+    Specify the amount of the order including shipping, handling, and tax; include the currency if it is not in US dollars.
+    Regardless of the specified currency, the format for most currencies must include a decimal point with exactly two digits to the right and an optional thousands separator to the left, which must be a comma.
+        For example, EUR 2.000,00 must be specified as 2000.00 or 2,000.00.
+        The specified amount cannot exceed USD $10,000.00, regardless of the currency used.
+
+        Note: Some currencies such as Yen do not support decimal points. See the PayPal currency codes page for currencies that do not support decimals.
+
+        PAYMENTREQUEST_0_AMT=amount
+        PAYMENTREQUEST_0_CURRENCYCODE=currencyID
+        Specify the payment action.
+    Although the default payment action is a Sale, it is a best practice to explicitly specify the payment action as one of the following values:
+
+    PAYMENTREQUEST_0_PAYMENTACTION=Sale
+    PAYMENTREQUEST_0_PAYMENTACTION=Authorization
+    PAYMENTREQUEST_0_PAYMENTACTION=Order
+    Execute the DoExpressCheckoutPayment API to complete the Express Checkout transaction.
+    Examine the values returned by the API if the transaction completed successfully (Ack=Success).
+
+Use Case 2: Authorization and Capture transactions
+
+An Authorization is used to put a hold on the funds. When you submit an Authorization you are asking PayPal to see if the funds are available, and if they are to place a hold on them for 3 days.
+
+You can capture an Authorization for up to 29 days; however, the funds are only on hold for 3 days. These 3 days are known as the honor period.
+
+Note: The honor period is a PayPal function. This is 3 days by default, and the maximum honor period is 10 days. This time period is dependent on the card issuing bank or the bank itself in ACH transactions such as a bank initiated transfer.
+Authorization Example:
+
+You know that you have the product in stock, but you only ship on Wednesdays and Fridays; and, today is Monday.
+
+Monday:
+
+The buyer goes to your website and adds the item to his/her cart and checks out via PayPal Express Checkout.
+
+    You set the PAYMENTACTION to Authorization in both the SetExpressCheckout and DoExpressCheckoutPayment API calls.
+    You get back an Authorization ID. The transaction is successful thus far.
+
+Wednesday:
+
+You go to ship the product.
+
+    But before it ships, you capture the payment by making a DoCapture API call.
+    You send the amount you want to capture and the Authorization ID to PayPal and the actual money is moved from the consumer's funding source to the PayPal account.
+
+You see a Success returned from PayPal and you ship the item.
+
+Note: You may capture less than the Original Authorization, you may capture the full Authorization amount, or, you may capture more than the original Authorization (Up to 115% of the original Authorization, or $75 USD more, whichever is less).
+Use Case 3: Refunds / Voids
+
+Use the RefundTransaction API to issue one or more refunds associated with a transaction, such as a transaction created by a capture of a payment. The transaction is identified by a transaction ID that PayPal assigns when the payment is captured.
+
+    You can use the RefundTransaction PayPal API operation to issue refunds.
+
+    Note: You cannot make a refund if the transaction occurred after the refund period has passed; typically, the refund period is 60 days. If you need to issue a refund after 60 days, a credit must be issued to the buyers' PayPal account instead.
+    You can refund amounts up to the total amount of the original transaction.
+     
+        If a full refund is specified, the entire amount is refunded.
+        If a partial refund is specified, the amount to refund, the currency, and a description of the refund, which is called a memo, must be specified.
+    When you call the RefundTransaction API, PayPal responds with another transaction ID that is associated with the refund (not the original transaction) and additional information about the refund.
+     
+    This information identifies:
+        The gross amount of the refund, which is returned to the consumer.
+        The amount of the refund associated with the original transaction fee, which is returned to you.
+        The net amount of the refund, which is deducted from your balance.
+
+     
+    To issue a refund:
+        In the RefundTransaction request, specify the transaction ID of the original transaction which you want to refund.
+
+        TRANSACTIONID = transaction_id
+        Specify the kind of refund, which is either Full or Partial.
+
+        REFUNDTYPE=Full
+        Or
+        REFUNDTYPE=Partial
+        For a partial refund, specify the refund amount, including the currency
+
+        AMT=amount
+        CURRENCYCODE=currencyID
+        For a partial refund, specify the memo description.
+
+        NOTE=description
+        Execute the RefundTransaction operation.
+        Check the acknowledgement status in the RefundTransaction response to ensure that the operation was successful (Ack=Success).
+
+Managing Response Codes
+
+Possible error codes returned by each of the PayPal APIs can be found in an online list of API Error Codes.
+
+    The error codes are broken out by API.
+    The documentation includes both the Short and Long Message for each error and where appropriate possible corrective action to be taken.
+
+Testing Your Integration
+
+To test your integration, PayPal provides a Sandbox for you to use to ensure that your integration is working properly before releasing it to your buyers. The Sandbox environment is a duplicate of the live PayPal environment, except no money changes hand. You will need to sign up for a Sandbox account in order to use this environment. For more information and to sign up for a Sandbox account, please see the PayPal Sandbox Guide.
+
+Note: The PayPal developer site automatically creates Sandbox credentials for you when you log in with your PayPal account for the first time to https://developer.paypal.com.
+Going Live With Your Express Checkout Integration
+
+After you have tested your application with the PayPal Sandbox, and you are ready to move it to production, use the following checklist to ensure you are not forgetting any steps for going live. For more information see the Going Live documentation.
+
+    Create and configure your live PayPal account.
+    Verify that your live account's profile settings match those in your sandbox account's profile or that you understand and approve the differences.
+    Set up credentials for your live PayPal account. API credentials are associated with an account; thus, your credentials in production are different than those for the Sandbox. You must obtain either a different signature or download a different certificate for your live account.
+    If your application uses a PayPal SDK, create an API Profile object that contains the details of your live account. You must specify the "environment" field as live and, if you use a certificate, include the API username, API password and path to your production API certificate with your live account.
+    Add PayPal's IP addresses to any list of trusted IP addresses needed by your firewall or other network devices. You can find a current list of PayPal IP addresses here.
+
+Sample Code
+Which interface am I using?
+
+PayPal provides an API to allow you to integrate with PayPal.
+
+There are two interfaces to the PayPal API. Your technical team should use the one that makes the most sense for your development style and environment:
+
+Name-Value Pair (NVP) interface
+Requests and responses are sent using simple HTTP. This interface is better for those who prefer more lightweight, script-based development.
+
+SOAP Interface
+Requests and responses are sent using Simple Object Access Protocol (SOAP). This interface is better for those who prefer object-oriented development.
+Express Checkout Sample Code
+
+Use the following table to view SOAP or NVP sample code for each of the three API calls needed for Express Checkout:
+API Call 	Sample Code
+SetExpressCheckout 	PHP
+Java
+.NET
+GetExpressCheckoutDetails 	PHP
+Java
+.NET
+DoExpressCheckoutPayment 	PHP
+Java
+.NET
+
+For SDK information, see the Merchant API SDK.
+Documentation
+Online references (in English)
+
+Express Checkout Integration Guide
+NVP API Developer Guide
+API Endpoints
+Digital Goods with Express Checkout Guide
+Name-Value Pair (NVP) Interface
+SOAP Interface
+NVP/SOAP APIs Getting Started Guide
+PayPal SDKs
+PayPal IP Addresses
+PayPal Sandbox Guide
+
+
+
+
+https://developer.paypal.com/docs/classic/express-checkout/overview-ec/
+
+
+
+https://developer.paypal.com/docs/classic/express-checkout/ht_ec-singleItemPayment-curl-etc/
+
+
+
+
+How to Create One-Time Payments Using Express Checkout
+
+This guide describes how to complete an Express Checkout transaction using the Set-Get-Do series of API operations.
+
+For demonstration purposes, this guide makes requests using the PayPal Sandbox. For information on making calls using the NVP/SOAP APIs, including obtaining the needed API credentials and how to make test calls using the Sandbox, see Apps 101.
+
+The figure below shows the flow of calls through a typical Express Checkout transaction. It illustrates how the transaction flow interacts with the PayPal customer and how your requests interact with PayPal (the Sandbox in this example).
+This figure illustrates a typical Set, Get, Do Express Checkout transaction.
+1. Set Up the Payment Information
+
+When a customer initiates a check out, call SetExpressCheckout to specify the payment action, amount of payment, return URL, and cancel URL.
+
+Note: Example calls are shown in cURL, and the code is wrapped and commented for readability.
+
+The SetExpressCheckout response contains a token value that you use in subsequent calls to complete the transaction:
+2. PayPal Returns a Token
+
+If the SetExpressCheckout request is successful, PayPal returns a token string in the Token response field. The default lifetime of this token is 3 hours. You will need this token in the subsequent steps.
+
+# SetExpressCheckout response
+
+...
+
+TOKEN=EC%2d4RX1920730957200V
+...
+
+Important You must URL-decode the returned token value before you can use it in other Express Checkout calls.
+3. Redirect the Customer to PayPal for Approval
+
+Using the token valued returned from SetExpressCheckout, redirect the customer to PayPal so they can approve the transaction:
+
+https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_express-checkout&token=<tokenValue>
+
+The redirect presents the customer with a PayPal log-in page. After the customer logs in, PayPal displays the transaction details on the Payments Review page. The customer approves the payment on this page by clicking Continue.
+4. PayPal Redirects the Customer Back to Your Site
+
+If the customer approves the payment, PayPal directs the customer to the payment confirmation page (the return URL specified in your SetExpressCheckout call in Step 1). If the customer doesn't authorize the payment, PayPal directs the customer to the cancel URL that you also specified in your SetExpressCheckout call, and you can attempt to re-initiate the checkout.
+5. Obtain Approved Payment Details
+
+If the customer approves the payment, call GetExpressCheckoutDetails to obtain the PayerID (which uniquely identifies the customer), and any other details you might need for transaction processing. For example, you can use the transaction details to display the customer's shipping data, and other information, on your payment confirmation page.
+
+Use the following sample by replacing <tokenValue> with the token from the SetExpressCheckoutPayment response:
+
+The response from this call includes the PayerID value, which is needed to capture the payment:
+
+# GetExpressCheckoutDetails response
+
+TOKEN=EC%2d4RX1920730957200V
+...
+
+&PAYERID=6B9DKHQRKW4SG
+...
+
+6. Complete the Transaction
+
+In addition to the transaction details, your payment confirmation page should include a Confirm button. When the customer confirms the payment, call DoExpressCheckoutPayment to capture (collect) the payment. The following sample shows how to specify the PayerID and token value returned from the previous calls:
+
+When PayPal processes DoExpressCheckoutPayment, it captures the payment by transferring the funds from the customer account to the appropriate merchant account and sends a confirmation e-mail to the customer.
+Learn More
+
+For more details on how to use Express Checkout, see the following resources:
+
+    Express Checkout Integration Guide
+    PayPal Merchant API Reference
+    PayPal SDK Index
+
+
+For information on using the PayPal APIs, how to use the Sandbox for testing, and how to move your app into production, see links provided on the Apps 101 page.
+
+
+
+

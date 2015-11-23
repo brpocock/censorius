@@ -470,7 +470,7 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
     [:span (util/format-money (price-all-guests))]]])
 
 (defn maybe-guest-list []
-  [:tbody (map censorius.guest/guest-row @guests)])
+  [:tbody (doall (map censorius.guest/guest-row @guests))])
 
 (defn guest-list-box []
   (fn []

@@ -114,7 +114,9 @@
    [assistant/assistant-box]
    [invoice/check-out-box]
    [editable/nightshade]
-   [print-trailer]])
+   [print-trailer]
+   [:div [:a {:href "#" :on-click #(invoice/recall-invoice 4153 "gtp/feAgJYYJ")}
+          4153]]])
 
 
 (defn about-page []
@@ -157,8 +159,7 @@
 
 (defn vendor-quiz []
   [:section [:h1 "Vendor Quiz"]
-   [:div {:class "card"}
-    ]
+   [:div {:class "card"} ]
    [:div {:class "card"}
     [:a {:href "#/"} [:button "← Back to Registration"]]]])
 
@@ -188,6 +189,10 @@
 (defn location-hash [x] (set! (.-hash (.-location js/window)) x))
 
 (secretary/defroute "/" []
+  (swap! uri-view assoc :current-page registration-page))
+
+(secretary/defroute "/recall/:invoice/:verify" [{:keys [invoice verify]}]
+  (invoice/recall-invoice invoice verify nil)
   (swap! uri-view assoc :current-page registration-page))
 
 (secretary/defroute "/about" []

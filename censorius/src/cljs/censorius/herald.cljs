@@ -16,19 +16,22 @@
                               (js/encodeURIComponent (js/JSON.stringify (clj->js value)))))
                     hash)))
 
-(defn make-json-callback [callback]
+(defn make-json-callback [verb callback]
   (if callback
     (fn [reply]
       (if (<= 200 (.getStatus (.-target reply)) 299)
         (callback (js->clj (.getResponseJson (.-target reply))))
-        (do (util/log "Response status " (.getStatus (.-target reply)) " ⇒ " (.getResponseBody (.-target reply)))
-            (js/alert (str "The action could not be completed.  " (.getStatusText (.-target reply)))))))
+        (do (util/log "Response status " (.getStatus (.-target reply)) " ⇒ " 
+                      (try #_(string/join "; " (:conditions (js->clj (.getResponseJson (.-target reply)))))
+                           (js->clj (.getResponseJson (.-target reply)))
+                           (catch :default c "⚠")))
+            (js/alert (str "The “"verb"” action could not be completed.  " (.getStatusText (.-target reply)))))))
     #(true)))
 
 (defn send-data [verb callback content]
   (util/log "Sending: verb: “" verb ",” content: " (or content "(none)"))
   (xhr/send "/reg/herald.cgi" 
-            (make-json-callback callback)
+            (make-json-callback verb callback)
             "POST" 
             (str (str "verb=" verb) \&
                  (if content

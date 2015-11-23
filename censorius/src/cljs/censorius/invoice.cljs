@@ -10,7 +10,8 @@
    [censorius.merch :as merch]
    [censorius.text :as text]
    [censorius.utils :as util]
-   [censorius.vendor :as vendor])
+   [censorius.vendor :as vendor]
+   [censorius.workshops :as workshops])
   (:import [goog History] [goog events]))
 
 
@@ -24,12 +25,120 @@
 (defn scholarship-donations-amount []
   (reduce + (map js/parseFloat (map util/just-decimal (vals @scholarships)))))
 
+
 (defn total-due []
   (+ (guest-list/price-all-guests)
      (merch/price-all-merch)
      (vendor/price-vendor)
      (scholarship-donations-amount)
      (- (reduce + (map :amount @payments)))))
+
+
+
+(defn fix-?-p [field]
+  (if (= "?" (.substring (name field) (- (count (name field)) 1)))
+    (keyword (str (.substring (name field) 0 (- (count (name field)) 2)) 
+                  (if (some #(= % \-) (name field)) "-p" "p")))
+    field))
+
+(defn keyword-field [atom field]
+  (let [host-field (fix-?-p field)]
+    (swap! atom assoc field (keyword (get @atom host-field)))))
+
+(defn fix-up-keywords []
+  (doseq [guest @guest-list/guests]
+    (doseq [field [:sleep :eat :day :gender :ticket-type :t-shirt :coffee? :tote?]]
+      (keyword-field guest field)))
+  (doseq [item @merch/merch]
+    (keyword-field item :id))
+  (util/log "merch = " @merch/merch))
+
+(defn remap-styles [value]
+  (let [s (vec (map (fn [style] 
+                      (reduce conj (map (fn [[k v]]
+                                          {(keyword k) 
+                                           (if (= "id" k) (keyword v) v)}) 
+                                     style))) 
+                 value))]
+    (util/log "styles " s " ← " value)
+    s))
+
+(defn reload-array-from-host [a atom-id data]
+  #_ (util/log " data form a sequence")
+  (reset! a [])
+  (doseq [row data] 
+    (let [row-atom (atom {})]
+      (doseq [[key value] (seq row)]
+        #_ (util/log " — row by row — " (keyword key) " ← " value)
+        (if (and (= atom-id "merch")
+                 (= key "styles"))
+          (swap! row-atom assoc :styles (remap-styles value))
+          (swap! row-atom assoc (keyword key) value)))
+      (swap! a conj row-atom)
+      (util/log " row end…" @row-atom)))
+  (util/log "atom end … " @a))
+
+(defn reload-hash-from-host [a atom-id data]
+  #_ (util/log " data are a hash-table")
+  #_ (reset! a {})
+  (doseq [[key value] (seq data)]
+    #_ (util/log " — set " (keyword key) " ← " value)
+    (swap! a assoc (keyword key) value))
+  (util/log "atom end … " @a))
+
+(def +atom-tags+ {:general d/general
+                  :guests guest-list/guests
+                  :merch merch/merch
+                  :vending vendor/vending
+                  :workshops censorius.workshops/workshops
+                  :scholarships scholarships
+                  :payments payments})
+
+(defn accept-recalled-data [document]
+  (js/alert (str "Recalled invoice # " (get document "invoice")))
+  (util/log " reply: " document)
+  (swap! d/general assoc :invoice (get document "invoice"))
+  (doseq [[atom-id data] (seq document)]
+    (util/log " copying atom id " (keyword atom-id) " ← " data)
+    (let [a (get +atom-tags+ (keyword atom-id))]
+      (if a (do (util/log " atom found for " atom-id )
+                (if (#{"guests" "merch" "workshops" "payments"} atom-id)
+                  (reload-array-from-host a atom-id data)
+                  (reload-hash-from-host a atom-id data)))
+          (util/log " no atom matching " atom-id))))
+  (fix-up-keywords)
+  (util/log "(done recalling data)")
+  (swap! d/general assoc :waiver-signature (:signature @d/general)))
+
+(defn recall-invoice 
+  ([invoice user-key admin-key]
+   (when (number? invoice)
+     (herald/send-data "recall" accept-recalled-data 
+                       (let [keyring {:invoice (.toString invoice 36)
+                                      :verify user-key}]
+                         (if admin-key
+                           (conj keyring {:admin-key admin-key})
+                           keyring)))))
+  ([invoice user-key]
+   (when (number? invoice)
+     (herald/send-data "recall" accept-recalled-data 
+                       {:invoice (.toString invoice 36)
+                        :verify user-key}))))
+
+
+
+(defn submission-data []
+  {:general (conj @d/general {:signature (:waiver-signature @d/general)})
+   :guests (map #(conj @% { :payment-due (censorius.guest/price %)}) @guest-list/guests)
+   :extras (map #(conj @%
+                       { :payment-due (* (censorius.merch/count-sold %)
+                                         (:price @%))}) 
+             (filter #(pos? (:qty @%)) @merch/merch))
+   :vendor (conj @vendor/vending { :payment-due (vendor/price-vendor) })
+   ;; :workshops nil
+   :scholarships (conj @scholarships { :payment-due (scholarship-donations-amount)})
+   :money { :balance-due (total-due)
+           :prior-payments (reduce + (map :amount @payments))}})
 
 (defn try-check-out []
   (js/alert "This is in Testing Mode.
@@ -46,17 +155,7 @@ Make sure that the testing mode shows up on PayPal!")
   #_
   (censorius.herald/send-data "pay" 
                               after-save 
-                              {:general (conj @d/general {:signature (:waiver-signature @d/general)})
-                               :guests (map #(conj @% { :payment-due (censorius.guest/price %)}) @guest-list/guests)
-                               :extras (map #(conj @%
-                                                   { :payment-due (* (censorius.merch/count-sold %)
-                                                                     (:price @%))}) 
-                                         (filter #(pos? (:qty @%)) @merch/merch))
-                               :vendor (conj @vendor/vending { :payment-due (vendor/price-vendor) })
-                               ;; :workshops nil
-                               :scholarships (conj @scholarships { :payment-due (scholarships-donation-amount)})
-                               :money { :balance-due (total-due)
-                                       :prior-payments (reduce + (map :amount @payments))}}))
+                              (submission-data)))
 
 (defn after-save [reply]
   (let [invoice (get reply "invoice")
@@ -67,7 +166,9 @@ Make sure that the testing mode shows up on PayPal!")
 An eMail has been sent to the Registration staff to review your registration. You will receive an eMail from the system as well."))
     (swap! d/general assoc :invoice invoice)
     (swap! d/general assoc :token token)
-    (set! js/window.location "/news/"))) 
+    (if (< invoice 4160)
+      (accept-recalled-data reply)
+      (set! js/window.location "/news/")))) 
 
 (defn save-action []
   (cond (empty? (:note @d/general))
@@ -83,13 +184,7 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
         :ok 
         (censorius.herald/send-data "save" 
                                     after-save 
-                                    {:general (conj @d/general {:signature (:waiver-signature @d/general)})
-                                     :guests (map deref @guest-list/guests)
-                                     :extras (map deref (filter #(pos? (:qty @%)) @merch/merch))
-                                     :vendor @vendor/vending
-                                     ;; :workshops nil
-                                     :scholarships @scholarships
-                                     })))
+                                    (submission-data))))
 
 
 

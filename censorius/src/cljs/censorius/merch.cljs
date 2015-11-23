@@ -154,7 +154,7 @@
 
 (defn product-style [item style]
   (let [style-index (util/position-if #(= (:id %) (:id style)) (:styles @item)) ]
-    (util/log "item " (:id @item) " style " style " index " style-index)
+    #_(util/log "item " (:id @item) " style " style " index " style-index)
     (cond (nil? style-index)
           [no-such-style item style]
 
@@ -267,8 +267,8 @@
    [:h2 "Extras"]
    [:table {:class "extras"}
     [merch-header-row]
-    [:tbody (for [product (available-products)]
-              [product-row product] )]
+    [:tbody (doall (for [product (available-products)]
+                     ^{:key (:id @product)} [product-row product] ))]
     [:tfoot [:tr {:key "merch-footer-row"
                   :style {:border-top "2pt solid green"}}
              [:th {:key "merch-footer/subtotal-label" :col-span 3} "Subtotal"]
