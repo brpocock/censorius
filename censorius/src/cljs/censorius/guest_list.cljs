@@ -9,8 +9,8 @@
    [censorius.utils :as util]))
 
 (defonce guests (reagent/atom
-                 []
-                 #_ 
+                 #_
+                 [] 
                  
                  [ (reagent/atom { :called-by "Sage"
                                   :given-name "John"
@@ -45,7 +45,7 @@
                                  :tote? false })]))
 (util/log "Seeded guest list : " @guests)
 
-(defn need-adult-email []
+(defn need-adult-email? []
   (empty? (filter #(and (censorius.guest/adult? %)
                         (util/email? (:e-mail @%))) 
                   @guests)))

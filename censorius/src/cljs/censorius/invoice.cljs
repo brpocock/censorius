@@ -6,6 +6,7 @@
    [censorius.data :as d]
    [censorius.guest :as guest]
    [censorius.guest-list :as guest-list]
+   [censorius.herald :as herald]
    [censorius.merch :as merch]
    [censorius.text :as text]
    [censorius.utils :as util]
@@ -50,11 +51,19 @@ If your registration is being suspended, one of our Registration staff will cont
 
 Cabin and lodge bunks are first-come, first-serve at the time that you pay for your registration.")
         
-        (guest-list/need-adult-email)
+        (guest-list/need-adult-email?)
         (js/alert "At least one adult's  eMail address must be supplied. Otherwise,  the   Registration  staff   will  not  be   able  to  contact you.")
         
         :ok 
-        (js/alert "Save with note: Disabled for testing. Pretend it worked. ~brfp")))
+        (censorius.herald/send-data "save" 
+                                    #(js/alert (str "Response from server: " (util/stringerific %))) 
+                                    {:general @d/general
+                                     ;; :guests (map deref @guest-list/guests)
+                                     ;; :extras (map deref (filter #(pos? (:qty @%)) @merch/merch))
+                                     ;; :vendor @vendor/vending
+                                     ;; :workshops nil
+                                     ;; :scholarships @scholarships
+                                     })))
 
 
 
@@ -76,16 +85,17 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
     [:td (str (:invoice @d/general))]]])
 
 (defn guest-price-line [guest]
-  [:li {:key (str "guest-price-" (:given-name @guest) "-" (:surname @guest)) }
-   (util/format-money (guest/price guest)) 
+  [:li (util/format-money (guest/price guest)) 
    " for " 
    (or (:called-by @guest) (:given-name @guest))])
 
 (defn invoice-guests-section []
   [:tr {:key "invoice-guests"
-        :style {:display (if (pos? (count @guest-list/guests)) "table-row" "none")}} 
+        :style {:display (if (pos? (count @guest-list/guests)) 
+                           "table-row" "none")}} 
    [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))
                    (for [guest @guest-list/guests]
+                     ^{:key (str "guest-price-" (:given-name @guest) "-" (:surname @guest)) }
                      [guest-price-line guest])]])
 
 (defn invoice-merch-section []
@@ -133,52 +143,67 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
   (some #(= % (:waiver-signature @d/general))
         (map guest/legal-name (filter guest/adult? @guest-list/guests))))
 
-(defn sign-fpg-waiver [pay?]
-  [:div {:style {:display (if (and pay? (not (waiver-signed?)))
-                            "block" "none")}}
-   [:h2 "Sign the FPG Release"]
-   
-   [:h3 "Release, Waiver, and Indemnity Agreement"]
-   
-   "I am an  adult over 18 years  of age and wish to  participate in the
+(defn listify [adults]
+  (case (count adults)
+    0 "(um, wait. add some names, first!)"
+    1 (first adults)
+    2 (str (first adults) " or " (second adults))
+    (str (first adults) ", " (listify (rest adults)))))
+
+(defn sign-fpg-waiver []
+  [:div
+   [:div {:style {:display (if (and (some guest/adult? @guest-list/guests)
+                                    (waiver-signed?))
+                             "block" "none")}}
+    "✓ "
+    [:a {:href "/news/release-waiver-and-indemnity-agreement/"} "Release, Waiver, and Indemnity Agreement"] " signed. "]
+   [:div {:style {:display (if (and (some guest/adult? @guest-list/guests)
+                                    (not (waiver-signed?)))
+                             "block" "none")}}
+    [:h2 "Sign the FPG Release"]
+    
+    [:h3 "Release, Waiver, and Indemnity Agreement"]
+    
+    "I am an adult  over 18 years of age and wish  to participate in the
     Florida Pagan Gathering (“EVENT”). In  addition, I give my children,
     if any,  permission to participate  in the  EVENT and I  assume full
     responsibility for the conduct and safety of my children."
-   
-   [:p "This “Release, Waiver, and Indemnity Agreement” (“AGREEMENT”) is
-    for the purpose of promoting a safe and happy religious event and to
-    assure that continued religious events may be held in the future."]
+    
+    [:p "This  “Release, Waiver, and Indemnity  Agreement” (“AGREEMENT”)
+    is for the purpose of promoting a safe and happy religious event and
+    to  assure   that  continued  religious   events  may  be   held  in
+    the future."]
 
-   [:p  "In consideration  for my  participation and  attendance at  the
+    [:p "In  consideration for  my participation  and attendance  at the
     EVENT, I do hereby understand and hereby agree to the following:"]
 
-   [:ol
-    [:li  "I become  a member  of the  Temple of  Earth Gathering,  Inc.
+    [:ol
+     [:li  "I become  a member  of the  Temple of  Earth Gathering,  Inc.
     by registering and paying an entrance fee to attend the EVENT;"]
 
-    [:li "I agree  to RELEASE, WAIVE, DISCHARGE AND COVENANT  NOT TO SUE
+     [:li "I agree to RELEASE, WAIVE,  DISCHARGE AND COVENANT NOT TO SUE
            the  promoter(s); the  participant(s);  the  Temple of  Earth
            Gathering, Inc.,  its members,  its officers,  its employees,
            its volunteers; any of the  Temple of Earth Gathering, Inc.’s
            affiliates;    and,    owners     and    lessees    of    the
            premises (hereinafter the “RELEASEES”); "]
 
-    [:li "I agree not to hold the  RELEASEES liable to me; members of my
+     [:li "I agree not to hold the RELEASEES liable to me; members of my
            family or  my guests;  my personal  representatives, assigns,
            heirs; and, next  of kin for any and all  loss or damage, and
            any claims  or demands therefore  on account of injury  to my
            person or my  property or resulting in my  death, arising out
            my attendance  and participation at the  EVENT whether caused
            by the negligence or otherwise of the RELEASEES;"]
-    
-    [:li "I  understand that there  are dangerous animals,  insects, and
+     
+     [:li "I understand  that there are dangerous  animals, insects, and
            plants  located   on  the  campgrounds,  including   a  lake.
            Attendance  at the  EVENT involves  a risk  of injury  and/or
            death and/or property damage. As such, I VOLUNTARILY AGREE TO
            ACCEPT ALL RISKS reasonably associated with my attendance and
            participation in activities at the EVENT;"]
-    
-    [:li "I accept full responsibility  for minor children who accompany
+     
+     [:li "I accept full responsibility for minor children who accompany
            me. I  understand that there are  dangerous animals, insects,
            and  plants located  on  the campgrounds,  including a  lake.
            Attendance  at the  EVENT involves  a risk  of injury  and/or
@@ -186,84 +211,95 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
            ACCEPT ALL RISKS reasonably associated with my attendance and
            participation in activities at the EVENT; "]
 
-    [:li "I AGREE TO HOLD THE RELEASEES harmless and indemnify RELEASEES
-           for any claim judgment or  expense of the RELEASEES that they
-           may incur arising out of my  activities or my presence at the
-           EVENT; "]
+     [:li  "I  AGREE  TO  HOLD  THE  RELEASEES  harmless  and  indemnify
+           RELEASEES for any claim judgment  or expense of the RELEASEES
+           that  they may  incur  arising  out of  my  activities or  my
+           presence at the EVENT; "]
 
-    [:li "I understand further that  the foregoing AGREEMENT is intended
+     [:li "I understand further that the foregoing AGREEMENT is intended
            to be as broad and inclusive  as is permitted by the state of
            Florida and that  if any portion thereof is  held invalid, it
            is agreed  that the balance shall,  notwithstanding, continue
            in full legal force and effect;"]
 
-    [:li  "Notwithstanding the  express  provisions  of this  AGREEMENT,
+     [:li  "Notwithstanding the  express provisions  of this  AGREEMENT,
            I  agree that  if I  elect to  file suit  against any  of the
            aforementioned  RELEASEES  on  the  basis  of  negligence  or
            otherwise,  I  agree  to  be liable  for  attorney  fees  and
            costs. "]
 
-    [:li "I HAVE READ AND  HAVE VOLUNTARILY SIGNED THIS “RELEASE, WAIVER
+     [:li "I HAVE READ AND HAVE VOLUNTARILY SIGNED THIS “RELEASE, WAIVER
            AND  INDEMNITY  AGREEMENT” and  further  agree  that no  oral
            representations,  statements or  inducements  apart from  the
            foregoing written agreement have been made. "]]
-   
-   [:h3 "Camera Use Policy"]
-   
-   [:ol
     
-    [:li "Only guests  and staff who have signed this  Camera Use Policy
+    [:h3 "Camera Use Policy"]
+    
+    [:ol
+     
+     [:li "Only guests and staff who  have signed this Camera Use Policy
             may  take   pictures  while  attending  the   Florida  Pagan
             Gathering and then only of  people who have given permission
             for you to photograph them.  This includes Camera Phones and
             other recording devices."]
-    
-    [:li "You must ask permission of  a child’s parent or legal guardian
+     
+     [:li "You must ask permission of  a child’s parent or legal guardian
             in  order  to  photograph  any  child.  AT  NO  TIME  is  it
             acceptable  to photograph  any nude  children, photographing
             nude children is against Federal law."]
-    
-    [:li  "Cameras, Camera  Phones or  other recording  devices are  NOT
+     
+     [:li  "Cameras, Camera  Phones or  other recording  devices are  NOT
             allowed in  the fire circle area  unless you are one  of the
             official FPG Staff  Photographers. ABSOLUTELY NO photography
             in the fire circle area after sundown."]
-    
-    [:li "Be polite and ask  vendors for permission before photographing
+     
+     [:li "Be polite and ask vendors for permission before photographing
             anything in their vending tent."]
-    
-    [:li  "Those who  fail to  comply with  these rules  are subject  to
+     
+     [:li "Those  who fail  to comply  with these  rules are  subject to
             having  their film  and/or camera  (including camera  phone)
             confiscated and including, but not limited to, being removed
             from the event site without a refund."]]
-   
-   [:hr]
-   
-   [:p "To signal your agreement, enter your legal name below.
+    
+    [:hr]
+    
+    [:p "To signal your agreement, enter your legal name below.
 (Florida Statute 668.004 provides that your electronic signature is
-legally binding.)"]
+legally binding.)"]]
    
-   [:div {:id "waiver-signature"}
+   [:div {:id "waiver-signature"
+          :style {:display (if (some guest/adult? @guest-list/guests)
+                             "block" "none")}}
     [text/text-input {:cursor d/general
                       :keys :waiver-signature
-                      :label "Sign here"
-                      :placeholder (let [grown (first (filter guest/adult?
-                                                              @guest-list/guests))]
-                                     (if grown (guest/legal-name grown) "John Hancock"))
-                      :rows 1}]]])
+                      :label "I agree to the waiver"
+                      :placeholder #(let [grown (first (filter guest/adult?
+                                                               @guest-list/guests))]
+                                      (if grown (guest/legal-name grown) "John Hancock"))
+                      :validate (fn [signature]
+                                  (some #(= % signature)
+                                        (map guest/legal-name (filter guest/adult? @guest-list/guests))))
+                      :formatter util/name-case
+                      :rows 1}]
+    [:span {:class "hint"
+            :style {:display (if (waiver-signed?) "none" "inline")}} 
+     "The signature must be entered as " [:em "exactly "] 
+     (listify (map guest/legal-name (filter guest/adult? @guest-list/guests)))
+     ". You might need to press Tab or Return to accept your signature."]]])
 
 
 
 (defn adult-email-prevent-checkout []
   [:p {:class "warning"
-       :style {:display (if (guest-list/need-adult-email)
+       :style {:display (if (guest-list/need-adult-email?)
                           "block" "none")}}
    "At  least  one  adult  eMail  address  is  needed,  before  you  can
    check out."
    
    [:span {:class "hint"} "Click on the box under " [:q "eMail"] 
-    "next to any adult member of the party (probably yourself!)
-             and enter  a valid  address. The first  one (from  the top)
-             that  you   provide  is   who  will   receive  registration
+    "next  to any  adult member  of the  party (probably  yourself!) and
+             enter a  valid address. The  first one (from the  top) that
+             you    provide   is    who   will    receive   registration
              correspondence, like your confirmation.  If you're a Lugal,
              Division Coördinator, or  Board member, be sure  to use the
              same eMail  address you use  for other FPG business,  so we
@@ -274,31 +310,31 @@ legally binding.)"]
        :style {:display (if (let [[adults-needed adults & _] (guest-list/adults-needed)]
                               (> adults-needed adults))
                           "block" "none")}}
-   "There are  not enough adults  registered for the  number of
+   "There  are   not  enough  adults   registered  for  the   number  of
             children. (Check the " [:strong [:q "Ticket"]] " column.)"])
 
 
 
-(defn check-out-check-in [pay?]
-  [:div {:style {:display (if (and pay? (waiver-signed?))
+(defn check-out-check-in []
+  [:div {:style {:display (if (and (waiver-signed?)
+                                   (not (guest-list/need-adult-email?)))
                             "block" "none")}}
    [:h3 "ID Check!"]
    [:p "At Registration, you will  need valid, State-issued photo ID for
    each adult  member of your  party. Please  be sure that  your party's
    legal names are: "
     (string/join ", " (map guest/legal-name @guest-list/guests))]
-   [:h4 "Fast Check-In Help"]
+   [:h3 "Quick Check-In"]
    [:p "If you, " (:waiver-signature @d/general) 
     ", have a Florida ID or Driver's License, you may be able to use our
- new  Quick  Check-In   by  swiping  your  ID  card   to  retrieve  your
- reservations. In  order to  confirm that  you are  “you,” and  not some
- other person  with the  same name,  would you  mind entering  these two
- extra pieces of information?"]
-   [:p {:class "hint"}
-    "These are completely optional, but  if you supply them now, they'll
-be used at  check-in to identify your reservation. You  can enter either
-or both. The Quick Check-In scanner will only work if you have a Florida
-ID with the magnetic stripe on the back."]
+ new Quick Check-In by swiping your ID card on site. If you supply these
+ extra address information, they'll be  used to verify your reservation.
+ The Quick Check-In scanner will only work if you have a Florida ID with
+ the magnetic stripe on the back. We use this information "
+    [:em "only"] " for your registration check-in purposes."]
+   [:p {:class "hint"} 
+    "Example:  Bert and Ernie live  at 123 Sesame St,  Opa-Locka, FL,
+   33054. They would enter " [:q "123"] " and " [:q "33054"] "below."]
    [:div
     [text/text-input {:cursor d/general
                       :keys :fast-check-in-address
@@ -314,13 +350,13 @@ ID with the magnetic stripe on the back."]
                       :validate util/fl-zip-code?
                       :rows 1}]]])
 
-(defn check-out-button-box [pay?]
-  [check-out-check-in @pay?]
+(defn check-out-button-box []
   [:div {:class "buttonBox"}
    [:button
-    {:on-click #(reset! pay? true) #_ try-check-out
+    {:on-click try-check-out
      :style {:display (if (and (pos? (total-due))
-                               (not @pay?))
+                               (waiver-signed?)
+                               (not (guest-list/need-adult-email?)))
                         "inline" "none")}}
     "Ready, Make Payment →"]])
 
@@ -336,17 +372,20 @@ ID with the magnetic stripe on the back."]
  a note above,  and your registration will be "  [:em "suspended"] " and
  brought to the attention of our  Registration staff. (You may also want
  to print out this page if you're mailing your payment.)"
-    (when (guest-list/need-adult-email)
+    (when (guest-list/need-adult-email?)
       [:big "You " [:em "must"] 
        " have at least one adult's eMail address entered as well."])]])
 
-(defn check-out-action []
-  (let [pay? (atom false)]
-    [:div
-     [need-adults-warning]
-     [adult-email-prevent-checkout]
-     [sign-fpg-waiver @pay?]
-     [check-out-button-box pay?]]))
+(defn suspend-button []
+  [:div {:style {:display (if (waiver-signed?) "inline" "none")}}
+   [:p  "Can't  check   out?  If  you're  not  able   to  complete  your
+   registration without  assistance on-line,  add a  note above  and you
+   can "
+    [:em "suspend"] 
+    " your registration.  This will save the  information you've entered
+    so far, and notify our registration team by eMail to assist you."]
+   [:button {:on-click save-action}
+    "Suspend registration and send to Reg. staff"]])
 
 (defn check-out-box []
   (if (and false
@@ -358,7 +397,10 @@ ID with the magnetic stripe on the back."]
     [:section {:class "card" :id "check-out"}
      [:h2 "Check Out"]
      [check-out-invoice]
-     [check-out-action]
      [check-out-notes]
-     [:button {:on-click save-action}
-      "Suspend registration and send to Reg. staff"]]))
+     [need-adults-warning]
+     [adult-email-prevent-checkout]
+     [sign-fpg-waiver]
+     [check-out-check-in]
+     [check-out-button-box]
+     [suspend-button]]))

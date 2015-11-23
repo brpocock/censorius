@@ -1,6 +1,6 @@
 #!/bin/sh
 cd ~/Projects/censorius
-(cd censorius ; lein cljsbuild once || exit -1)
+# (cd censorius ; lein cljsbuild once || exit -1)
 # (cd herald ; ./build-herald || exit -2)
 rsync -r -essh ./censorius/www/*  fpgrocks@fpgrocks.org:fpgrocks.org/reg/
 rsync -essh ./herald/herald-fcgi.lisp ./herald/build-herald fpgrocks@fpgrocks.org:herald/

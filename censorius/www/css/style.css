@@ -1124,7 +1124,7 @@ center.centerboth {
     margin: auto auto auto auto;
 }
 
-.signature, #waiver-signature {
+.signature input, #waiver-signature input {
     font-family: 'Herr Von Muellerhoff', cursive;
 }
 

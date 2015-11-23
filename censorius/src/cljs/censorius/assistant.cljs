@@ -53,7 +53,9 @@ to new party members."]])
       "."]]))
 
 (defn assistant-need-adult-email []
-  [:div [:h4 {:class "warning"} "eMail Address Needed"]
+  [:div {:style {:display (if (guest-list/need-adult-email?)
+                            "block" "none")}}
+   [:h4 {:class "warning"} "eMail Address Needed"]
    [:p "The  eMail address of  at least one adult  in the party  must be
    provided. (Click on the box under the "
     [:q "eMail"]
@@ -104,8 +106,7 @@ to new party members."]])
    (if (empty? @guest-list/guests)
      [assistant-getting-started]
      [assistant-editing-party])
-   (when (guest-list/need-adult-email)
-     [assistant-need-adult-email])
+   [assistant-need-adult-email]
    (let [[adults-needed adults & _] (guest-list/adults-needed)]
      (when (> adults-needed adults) [assistant-need-adults]))
    (when (< 1 (count @guest-list/guests))

@@ -1,3 +1,4 @@
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (mapcar #'ql:quickload '(:alexandria
                            :cl-paypal
@@ -24,7 +25,7 @@
 
 (defpackage :herald-fcgi
   (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-   :cl-ppcre :split-sequence)
+        :cl-ppcre :split-sequence)
   (:export :herald-cgi :herald-fcgi))
 
 (in-package :herald-fcgi)
@@ -38,19 +39,23 @@
   :test #'equal)
 
 (define-constant +sysop-mail+
-  "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
+    "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
   :test #'equal)
 
 (define-constant +herald-mail+
-  "\"Censorius Herald for TEG FPG\" <herald@flapagan.org>"
+    "\"Censorius Herald for TEG FPG\" <herald@flapagan.org>"
+  :test #'equal)
+
+(define-constant +herald-mail-base+
+    "herald@flapagan.org"
   :test #'equal)
 
 (define-constant +registrar-mail+
-  "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
+    "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
   :test #'equal)
 
 (define-constant +archive-mail+
-  "\"Registration Archive\" <reg-archive@flapagan.org>"
+    "\"Registration Archive\" <reg-archive@flapagan.org>"
   :test #'equal)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -118,15 +123,15 @@ will have a fill pointer set to its end.
 The macro also uses SETQ to store the new vector in VECTOR."
   `(setq ,vector
          (loop with length = (length ,vector)
-               with new-vector = (make-array length
-                                             :element-type ,new-type
-                                             :fill-pointer length)
-               for i below length
-               do (setf (aref new-vector i)
-                        ,(if converter
-                             `(funcall ,converter (aref ,vector i))
-                             `(aref ,vector i)))
-               finally (return new-vector))))
+            with new-vector = (make-array length
+                                          :element-type ,new-type
+                                          :fill-pointer length)
+            for i below length
+            do (setf (aref new-vector i)
+                     ,(if converter
+                          `(funcall ,converter (aref ,vector i))
+                          `(aref ,vector i)))
+            finally (return new-vector))))
 
 ;;; this function is taken from Hunchentoot 1.1.0 without effective modification
 (defun url-decode (string &optional (external-format +utf-8+))
@@ -180,18 +185,18 @@ the external format EXTERNAL-FORMAT."
   "URL-encodes a string"
   (with-output-to-string (s)
     (loop for c across string
-          for index from 0
-          do (cond ((or (char<= #\0 c #\9)
-                        (char<= #\a c #\z)
-                        (char<= #\A c #\Z)
-                        ;; note that there's no comma in there - because of cookies
-                        (find c "$-_.!*'()" :test #'char=))
-                    (write-char c s))
-                   (t (loop for octet across
-                                      (flexi-streams:string-to-octets string
-                                                                      :start index
-                                                                      :end (1+ index))
-                            do (format s "%~2,'0x" octet)))))))
+       for index from 0
+       do (cond ((or (char<= #\0 c #\9)
+                     (char<= #\a c #\z)
+                     (char<= #\A c #\Z)
+                     ;; note that there's no comma in there - because of cookies
+                     (find c "$-_.!*'()" :test #'char=))
+                 (write-char c s))
+                (t (loop for octet across
+                        (flexi-streams:string-to-octets string
+                                                        :start index
+                                                        :end (1+ index))
+                      do (format s "%~2,'0x" octet)))))))
 
 
 
@@ -199,15 +204,15 @@ the external format EXTERNAL-FORMAT."
 (defmacro interleave (&rest sets)
   "Interleave elements from each set: (a b c) (1 2 3) ⇒ (a 1 b 2 c 3)"
   (let ((gensyms
-          (loop for i below (length sets)
-                collecting (gensym (or (and (consp (elt sets i))
-                                            (princ-to-string (car (elt sets i))))
-                                       (princ-to-string (elt sets i)))))))
+         (loop for i below (length sets)
+            collecting (gensym (or (and (consp (elt sets i))
+                                        (princ-to-string (car (elt sets i))))
+                                   (princ-to-string (elt sets i)))))))
     `(loop
-       ,@(loop for i below (length sets)
-               appending (list 'for (elt gensyms i) 'in (elt sets i)))
-       ,@(loop for i below (length sets)
-               appending (list 'collect (elt gensyms i))))))
+        ,@(loop for i below (length sets)
+             appending (list 'for (elt gensyms i) 'in (elt sets i)))
+        ,@(loop for i below (length sets)
+             appending (list 'collect (elt gensyms i))))))
 
 (defun interleave2 (set1 set2)
   (interleave set1 set2))
@@ -242,21 +247,19 @@ each of them; but if given only one, return it as an atom."
 
 (defun read-post-data ()
   "Parse POST data from the user"
-  (let ((read-amount 0)
-        (read-buffer (make-array *read-post-buffer-start*
-                                 :element-type 'character
-                                 :adjustable t :fill-pointer 0)))
-    (tagbody
-     read-loop
-       (let* ((the-end (array-dimension read-buffer 0))
-              (input-end (read-sequence read-buffer *standard-input*
-                                        :start read-amount
-                                        :end the-end)))
-         (when (= input-end (1- the-end))
-           (setf read-amount input-end)
-           (adjust-array read-buffer (+ the-end *read-post-buffer-grow*))
-           (go read-loop))))
-    (setf (getf *request* :post-data) (copy-array read-buffer))))
+  (let* ((the-end (min (or (ignore-errors 
+                             (parse-integer (uiop/os:getenv "CONTENT_LENGTH")))
+                           0)
+                       *read-post-max*))
+         (read-buffer (make-array the-end
+                                  :element-type 'character
+                                  :adjustable t :fill-pointer the-end)))
+    (warn " Reading POST data, length ~:d bytes" the-end)
+    (setf (fill-pointer read-buffer) (read-sequence read-buffer *standard-input*
+                                                    :start 0 :end the-end))
+    (setf (getf *request* :post-data) (coerce (copy-array read-buffer) 'string))
+    (warn "POST data: ~a" (getf *request* :post-data))
+    (getf *request* :post-data)))
 
 (defun query-params ()
   "Obtain all of the dominant* parameters submitted for a request.
@@ -267,21 +270,29 @@ from the query string and path-info."
   (if-let ((query-params (getf *request* :query-params)))
     query-params
     (setf (getf *request* :query-params)
-          (mapcar
-           (lambda (pair)
-             (split-sequence #\= pair))
-           (split-sequence
-            #\&
-            (if (equal "POST" (getf *request* :request-method))
-                (progn (unless (getf *request* :post-data)
-                         (read-post-data))
-                       (getf *request* :post-data))
-                (let ((q-s (uiop/os:getenv "QUERY_STRING"))
-                      (path (uiop/os:getenv "PATH_INFO")))
-                  (if (and (stringp q-s)
-                           (plusp (length q-s)))
-                      q-s
-                      path))))))))
+          (mapcar (lambda (pair)
+                    (split-sequence #\= pair))
+                  (split-sequence
+                   #\&
+                   (cond 
+                     ((equal "POST" (getf *request* :request-method))
+                      (unless (getf *request* :post-data)
+                        (read-post-data))
+                      (getf *request* :post-data))
+                     (t 
+                      (let ((q-s (uiop/os:getenv "QUERY_STRING")))
+                        (or (and (stringp q-s)
+                                 (plusp (length q-s))
+                                 q-s)
+                            (uiop/os:getenv "PATH_INFO"))))))))))
+
+(defun json-elt (jso ref &rest more-refs)
+  (let ((result (etypecase jso
+                  (st-json:jso (st-json:getjso jso ref))
+                  (string (st-json:getjso (st-json:read-json jso) ref)))))
+    (if more-refs
+        (funcall json-elt (append (cons result nil) more-refs))
+        result)))
 
 (defun field (field-name)
   "Get the  contents of  the named form-field.  (Accepted as  a keyword,
@@ -290,26 +301,29 @@ literally. Thus,  to get a field  with capital letters in  the name, you
 must use a string.)"
   (etypecase field-name
     (symbol (field (string-downcase (string field-name))))
+    (cons (json-elt (field (first field-name)) (rest field-name)))
     (string
      (ecase *cgi*
-       (:fast
-        (fcgx-getparam field-name *request*))
-       (:cgi
-        (first-or-only-second
-         (mapcar (curry #'mapcar #'url-decode)
-                 (remove-if-not
-                  (curry #'equal field-name)
-                  (query-params)
-                  :key #'first))))))))
+       (:fast (fcgx-getparam field-name *request*))
+       (:cgi (first-or-only-second
+              (mapcar (curry #'mapcar #'url-decode)
+                      (remove-if-not
+                       (curry #'equal field-name)
+                       (query-params)
+                       :key #'first))))))))
 
 (defun reply-error/text (conditions)
   "Replies with a plain-text error report. The first element of the list
 must be the numeric HTTP status code."
   (reply (list :raw
                (format nil
-                       "Status: ~d~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}~2%"
+                       "Status: ~d~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}~2%~a~2%"
                        (first conditions)
-                       (mapcar #'princ-to-string (rest conditions))))))
+                       (mapcar #'princ-to-string (rest conditions))
+                       (with-output-to-string (s)
+                         (map nil 
+                              (rcurry #'uiop/image:print-condition-backtrace :stream *standard-output*)
+                              (remove-if-not (rcurry #'typep 'condition) conditions)))))))
 
 (defun sql-escape (string)
   "Simply replaces  ' with  '' in  strings (that's  paired/escape single
@@ -324,11 +338,12 @@ real numbers."
   (assert (null parameters) () "~~/SQL/ does not accept parameters; saw ~s" parameters)
   (etypecase object
     (string (princ #\' stream)
-     (princ (sql-escape object) stream)
-     (princ #\' stream))
+            (princ (sql-escape object) stream)
+            (princ #\' stream))
     (integer (princ object stream))
     (real (princ (* 1.0 object) stream))
-    (cons (format stream "(~{~/sql/~^, ~})" object))))
+    (cons (format stream "(~{~/sql/~^, ~})" object))
+    (null (princ "NULL" stream))))
 
 (defun html-escape (string)
   "Escapes < and & from strings for safe printing as HTML (text node) content."
@@ -360,14 +375,39 @@ real numbers."
     (otherwise (etypecase object
                  (null (princ "nil" stream))
                  (keyword (princ #\: stream)
-                  (princ (string-downcase (string object)) stream))
+                          (princ (string-downcase (string object)) stream))
                  (symbol (princ #\: stream)
-                  (princ (string-downcase (string object)) stream))
+                         (princ (string-downcase (string object)) stream))
                  (string (prin1 object stream))
                  (integer (prin1 object stream))
                  (real (prin1 (* 1.0 object) stream))
                  (vector (format stream "[~{~/edn/~^ ~}]" (coerce object 'list)))
                  (list (format stream "{~{~/edn/ ~/edn/~^,~%~t~}}" object))))))
+
+(defun cl-user::json (stream object colonp atp &rest parameters)
+  (assert (not colonp))
+  (assert (not atp))
+  (assert (null parameters))
+  (case object
+    ((t :true 'true) (princ "true" stream))
+    ((:false 'false) (princ "false" stream))
+    (otherwise (etypecase object
+                 (null (princ "undefined" stream))
+                 (keyword (princ #\" stream)
+                          (princ (string-downcase (string object)) stream)
+                          (princ #\" stream))
+                 (symbol (princ #\" stream)
+                         (princ (string-downcase (string object)) stream)
+                         (princ #\" stream))
+                 (string (prin1 object stream))
+                 (integer (prin1 object stream))
+                 (real (prin1 (* 1.0 object) stream))
+                 (vector (format stream "[~{~/json/~^, ~}]" (coerce object 'list)))
+                 (list (if (and (evenp (length object))
+                                (every #'keywordp (loop for (key value) on object by #'cddr
+                                                     collecting key)))
+                           (format stream "{~{~/json/: ~/json/~^,~%~t~}}" object)
+                           (format stream "~/json/" (coerce object 'vector))))))))
 
 (defun print-condition/html (c)
   (format nil "<section class=\"error\">
@@ -380,8 +420,13 @@ real numbers."
           (type-of c)
           c
           (with-output-to-string (s)
-            (uiop/image:print-condition-backtrace c)
+            (uiop/image:print-condition-backtrace c :stream *standard-output*)
             s)))
+
+(defun simply$ (thing)
+  (if (consp thing)
+      (simply$ (car thing))
+      (princ-to-string thing)))
 
 (defun mail-error (condition)
   (cl-sendmail:with-email
@@ -391,7 +436,9 @@ real numbers."
                                                                   (subseq condition$ 0 (min (length condition$)
                                                                                             20))))
                 :from +herald-mail+
-                :other-headers (list (list "References" (concatenate 'string "condition." (type-of condition) "." +herald-mail+))
+                :other-headers (list (list "References" (concatenate 'string "condition." 
+                                                                     (simply$ (type-of condition))
+                                                                     "." +herald-mail-base+))
                                      '("Organization" "Temple of Earth Gathering, Inc.")
                                      (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
                 :charset :utf-8
@@ -410,7 +457,7 @@ Backtrace:
     (type-of condition)
     (or condition "Ø")
     (ignore-errors (query-params))
-    (with-output-to-string (s) (uiop/image:print-condition-backtrace c) s)))
+    (with-output-to-string (s) (uiop/image:print-condition-backtrace condition :stream *standard-output*) s)))
 
 (defun reply-error/html (conditions)
   (reply (list :raw
@@ -458,12 +505,37 @@ be reached at: ~a </p>
                                         #\<
                                         +sysop-mail+))))))))
 
+(defun reply-error/json (conditions)
+  (reply (list :raw
+               (format nil "Status: ~d
+Content-Type: text/javascript
+
+{ \"this_is_an_error\": true,
+  \"error\": ~:*~d,
+ \"conditions\": [~{ ~/json/~^, ~}],
+ \"service\": \"~a\",
+ \"herald_version\":\"~36r\",
+ \"you_said\": ~/json/ }
+~%"
+                       (first conditions)
+                       (cond
+                         ((= (first conditions) 404)
+                          (list "The resource which you requested was not found."))
+                         
+                         (t (rest conditions)))
+                       *cgi*
+                       +compile-time+
+                       *request*))))
+
 (defun reply-error (conditions)
   (cond
     ((accept-type-p "text/html") (reply-error/html conditions))
+    ((accept-type-p "text/javascript") (reply-error/json conditions))
     (t (reply-error/text conditions)))
-  (format *trace-output* "ERROR condition: ~{~a~^  ~}" conditions)
-  (mail-error (first conditions)))
+  (when (and (numberp (first conditions))
+             (<= 500 (first conditions)))
+    (format *trace-output* "ERROR condition: ~{~a~^  ~}" conditions)
+    (mail-error (second conditions))))
 
 (defun reply (structure)
   (ecase (car structure)
@@ -483,7 +555,7 @@ be reached at: ~a </p>
                 :cc +archive-mail+
                 :subject subject
                 :from +herald-mail+
-                :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail+))
+                :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail-base+))
                                      '("Organization" "Temple of Earth Gathering, Inc.")
                                      (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
                 :charset :utf-8
@@ -495,12 +567,15 @@ be reached at: ~a </p>
   (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *db* query) args)))
 
 (defun next-invoice-number ()
-  (db-query "select 1 + max(id) from invoices"))
+  (getf 
+   (first (db-query "select `auto_increment` from information_schema.tables where table_name='invoices'"))
+   :auto_increment))
 
 (defun create-invoice ()
-  (caar (db-query
-         "insert into invoices (created, `festival-season`, `festival-year`)
-values (date('now'),?,?)" (next-festival-season) (next-festival-year))))
+  (db-query
+   "insert into invoices (created, `festival-season`, `festival-year`)
+values (date('now'),?,?)" (next-festival-season) (next-festival-year))
+  (cadar (db-query "select last_insert_id()")))
 
 
 (defun mail-registrar-completed-invoice (invoice)
@@ -672,20 +747,38 @@ cookie says “~36r.”
     ((table) (&body columns))
   `(db-query
     (format nil
-            "insert into `invoice~@[-~(~a~)~]` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
+            "insert into `invoice~:[s~;-~:*~(~a~)~]` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
             ,(when table `',table)
             (list ,@(loop for column in columns
-                          collecting (string column)))
+                       collecting (string column)))
             invoice
             (list ,@(loop for column in columns
-                          collecting `(field ,(intern
-                                               (concatenate 'string
-                                                            (if table
-                                                                (concatenate 'string
-                                                                             (string table) "∋")
-                                                                "")
-                                                            (string column))
-                                               :keyword)))))))
+                       collecting `(field ,(intern
+                                            (concatenate 'string
+                                                         (if table
+                                                             (concatenate 'string
+                                                                          (string table) "∋")
+                                                             "")
+                                                         (string column))
+                                            :keyword)))))))
+
+(defmacro sql-update-invoice-fields
+    ((table) (&body columns))
+  `(db-query
+    (format nil
+            "update `invoice~:[s~;-~:*~(~a~)~]` set ~{ `~(~a~)` = ~/sql/ ~^, ~} where invoice=~/sql/"
+            ,(when table `',table)
+            (list ,@(loop for column in columns
+                       collect (string column)
+                       collect `(field ,(intern
+                                         (concatenate 'string
+                                                      (if table
+                                                          (concatenate 'string
+                                                                       (string table) "∋")
+                                                          "")
+                                                      (string column))
+                                         :keyword))))
+            invoice)))
 
 (defmacro sql-insert-invoice-array
     ((table) (&body columns))
@@ -694,24 +787,46 @@ cookie says “~36r.”
                                                      'string
                                                      (string table) "∋#")
                                                     :keyword)))
-         do
-            (db-query
-             (format nil
-                     "insert into `invoice-~(~a~)` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
-                     ',table
-                     (list ,@(loop for column in columns
-                                   collecting (string column)))
-                     invoice
-                     (list ,@(loop for column in columns
-                                   collecting `(field (intern (string-upcase
-                                                               (concatenate 'string
-                                                                            ,(string table) "∋"
-                                                                            (string row) "∋"
-                                                                            (string ',column)))
-                                                              :keyword))))))))
+      do
+        (db-query
+         (format nil
+                 "insert into `invoice-~(~a~)` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
+                 ',table
+                 (list ,@(loop for column in columns
+                            collecting (string column)))
+                 invoice
+                 (list ,@(loop for column in columns
+                            collecting `(field (intern (string-upcase
+                                                        (concatenate 'string
+                                                                     ,(string table) "∋"
+                                                                     (string row) "∋"
+                                                                     (string ',column)))
+                                                       :keyword))))))))
 
-(defun accept-general (invoice)
-  (sql-insert-invoice-fields (nil)
+(defmacro sql-update-invoice-array
+    ((table) (&body columns))
+  `(loop for row in (split-sequence #\,
+                                    (field ,(intern (concatenate
+                                                     'string
+                                                     (string table) "∋#")
+                                                    :keyword)))
+      do
+        (db-query
+         (format nil
+                 "update `invoice-~(~a~)`  set ~{ `~(~a~) = ~/sql/~^, ~} where invoice=~/sql/ "
+                 ',table
+                 (list ,@(loop for column in columns
+                            collecting (string column)
+                            collecting `(field (intern (string-upcase
+                                                        (concatenate 'string
+                                                                     ,(string table) "∋"
+                                                                     (string row) "∋"
+                                                                     (string ',column)))
+                                                       :keyword))))
+                 invoice))))
+
+(defun update-general (invoice)
+  (sql-update-invoice-fields (nil)
                              (note signature)))
 
 (defun accept-guests (invoice)
@@ -738,14 +853,46 @@ cookie says “~36r.”
   (sql-insert-invoice-array (scholarships)
                             (scholarship amount)))
 
+(defun update-guests (invoice)
+  (sql-update-invoice-array (guests)
+                            (called-by given-name surname formal-name
+                                       presenter-bio presenter-requests
+                                       e-mail telephone
+                                       sleep eat day gender
+                                       t-shirt coffeep totep ticket-type)))
+(defun update-extras (invoice)
+  (sql-update-invoice-array (merch)
+                            (item style qty)))
+
+(defun update-vendor (invoice)
+  (let ((qty (field :|vending∋qty|)))
+    (when (and qty (plusp qty))
+      (sql-update-invoice-fields (vending)
+                                 (total blurb notes qty agreement-p)))))
+(defun update-workshops (invoice)
+  (declare (ignore invoice))
+  (warn "not accepting workshops (TODO)"))
+
+(defun update-scholarships (invoice)
+  (sql-update-invoice-array (scholarships)
+                            (scholarship amount)))
+
 (defun accept-state-from-form ()
-  (let ((invoice (next-invoice-number)))
-    (list :general (accept-general invoice)
+  (let ((invoice (create-invoice)))
+    (list :general (update-general invoice)
           :guests (accept-guests invoice)
           :extras (accept-extras invoice)
           :vendor (accept-vendor invoice)
           :workshops (accept-workshops invoice)
           :scholarships (accept-scholarships invoice))))
+
+(defun update-invoice-from-form (invoice)
+  (list :general (update-general invoice)
+        :guests (update-guests invoice)
+        :extras (update-extras invoice)
+        :vendor (update-vendor invoice)
+        :workshops (update-workshops invoice)
+        :scholarships (update-scholarships invoice)))
 
 (defgeneric handle-verb (verb))
 
@@ -762,16 +909,13 @@ cookie says “~36r.”
          (parse-integer invoice))))
 
 (defmethod handle-verb ((verb (eql :save)))
-  (let ((to-save (accept-state-from-form)))
-    (format t "Content-Type: text/plain; charset=utf-8~2%")
-    (princ "Imagine this just saved the thing and eMailed Bobbi Jo.")
-    (format t "~&~{~{ Field ~:(~a~) = “~a” ~2%~}~}" to-save)
-    (let ((invoice (or (valid-invoice-and-token-sent)
-                       (next-invoice-number))))
-      (format t "~2% Invoice # ~:d" invoice)
-
-      (accept-state-from-form)
-
+  (format t "Content-Type: text/javascript; charset=utf-8~3%")
+  (let ((invoice-all (if-let (invoice (valid-invoice-and-token-sent)) 
+                       (update-invoice-from-form invoice)
+                       (accept-state-from-form))))
+    (format t "~/json/" invoice-all)
+    (format *trace-output* "~s" invoice-all)
+    (let ((invoice (getf (getf invoice-all :general) :invoice)))
       (mail-registrar-suspended-invoice invoice)
       (mail-user-suspended-invoice invoice))))
 
@@ -858,7 +1002,7 @@ cookie says “~36r.”
                     (format nil "Error/~a" (string (type-of c)))
                     "~a~2%~a"
                     (princ-to-string c)
-                    (with-output-to-string (s) (uiop/image:print-condition-backtrace c) s))
+                    (with-output-to-string (s) (uiop/image:print-condition-backtrace c :stream *standard-output*) s))
           (return-from fastcgi nil))))))
 
 (defun remote-user ()
@@ -885,17 +1029,17 @@ cookie says “~36r.”
         (*request* (cgi-environment))
         (*trace-output* *error-output*))
     (block cgi
-      (handler-case
-          (let ((output (with-output-to-string (output)
-                          (funcall fun)
-                          output)))
-            (reply (list :raw output)))
-        (error (c)
-          (fresh-line *error-output*)
-          (format *error-output* " --- Error signaled: ~a" c)
-          (uiop/image:print-condition-backtrace c :stream *error-output*)
-          (reply `(:error 500 ,c))
-          (return-from cgi nil))))))
+      (handler-bind
+          ((error (lambda (c)
+                    (fresh-line *error-output*)
+                    (format *error-output* " --- Error signaled: ~a" c)
+                    (uiop/image:print-condition-backtrace c :stream *error-output*)
+                    (reply `(:error 500 ,c))
+                    (return-from cgi nil))))
+        (let ((output (with-output-to-string (output)
+                        (funcall fun)
+                        output)))
+          (reply (list :raw output)))))))
 
 (defun paypal-request (method &rest args
                        &key
@@ -922,8 +1066,8 @@ cookie says “~36r.”
                           (cons "PWD" *paypal-password*)
                           (cons "SIGNATURE" *paypal-signature*))
                     (loop for (param value) on args by #'cddr
-                          collect (cons (symbol-name param)
-                                        (princ-to-string value)))))
+                       collect (cons (symbol-name param)
+                                     (princ-to-string value)))))
     (unless (= 200 http-status)
       (error 'http-request-error :http-status http-status :response-string response-string))
     (let ((response (cl-paypal::decode-response response-string)))
@@ -1102,7 +1246,7 @@ where invoice=~d"
             :bcc +sysop-mail+
             :subject (format nil "Invoice ~a: Incorrect Currency" token)
             :from +herald-mail+
-            :other-headers (list (list "References" (concatenate 'string (string token) "." +herald-mail+))
+            :other-headers (list (list "References" (concatenate 'string (string token) "." +herald-mail-base+))
                                  '("Organization" "Temple of Earth Gathering, Inc.")
                                  (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
             :charset :utf-8
@@ -1249,14 +1393,14 @@ from `invoice-guests` where invoice=~:d
           (read-prices)))
 
 (defun read-prices ()
-  (let ((price-list (db-query ("select * from prices
+  (let ((price-list (db-query "select * from prices
 where (`starting` is null or `starting` <= date(now()))
-   and (ending is null or ending >= date(now()));"))))
+   and (ending is null or ending >= date(now()));")))
     (macrolet
         ((with-prices ((&rest symbols) &body body)
            `(let* (,@(mapcar
                        (lambda (symbol)
-                         `(,symbol (or (getf (find symbol price-list
+                         `(,symbol (or (getf (find ',symbol price-list
                                                    :key (rcurry #'getf :|item|)
                                                    :test #'string-equal)
                                              :|price|)
@@ -1288,15 +1432,18 @@ where (`starting` is null or `starting` <= date(now()))
               :lodge (list :regular lodge :staff staff-lodge))))))
 
 (defun next-festival ()
-  (car (db-query "select season, year, `starting`, `ending` from festivals where `starting` > now()  order by `starting` limit 1")))
+  (let ((next (car (db-query "select season, year, `starting`, `ending` from festivals where `starting` > now()  order by `starting` limit 1"))))
+    (list (getf next :|season|)
+          (getf next :|year|))))
 
 (defun next-festival-season ()
-  (car (db-query "select season from festivals where `starting` > now() order by `starting` limit 1")))
+  (cadar (db-query "select season from festivals where `starting` > now() order by `starting` limit 1")))
 
 (defun next-festival-year ()
-  (car (db-query "select year from festivals where `starting` > now() order by `starting`  limit 1")))
+  (cadar (db-query "select year from festivals where `starting` > now() order by `starting`  limit 1")))
 
 (defun cl-user::yyyy-mm-dd (stream object colonp atp &rest parameters)
+  (declare (ignore colonp atp parameters))
   (format stream "~a" object))
 
 (defun festival->edn ()
@@ -1357,12 +1504,11 @@ where (`starting` is null or `starting` <= date(now()))
 
 (defmethod handle-verb ((verb (eql :about)))
   (format *trace-output* " Herald version is ~36r" +compile-time+)
-  (format t "Content-Type: text/plain
+  (format t "Content-Type: text/javascript
 
-Censorius Herald, © 2013-2015, Bruce-Robert Fenn Pocock.
-
- • Compile-time version marker: ~36r
-
+{ \"program\": \"Censorius Herald\", 
+   \"copyright\": \"© 2013-2015, Bruce-Robert Fenn Pocock\",
+   \"version\": \"~36r\" }
 "
           +compile-time+))
 
@@ -1392,6 +1538,7 @@ foreign key (invoice) references invoices (invoice))"
 `presenter-bio` text, `presenter-requests` text, `e-mail` varchar(200),
 telephone varchar(30), sleep varchar(10), eat varchar(10), day varchar(10),
 gender char(1), `t-shirt` varchar(8), coffeep boolean, totep boolean,
+ `ticket-type` varchar(10) not null default 'adult',
 primary key(invoice,`given-name`,`called-by`,surname),
 foreign key (invoice) references invoices (invoice))"
                     "create table people (`given-name` varchar(50), `called-by` varchar(50),
@@ -1443,47 +1590,47 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
                    (go again))
                  (continue ()))))))
     (loop for year from 2000 upto 2016
-          do (loop for (season month) in '(("Beltane" 5)
-                                           ("Samhain" 11))
-                   do (with-simple-restart (skip "Skip this one")
-                        (db-query (format nil "insert into festivals (season, year, `starting`,ending) values (?,?,'~a-~d-1','~a-~d-1')"
-                                          year month year month)
-                                  season year))))
+       do (loop for (season month) in '(("Beltane" 5)
+                                        ("Samhain" 11))
+             do (with-simple-restart (skip "Skip this one")
+                  (db-query (format nil "insert into festivals (season, year, `starting`,ending) values (?,?,'~a-~d-1','~a-~d-1')"
+                                    year month year month)
+                            season year))))
     (db-query "alter table invoices auto_increment=4000")
     (loop for (id title description image price styles)
-            in '(("general-shirt" "FPG general T-shirt"
-                  "The FPG general T-shirt" "/merch/tshirt_Gen.png" 15
-                  (("XS" "Extra-small" 999)
-                   ("S" "Small" 999)
-                   ("M" "Medium" 999)
-                   ("L" "Large" 999)
-                   ("XL" "Extra-large" 999)
-                   ("X2L" "Double extra-large" 999)
-                   ("X3L" "Triple extra-large" 999)
-                   ("X4L" "Quadruple extra-large" 999)
-                   ("X5L" "Quintuple extra-large" 999)))
-                 ("tote-bag" "FPG Tote Bag"
-                  "FPG Tote Bag" "/merch/tote-bag.jpeg" 10
-                  (("tote" "Tote Bag" 999)))
-                 ("coffee" "FPG Coffee Mug"
-                  "The FPG thermal coffee mug is great for other beverages, too" 5
-                  (("coffee" "Coffee mug" 999)))
-                 ("festival-shirt" "Festival T-shirt"
-                  "The new T-shirt for the next festival" "/merch/tshirt_next.png" 15
-                  (("XS" "Extra-small" 999)
-                   ("S" "Small" 999)
-                   ("M" "Medium" 999)
-                   ("L" "Large" 999)
-                   ("XL" "Extra-large" 999)
-                   ("X2L" "Double extra-large" 999)
-                   ("X3L" "Triple extra-large" 999)
-                   ("X4L" "Quadruple extra-large" 999)
-                   ("X5L" "Quintuple extra-large" 999))))
-          do (db-query "insert into merch (id, title, description, image) values (?,?,?,?)"
-                       id title description image)
-          do (db-query "insert into prices (item, price) values (?,?)" id price)
-          do (loop for (style-id style-title inventory) in styles
-                   do (db-query "insert into `merch-styles` (item, id, title, inventory) values (?,?,?,?)"
-                                id style-id style-title inventory)))))
+       in '(("general-shirt" "FPG general T-shirt"
+             "The FPG general T-shirt" "/merch/tshirt_Gen.png" 15
+             (("XS" "Extra-small" 999)
+              ("S" "Small" 999)
+              ("M" "Medium" 999)
+              ("L" "Large" 999)
+              ("XL" "Extra-large" 999)
+              ("X2L" "Double extra-large" 999)
+              ("X3L" "Triple extra-large" 999)
+              ("X4L" "Quadruple extra-large" 999)
+              ("X5L" "Quintuple extra-large" 999)))
+            ("tote-bag" "FPG Tote Bag"
+             "FPG Tote Bag" "/merch/tote-bag.jpeg" 10
+             (("tote" "Tote Bag" 999)))
+            ("coffee" "FPG Coffee Mug"
+             "The FPG thermal coffee mug is great for other beverages, too" 5
+             (("coffee" "Coffee mug" 999)))
+            ("festival-shirt" "Festival T-shirt"
+             "The new T-shirt for the next festival" "/merch/tshirt_next.png" 15
+             (("XS" "Extra-small" 999)
+              ("S" "Small" 999)
+              ("M" "Medium" 999)
+              ("L" "Large" 999)
+              ("XL" "Extra-large" 999)
+              ("X2L" "Double extra-large" 999)
+              ("X3L" "Triple extra-large" 999)
+              ("X4L" "Quadruple extra-large" 999)
+              ("X5L" "Quintuple extra-large" 999))))
+       do (db-query "insert into merch (id, title, description, image) values (?,?,?,?)"
+                    id title description image)
+       do (db-query "insert into prices (item, price) values (?,?)" id price)
+       do (loop for (style-id style-title inventory) in styles
+             do (db-query "insert into `merch-styles` (item, id, title, inventory) values (?,?,?,?)"
+                          id style-id style-title inventory)))))
 
 

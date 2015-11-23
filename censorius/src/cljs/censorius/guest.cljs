@@ -41,14 +41,14 @@
        (or (:called-by @guest) (:given-name @guest)) " " (:surname @guest)))
 
 (defn spouse [guest]
-  (util/log " guest " (personal-address guest) " married? " (if (:spouse @guest) "married" "no"))
+  #_ (util/log " guest " (personal-address guest) " married? " (if (:spouse @guest) "married" "no"))
   (when (:spouse @guest)
     (let [spouse (first (filter #(= (:spouse @%)
                                     (:spouse @guest))
                                 (everyone-else-but guest)))]
-      (if spouse
-        (util/log " found spouse " (personal-address spouse))
-        (util/log " no spouse?"))
+      #_ (if spouse
+           (util/log " found spouse " (personal-address spouse))
+           (util/log " no spouse?"))
       spouse)))
 
 (defn adult? [guest]
@@ -131,6 +131,7 @@
 
 (defn cabin-price [guest]
   ((if (or (staff/staff? guest)
+           (lugal+-spouse? guest)
            (and (not (adult? guest))
                 (some staff/lugal+? @(guest-list)))) 
      :staff :regular)
@@ -138,6 +139,7 @@
 
 (defn lodge-price [guest]
   ((if (or (staff/staff? guest)
+           (lugal+-spouse? guest)
            (and (not (adult? guest))
                 (some staff/lugal+? @(guest-list)))) 
      :staff :regular)
@@ -169,7 +171,7 @@
          (merch/price-tote)
          0))
     (do
-      (util/log "nil guest?")
+      #_ (util/log "nil guest?")
       0.10)))
 
 (defn unmarried-lugal+? [guest]
@@ -187,7 +189,6 @@
            "")])
 
 (defn legal-name [guest]
-  (util/log " guest for legal-name " guest)
   (str (:given-name @guest) " " (:surname @guest)))
 
 (defn make-couple-symbol [one other]
@@ -419,7 +420,7 @@
    [:p "Staff applications are submitted with your registration."]])
 
 (defn staff-applications []
-  [:div (map staff-application (filter adult? @(guest-list)))])
+  [:div (doall (map staff-application (filter adult? @(guest-list))))])
 
 (defn staff-department-select [guest editing? editing-email?]
   [:fieldset {:style {:display (if (and (not (staff/staff? guest))
