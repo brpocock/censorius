@@ -41,12 +41,27 @@ Your registration is FAKE right now, for TESTING PURPOSES ONLY.
 In the  unlikely event that you  are actually charged, somehow,  we will credit it back to you immediately (but most banks will take a day or two to actually clear your account).
 
 Make sure that the testing mode shows up on PayPal!")
-  (js/alert "Just kidding! Disabled while I test some things. ~brfp"))
+  (js/alert "Just kidding! Disabled while I test some things. ~brfp")
+  
+  #_
+  (censorius.herald/send-data "pay" 
+                              after-save 
+                              {:general (conj @d/general {:signature (:waiver-signature @d/general)})
+                               :guests (map #(conj @% { :payment-due (censorius.guest/price %)}) @guest-list/guests)
+                               :extras (map #(conj @%
+                                                   { :payment-due (* (censorius.merch/count-sold %)
+                                                                     (:price @%))}) 
+                                         (filter #(pos? (:qty @%)) @merch/merch))
+                               :vendor (conj @vendor/vending { :payment-due (vendor/price-vendor) })
+                               ;; :workshops nil
+                               :scholarships (conj @scholarships { :payment-due (scholarships-donation-amount)})
+                               :money { :balance-due (total-due)
+                                       :prior-payments (reduce + (map :amount @payments))}}))
 
 (defn after-save [reply]
   (let [invoice (get reply "invoice")
         token (get reply "token")]
-    (js/alert (str "Response from server: " (util/stringerific reply)))
+    #_ (js/alert (str "Response from server: " (util/stringerific reply)))
     (js/alert (str "Invoice suspended (#" invoice ")
 
 An eMail has been sent to the Registration staff to review your registration. You will receive an eMail from the system as well."))

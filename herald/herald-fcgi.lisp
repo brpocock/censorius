@@ -53,7 +53,7 @@
   :test #'equal)
 
 (define-constant +registrar-mail+
-    "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
+    "\"TEG FPG Registration Team\" <register@flapagan.org>"
   :test #'equal)
 
 (define-constant +archive-mail+
@@ -499,7 +499,7 @@ Backtrace:
 (defun reply-error/html (conditions)
   (list :raw
         (format nil "Status: ~d Error reported
-Content-Type:text/html
+Content-Type:text/html; charset=utf-8
 
 <!DOCTYPE html>
 <html>
@@ -541,7 +541,7 @@ be reached at: ~a </p>
 (defun reply-error/json (conditions)
   (list :raw
         (format nil "Status: ~d Error reported
-Content-Type: text/javascript~2%~/json/~%"
+Content-Type: text/javascript; charset=utf-8~2%~/json/~%"
                 (first conditions)
                 (list :this-is-an-error t
                       :error (first conditions)
@@ -565,9 +565,9 @@ Content-Type: text/javascript~2%~/json/~%"
     (:error (reply-error (rest structure)))
     (:data (cond
              ((accept-type-p "text/javascript") 
-              (reply (list :raw (format nil "Content-Type: text/javascript~2%~/json/~%" (second structure)))))
+              (reply (list :raw (format nil "Content-Type: text/javascript; charset=utf-8~2%~/json/~%" (second structure)))))
              (t 
-              (reply (list :raw (format nil "Content-Type: text/plain~2%~s~%" (second structure)))))))
+              (reply (list :raw (format nil "Content-Type: text/plain; charset=utf-8~2%~s~%" (second structure)))))))
     (:raw (ecase *cgi*
             (:fast (cl-fastcgi:fcgx-puts *request* (second structure)))
             (:cgi (princ (second structure))
@@ -591,6 +591,14 @@ Content-Type: text/javascript~2%~/json/~%"
                 :type "text" :subtype "plain")
     (apply (curry #'format mail-reg) message-fmt+args)))
 
+(defun mail-to-user (invoice)
+  (getf (or (first (remove-if-not (lambda (guest)
+                                    (and (getf guest :|e-mail|)
+                                         (plusp (length (getf guest :|e-mail|)))
+                                         (string-equal "adult"(getf guest :|ticket-type|))))
+                                  (read-guests invoice)))
+            (list :|e-mail| +registrar-mail+))
+        :|e-mail|))
 
 (defun db-query (query &rest args)
   (format *trace-output* "~& [SQL] ~s ~s" query args)
@@ -627,8 +635,13 @@ operator:
             (recall-link invoice t)
             +sysop-mail+))
 
-(defun mail-user-completed-invoice (invoice guests vending merch workshops)
-  (mail-reg +sysop-mail+ "TEG FPG Registration (completed)"
+(defun mail-user-completed-invoice (invoice
+                                    &optional
+                                      (guests (read-guests invoice))
+                                      (vending (read-vending invoice))
+                                      (merch (read-merch invoice))
+                                      (workshops (read-workshops invoice)))
+  (mail-reg (mail-to-user invoice) "TEG FPG Registration (completed)"
             (format nil "Invoice.~d." invoice)
             "
 TEG FPG Invoice # ~:d
@@ -714,7 +727,7 @@ operator:
             +sysop-mail+))
 
 (defun mail-user-suspended-invoice (invoice)
-  (mail-reg +sysop-mail+ "TEG FPG Registration (suspended)"
+  (mail-reg (mail-to-user invoice) "TEG FPG Registration (suspended)"
             (format nil "Invoice.~d." invoice)
             "
 TEG FPG Invoice # ~:d
@@ -870,10 +883,11 @@ cookie says “~36r.”
 (defun as-number (n)
   (etypecase n
     (number n)
-    (string (parse-decmal (remove-if-not (lambda (char)
-                                           (or (digit-char-p char)
-                                               (member char '(#\. #\-) :test #'char=)))
-                                         n)))))
+    (string (parse-decimal 
+             (remove-if-not (lambda (char)
+                              (or (digit-char-p char)
+                                  (member char '(#\. #\-) :test #'char=)))
+                            n)))))
 
 (defun accept-scholarships (invoice)
   (loop for scholarship in '(php baiardi seva)
@@ -983,15 +997,95 @@ cookie says “~36r.”
        '(:error 403 "Authorization refused. You cannot view the requested resource."
          "Please ensure that you copied and pasted the entire link, without spaces."))
       
+      ((accept-type-p "text/html")
+       (list :raw 
+             (format nil "Content-Type: text/plain; charset=utf-8
+
+You are trying to recall a saved invoice. However, this feature has been
+temporarily  disabled   for  your  safety   while  the  new   system  is
+being tested.
+
+Invoice number: ~:d
+
+You are ~:[the person who registered~;a member of  Registration staff~],
+ confirmed by your use of the  special confirmation link you received in
+ your e-mail.
+
+Festival: ~{~a ~a~}
+
+Guests: ~{
+
+ • ~{~a ~} ~}
+
+… as well as other information.
+
+Please contact registration  if you need immediate assistance.
+
+~a
+
+"
+                     invoice 
+                     admin-key
+                     (let ((fest (getf (read-invoice invoice) :general)))
+                       (list (getf fest :|festival-season|)
+                             (getf fest :|festival-year|)))
+                     (mapcar (lambda (guest) 
+                               (list (getf guest :|given-name|)
+                                     (or (getf guest :|called-by|) "")
+                                     (getf guest :|surname|))) 
+                             (getf (read-invoice invoice) :guests))
+                     +registrar-mail+)))
+
       (t (list :data (read-invoice invoice))))))
 
+(defmethod handle-verb ((verb (eql :resend-suspended)))
+  (let ((invoice (ignore-errors (parse-integer (field :invoice) :radix 36)) )
+        (admin-key (field :admin-key))
+        (user-key (field :verify)))
+    (format *trace-output* "~&Requested resend of invoice ~a ~@[as admin~]"
+            invoice admin-key)
+    (cond
+      ((not invoice)
+       '(:error 404 "No invoice number supplied"))
+      
+      ((not (equal user-key (user-key invoice)))
+       (whine "Recall refused; mismatched user-key (got ~a) for invoice ~:d" user-key invoice)
+       '(:error 403 "Authorization refused. You cannot view the requested resource."
+         "Please ensure that you copied and pasted the entire link, without spaces."))
+      ((and admin-key
+            (not (equal admin-key (admin-key invoice))))
+       (whine "Recall refused; mismatched admin-key (got ~a) for invoice ~:d" admin-key invoice)
+       '(:error 403 "Authorization refused. You cannot view the requested resource."
+         "Please ensure that you copied and pasted the entire link, without spaces."))
+      
+      (t
+       (let ((completedp (getf (read-general invoice) :|closed|)))
+         (cond (completedp
+                (mail-registrar-completed-invoice invoice)
+                (mail-user-completed-invoice invoice))
+               (t
+                (mail-registrar-suspended-invoice invoice)
+                (mail-user-suspended-invoice invoice)))
+         (list :raw 
+               (format nil "Content-Type: text/plain; charset=utf-8
+
+Resending e-mails for ~:[suspended~;completed~] invoice ~:d
+
+" invoice completedp)))))))
+
 (defmethod handle-verb ((verb (eql :pay)))
-  (format t "Content-Type: text/plain; charset=utf-8~2%")
-  (list :raw "Imagine this just asked for a payment."))
+  (list :raw "Content-Type: text/plain; charset=utf-8~2%
+
+Imagine this just asked for a payment.
+
+This feature is disabled for right now."))
 
 (defmethod handle-verb ((verb (eql :test-pay)))
-  (format t "Content-Type: text/plain; charset=utf-8~2%")
-  (list :raw "Imagine I just tested PayPal with this."))
+  (list :raw "Content-Type: text/plain; charset=utf-8~2%
+
+Imagine I just tested PayPal with this.
+
+This feature is temporarily disabeld."))
 
 (defun dispatch ()
   (format *trace-output* "~& DISPATCH:  verb = ~a~%" (field :verb))
@@ -1237,7 +1331,7 @@ where invoice=~d"
     (t "¤")))
 
 (defun print-receipt-happy (amount currency-code token result)
-  (format t "Content-Type: text/html
+  (format t "Content-Type: text/html; charset=utf-8
 
 <!DOCTYPE html>
 <html>
@@ -1368,7 +1462,7 @@ Details: Invoice token ~s;
 
 (defun read-merch-ordered (invoice)
   (let ((ordered (db-query
-                  "select item, style, qty from `invoice-merch`
+                  "select * from `invoice-merch`
 where invoice=?"
                   invoice)))
     (loop for item in (remove-duplicates (mapcar #'first ordered))
@@ -1379,10 +1473,7 @@ where invoice=?"
 
 (defun read-guests (&optional invoice)
   (when invoice
-    (db-query "select `called-by`, `given-name`, `surname`,
-`formal-name`, `presenter-bio`, `presenter-requests`, `e-mail`, telephone, sleep,
-eat, day, gender, `t-shirt`, coffeep, totep
-from `invoice-guests` where invoice=?"
+    (db-query "select * from `invoice-guests` where invoice=?"
               invoice)))
 
 (defun guests->edn (&optional invoice)
@@ -1408,18 +1499,20 @@ from `invoice-guests` where invoice=?"
 
 (defun read-merch (&optional invoice)
   (let ((ordered-qty (when invoice (read-merch-ordered invoice))))
-    (loop for row in (db-query "select id, title, description, image, price from merch")
+    (loop for row in (db-query "select * from merch")
        collect (getf row :|id|)
        collect
-         (destructuring-bind (&key |id| |title| |description| |image| |price|) row
+         (destructuring-bind (&key |id| |title| |description| |image| |price| 
+                                   &allow-other-keys) row
            (list :id (make-keyword |id|)
                  :title |title| :description |description| :image |image| :price |price|
                  :styles
                  (coerce
-                  (loop for style-row in (db-query "select id, title, inventory from `merch-styles` where item=?" |id|)
+                  (loop for style-row in (db-query "select * from `merch-styles` where item=?" |id|)
                      collect
                        (let ((id |id|))
-                         (destructuring-bind (&key |id| |title| |inventory|) style-row
+                         (destructuring-bind (&key |id| |title| |inventory| 
+                                                   &allow-other-keys) style-row
                            (list :id (make-keyword |id|)
                                  :title |title|
                                  :inventory |inventory|
@@ -1492,7 +1585,7 @@ where (`starting` is null or `starting` <= date(now()))
           (next-festival)))
 
 (defmethod handle-verb ((verb (eql :data)))
-  (list :raw (format nil "Content-Type: text/plain
+  (list :raw (format nil "Content-Type: text/plain; charset=utf-8
 
 (ns censorius.data
     (:require
@@ -1537,7 +1630,7 @@ where (`starting` is null or `starting` <= date(now()))
 (defun exec-repl (command-line)
   (ql:quickload :prepl)
   (with-sql
-    (mapcar (compose #'eval #'read-from-string) command-line)
+      (mapcar (compose #'eval #'read-from-string) command-line)
     (funcall (intern "REPL" :prepl))))
 
 (defmethod handle-verb ((verb (eql :test-error)))
@@ -1554,25 +1647,25 @@ where (`starting` is null or `starting` <= date(now()))
 
 (defun init-db ()
   (with-sql
-    (dolist (expr '("create table festivals (`starting` date not null unique key,
+      (dolist (expr '("create table festivals (`starting` date not null unique key,
 ending date not null unique key, season varchar(8) not null, year year not null, primary key(season, year))"
-                    "create table invoices (invoice serial primary key, created datetime,
+                      "create table invoices (invoice serial primary key, created datetime,
 closed datetime, `closed-by` text, `old-system-p` boolean not null default false, `festival-season` varchar(8),
  `festival-year` year not null, note text, `signature` varchar(60), memo text,
 foreign key (`festival-season`,`festival-year`) references festivals(season,year) on delete restrict)"
-                    "create table merch (id varchar(20) primary key, title varchar(100) unique key,
+                      "create table merch (id varchar(20) primary key, title varchar(100) unique key,
 description text, image varchar(100), price decimal(6,2) not null default 9999.99)"
-                    "create table `merch-styles` (item varchar(20),
+                      "create table `merch-styles` (item varchar(20),
 id varchar(6) not null, title varchar(100) not null, inventory integer unsigned  not null default 0,
 constraint itemstyle unique(item,id), constraint itemstylename unique(item, title),
 foreign key (item) references merch(id) on delete restrict)"
-                    "create table prices (`starting` date default null, ending date default null, price decimal (6,2), item varchar(20) not null,
+                      "create table prices (`starting` date default null, ending date default null, price decimal (6,2), item varchar(20) not null,
 constraint itemstart unique(item, `starting`), constraint itemend unique key(item, ending))"
-                    "create table `invoice-merch` (invoice bigint unsigned not null,
+                      "create table `invoice-merch` (invoice bigint unsigned not null,
  item varchar(20), style varchar(6), qty integer unsigned not null default 1,
 unique key(invoice, item, style),
 foreign key (invoice) references invoices (invoice))"
-                    "create table `invoice-guests` (invoice bigint unsigned not null,
+                      "create table `invoice-guests` (invoice bigint unsigned not null,
 `called-by` varchar(50),
 `given-name` varchar(50), surname varchar(50) not null, `formal-name` varchar(100) not null,
 `presenter-bio` text, `presenter-requests` text, `e-mail` varchar(200),
@@ -1581,54 +1674,54 @@ gender char(1), `t-shirt` varchar(8), coffeep boolean, totep boolean,
  `ticket-type` varchar(10) not null default 'adult',
 primary key(invoice,`given-name`,`called-by`,surname),
 foreign key (invoice) references invoices (invoice))"
-                    "create table people (`given-name` varchar(50), `called-by` varchar(50),
+                      "create table people (`given-name` varchar(50), `called-by` varchar(50),
 surname varchar(50) not null, `formal-name` varchar(100) not null,
 dob date, primary key(surname, `called-by`))"
-                    "create table `people-href` (surname varchar(50) not null,
+                      "create table `people-href` (surname varchar(50) not null,
 `called-by` varchar(50) not null, rel varchar(8), href varchar(255),
 foreign key (surname,`called-by`) references people (surname, `called-by`))"
-                    "create table `people-phone` (surname varchar(50) not null,
+                      "create table `people-phone` (surname varchar(50) not null,
 `called-by` varchar(50) not null, rel varchar(8), phone varchar(255),
 foreign key (surname,`called-by`) references people (surname, `called-by`))"
-                    "create table `people-email` (surname varchar(50) not null,
+                      "create table `people-email` (surname varchar(50) not null,
 `called-by` varchar(50) not null, rel varchar(8), email varchar(255),
 foreign key (surname,`called-by`) references people (surname, `called-by`))"
-                    "create table `people-rel` (`from-surname` varchar(50) not null,
+                      "create table `people-rel` (`from-surname` varchar(50) not null,
 `from-called-by` varchar(50) not null, rel varchar(8), `to-surname` varchar(50) not null,
  `to-called-by` varchar(50) not null,
 foreign key (`from-surname`,`from-called-by`) references people (surname, `called-by`),
 foreign key (`to-surname`,`to-called-by`) references people (surname, `called-by`),
 constraint relates unique  (`from-surname`,`from-called-by`,rel,`to-surname`,`to-called-by`))"
-                    "create table `invoice-scholarships` (invoice bigint unsigned not null,
+                      "create table `invoice-scholarships` (invoice bigint unsigned not null,
 scholarship varchar(10),
 amount decimal(6,2), primary key(invoice, scholarship),
 foreign key (invoice) references invoices (invoice))"
-                    "create table `invoice-vending` (invoice bigint unsigned not null primary key,
+                      "create table `invoice-vending` (invoice bigint unsigned not null primary key,
 title varchar(72),
 blurb text, notes text, qty integer unsigned not null default 1, `agreement-p` boolean,
 `mqa-license` varchar(15) null, `bpr-license` varchar(15) null,
 foreign key (invoice) references invoices (invoice))"
-                    "create table payments (invoice bigint unsigned not null,
+                      "create table payments (invoice bigint unsigned not null,
 via varchar(100), source varchar(200),
 amount decimal(6,2), confirmation text, note text, cleared datetime,
  foreign key (invoice) references invoices (invoice) on delete restrict)"))
-      (handler-case
-          (let* ((query-words (split-sequence #\Space expr))
-                 (table-name (nth 2 query-words)))
-            (tagbody again
-               (restart-case
-                   (progn
-                     (format t "~&Creating table ~a" table-name)
-                     (format t "~& ⇒ ~a" (db-query expr)))
-                 (drop-table ()
-                   :report (lambda (s)
-                             (format s "Drop table ~a and retry" table-name))
-                   (format t "~&Dropping table ~a" table-name)
-                   (format t "~& ⇒ ~a"
-                           (db-query (concatenate 'string "drop table "
-                                                  table-name)))
-                   (go again))
-                 (continue ()))))))
+        (handler-case
+            (let* ((query-words (split-sequence #\Space expr))
+                   (table-name (nth 2 query-words)))
+              (tagbody again
+                 (restart-case
+                     (progn
+                       (format t "~&Creating table ~a" table-name)
+                       (format t "~& ⇒ ~a" (db-query expr)))
+                   (drop-table ()
+                     :report (lambda (s)
+                               (format s "Drop table ~a and retry" table-name))
+                     (format t "~&Dropping table ~a" table-name)
+                     (format t "~& ⇒ ~a"
+                             (db-query (concatenate 'string "drop table "
+                                                    table-name)))
+                     (go again))
+                   (continue ()))))))
     (loop for year from 2000 upto 2016
        do (loop for (season month) in '(("Beltane" 5)
                                         ("Samhain" 11))
