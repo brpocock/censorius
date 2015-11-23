@@ -292,6 +292,14 @@ from the query string and path-info."
                    (split-sequence #\&
                                    (all-submitted-params)))))))
 
+(defmethod st-json:read-json ((null null) &optional junk-allowed-p)
+  (declare (ignore junk-allowed-p))
+  nil)
+
+(defmethod st-json:read-json ((list cons) &optional junk-allowed-p)
+  (declare (ignore junk-allowed-p))
+  (mapcar #'st-json:read-json list))
+
 (defun field (field-name &optional f2 f3)
   "Get the  contents of  the named form-field.  (Accepted as  a keyword,
 which  will  be downcased,  or  a  string,  which will  be  searched-for
@@ -302,10 +310,10 @@ must use a string.)"
           (stringp field-name)
           (numberp f2)
           (stringp f3))
-     (st-json:getjso f3
-                     (elt (st-json:read-json 
-                           (field (make-keyword (string-upcase field-name))))
-                          f2)))
+     (when-let (field-jso (field (make-keyword (string-upcase field-name))))
+       (when-let (st-jso (st-json:read-json field-jso))
+         (when-let (elt (elt st-jso f2))
+           (st-json:getjso f3 elt)))))
     
     ((and f3
           (or (symbolp field-name) (stringp field-name))
@@ -316,9 +324,9 @@ must use a string.)"
     ((and f2
           (stringp field-name)
           (stringp f2))
-     (st-json:getjso f2
-                     (st-json:read-json 
-                      (field (make-keyword (string-upcase field-name))))))
+     (when-let (field-jso (field (make-keyword (string-upcase field-name))))
+       (when-let (st-jso (st-json:read-json field-jso))
+         (st-json:getjso f2 st-jso))))
     
     ((and f2
           (or (symbolp field-name) (stringp field-name))
@@ -339,16 +347,16 @@ must use a string.)"
 (defun reply-error/text (conditions)
   "Replies with a plain-text error report. The first element of the list
 must be the numeric HTTP status code."
-  (reply (list :raw
-               (format nil
-                       "Status: ~d Error reported~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}~2%~a~2%"
-                       (first conditions)
-                       (mapcar #'princ-to-string (rest conditions))
-                       (with-output-to-string (s)
-                         (dolist (condition conditions)
-                           (if (typep condition 'condition)
-                               (uiop/image:print-condition-backtrace condition :stream s)
-                               (princ condition s))))))))
+  (list :raw
+        (format nil
+                "Status: ~d Error reported~%Content-Type:text/plain; charset=utf-8~2%~:*HTTP Error ~d~2%~{~a~2%~}~2%~a~2%"
+                (first conditions)
+                (mapcar #'princ-to-string (rest conditions))
+                (with-output-to-string (s)
+                  (dolist (condition conditions)
+                    (if (typep condition 'condition)
+                        (uiop/image:print-condition-backtrace condition :stream s)
+                        (princ condition s)))))))
 
 (defun sql-escape (string)
   "Simply replaces  ' with  '' in  strings (that's  paired/escape single
@@ -489,8 +497,8 @@ Backtrace:
     (uiop/image:print-condition-backtrace condition :stream s)))
 
 (defun reply-error/html (conditions)
-  (reply (list :raw
-               (format nil "Status: ~d Error reported
+  (list :raw
+        (format nil "Status: ~d Error reported
 Content-Type:text/html
 
 <!DOCTYPE html>
@@ -520,33 +528,32 @@ Censorius Herald running in ~a service; compile-time cookie ~36r
 be reached at: ~a </p>
 
 </body></html>~%"
-                       (first conditions)
-                       (rest conditions)
-                       *cgi*
-                       +compile-time+
-                       (first (split-sequence
-                               #\>
-                               (second (split-sequence
-                                        #\<
-                                        +sysop-mail+))))))))
+                (first conditions)
+                (rest conditions)
+                *cgi*
+                +compile-time+
+                (first (split-sequence
+                        #\>
+                        (second (split-sequence
+                                 #\<
+                                 +sysop-mail+)))))))
 
 (defun reply-error/json (conditions)
-  (reply (list :raw
-               (format nil "Status: ~d Error reported
+  (list :raw
+        (format nil "Status: ~d Error reported
 Content-Type: text/javascript~2%~/json/~%"
-                       (first conditions)
-                       (list :this-is-an-error t
-                             :error (first conditions)
-                             :conditions conditions
-                             :service *cgi*
-                             :herald-version (format nil "~36r" +compile-time+)
-                             :you-said *request*)))))
+                (first conditions)
+                (list :this-is-an-error t
+                      :error (first conditions)
+                      :conditions conditions
+                      :service *cgi*
+                      :herald-version (format nil "~36r" +compile-time+)
+                      :you-said *request*))))
 
 (defun reply-error (conditions)
-  (cond
-    ((accept-type-p "text/html") (reply-error/html conditions))
-    ((accept-type-p "text/javascript") (reply-error/json conditions))
-    (t (reply-error/text conditions)))
+  (reply (cond ((accept-type-p "text/html") (reply-error/html conditions))
+               ((accept-type-p "text/javascript") (reply-error/json conditions))
+               (t (reply-error/text conditions))))
   (when (and (numberp (first conditions))
              (<= 400 (first conditions)))
     (format *trace-output* "ERROR condition: ~{~a~^  ~}" conditions)
@@ -766,17 +773,21 @@ cookie says “~36r.”
 
 (defun verify-json-fields (table row &optional columns)
   (if columns
-      (st-json:mapjso (lambda (key value)
-                        (unless (member key columns :test #'string-equal)
-                          (warn "JSO for ~a row ~d has unexpected key ~a (value ~s)"
-                                table row key value)))
-                      (elt (st-json:read-json (field table)) row))
+      (let ((rows (st-json:read-json (field table))))
+        (when (< row (length rows))
+          (when-let (row-jso (elt rows row))
+            (st-json:mapjso (lambda (key value)
+                              (unless (member key columns :test #'string-equal)
+                                (warn "JSO for ~a row ~d has unexpected key ~a (value ~s)"
+                                      table row key value)))
+                            row-jso))))
       (let ((columns row))
-        (st-json:mapjso (lambda (key value)
-                          (unless (member key columns :test #'string-equal)
-                            (warn "JSO for ~a has unexpected key ~a (value ~s)"
-                                  table key value)))
-                        (st-json:read-json (field table))))))
+        (when-let (jso (st-json:read-json (field table)))
+          (st-json:mapjso (lambda (key value)
+                            (unless (member key columns :test #'string-equal)
+                              (warn "JSO for ~a has unexpected key ~a (value ~s)"
+                                    table key value)))
+                          jso)))))
 
 (defmacro sql-insert-invoice-fields
     ((table) (&body columns))
@@ -848,7 +859,7 @@ cookie says “~36r.”
                             (item style qty)))
 
 (defun accept-vendor (invoice)
-  (let ((qty (field "vending" "qty")))
+  (let ((qty (field "vendor" "qty")))
     (when (and qty (plusp qty))
       (sql-insert-invoice-fields (vending)
                                  (total blurb notes qty agreement-p)))))
@@ -856,9 +867,21 @@ cookie says “~36r.”
   (declare (ignore invoice))
   (warn "not accepting workshops (TODO)"))
 
+(defun as-number (n)
+  (etypecase n
+    (number n)
+    (string (parse-decmal (remove-if-not (lambda (char)
+                                           (or (digit-char-p char)
+                                               (member char '(#\. #\-) :test #'char=)))
+                                         n)))))
+
 (defun accept-scholarships (invoice)
-  (sql-insert-invoice-array (scholarships)
-                            (scholarship amount)))
+  (loop for scholarship in '(php baiardi seva)
+     for donation = (field "scholarships" scholarship) 
+       
+     when (and donation (plusp (as-number donation)))
+     do (db-query "insert into `invoice-scholarships` (invoice, scholarship, amount) values (?, ?, ?)"
+                  invoice scholarship donation)))
 
 (defun update-guests (invoice)
   (sql-update-invoice-array (guests)
@@ -881,8 +904,12 @@ cookie says “~36r.”
   (warn "not accepting workshops (TODO)"))
 
 (defun update-scholarships (invoice)
-  (sql-update-invoice-array (scholarships)
-                            (scholarship amount)))
+  (loop for scholarship in '(php baiardi seva)
+     for donation = (field "scholarships" scholarship) 
+       
+     when (and donation (plusp (as-number donation)))
+     do (db-query "insert into `invoice-scholarships` set amount=? where invoice = ? and scholarship = ?"
+                  donation invoice scholarship)))
 
 (defun accept-state-from-form ()
   (let ((invoice (create-invoice)))
@@ -1392,7 +1419,7 @@ from `invoice-guests` where invoice=?"
                   (loop for style-row in (db-query "select id, title, inventory from `merch-styles` where item=?" |id|)
                      collect
                        (let ((id |id|))
-                         (destructuring-bind (&key |id| |title| |inventory|) row
+                         (destructuring-bind (&key |id| |title| |inventory|) style-row
                            (list :id (make-keyword |id|)
                                  :title |title|
                                  :inventory |inventory|

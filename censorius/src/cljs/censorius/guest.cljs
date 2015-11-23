@@ -319,7 +319,7 @@
 
 (defn staff-application [guest]
   [:section {:class "card"
-             :style {:display (if (:staff-apply? guest)
+             :style {:display (if (:staff-apply? @guest)
                                 "block" "none")}
              :key (legal-name guest)}
    [:h3 (str "Staff Application: " (legal-name guest))]
@@ -337,19 +337,21 @@
     [text/text-input {:cursor guest
                       :keys :state
                       :rows 0
-                      :size 3
+                      :size 2
                       :label "State"
                       :placeholder "FL"}]
+    ", "
     [text/text-input {:cursor guest
                       :keys :postal-code
                       :rows 0
-                      :size 6
+                      :size 5
                       :label "ZIP/Postal Code"
                       :placeholder "32109"}]
+    "; "
     [text/text-input {:cursor guest
                       :keys :country
                       :rows 0
-                      :size 3
+                      :size 2
                       :label "Country"
                       :placeholder "US"}]]
    [text/text-input {:cursor guest
@@ -359,6 +361,8 @@
    [text/text-input {:cursor guest
                      :keys :id-state
                      :label "State of issue of ID"
+                     :placeholder "FL"
+                     :size 2
                      :rows 1}]
    [:label [:input {:type "checkbox"
                     :on-click #(swap! guest assoc :driver? (not (:driver? @guest)))
@@ -368,7 +372,12 @@
                      :keys :social-network
                      :label "Social group info"
                      :rows 3
-                     :placeholder "I camp with the Pillaging Spores"}]
+                     :placeholder (rand-nth "Looney Bin"
+                                            "Muintir Asylum"
+                                            "Emerald City"
+                                            "Rackdeer Landing"
+                                            "Cernunnos's Witnesses"
+                                            "Pirate Camp")}]
    [text/text-input {:cursor guest
                      :keys :coven
                      :label "Coven/group affiliations"
@@ -378,7 +387,13 @@
                      :keys :spiritual-path
                      :label "Spiritual path"
                      :rows 1
-                     :placeholder "Standing Stones Wicca"}]
+                     :placeholder (rand-nth "Standing Stones Wicca"
+                                            "Faerie Path"
+                                            "Asatru"
+                                            "Hindu"
+                                            "Buddhist"
+                                            "Wicca"
+                                            "Heathen")}]
    [text/text-input {:cursor guest
                      :keys :staff-rec
                      :label "Staff member(s) who recommended you"
@@ -387,10 +402,15 @@
                      :keys :why-staff
                      :label "Why do you want to join the FPG Staff?"
                      :rows 3}]
-   [text/text-input {:cursor guest
-                     :keys :staff-job-wanted
-                     :label "What staff job(s) would you like to do?"
-                     :rows 3}]
+   [:div 
+    [text/text-input {:cursor guest
+                      :keys :staff-job-wanted
+                      :label "What staff job(s) would you like to do?"
+                      :rows 3}]
+    "The staff departments are :"
+    (string/join "; " (doall (map (fn [[dept-label {:keys [name]}]]
+                                    [dept-label name])
+                               staff/+departments+)))]
    [text/text-input {:cursor guest
                      :keys :physical-limits
                      :label "List any physical limitations which might
@@ -415,9 +435,12 @@
                      :rows 3}]
    [radio/radio-set {:cursor guest
                      :keys :staff-submit
-                     :tags [[:yes "Yes, please submit my staff application"]
-                            [:no "I've changed my mind. Disregard this."]]}]
-   [:p "Staff applications are submitted with your registration."]])
+                     :tags [[true "Yes, please submit my staff application"]
+                            [nil "I've changed my mind. Disregard this."]]}]
+   [:p "Staff applications are submitted with your registration."]
+   [:label [:input {:type "checkbox" :checked true
+                    :on-click #(swap! guest assoc :staff-apply? false)}]
+    "Show staff application"]])
 
 (defn staff-applications []
   [:div (doall (map staff-application (filter adult? @(guest-list))))])
@@ -447,7 +470,8 @@
                                  [nil (str (or (:called-by @guest)
                                                (:given-name @guest)) "  is not on staff")])}]
    [:button {:on-click #(swap! guest assoc :staff-verify? false)
-             :style {:display (if (:staff-verify? guest)
+             :style {:display (if (and (not (staff/staff? guest))
+                                       (:staff-verify? @guest))
                                 "block" "none")}}
     "←"]])
 
@@ -456,7 +480,7 @@
   [:fieldset {:style {:display (if (and (adult? guest)
                                         (not (staff/staff? guest))
                                         (not (:staff-apply? @guest))
-                                        (not (:staff-verify? @guest)))
+                                        #_ (not (:staff-verify? @guest)))
                                  "block" "none")}}
    [:legend "Join the Staff!"]
    [:p {:class "hint"}

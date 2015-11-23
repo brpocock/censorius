@@ -97,6 +97,14 @@
 
 (defn registration-page []
   [:div
+   [:h2 "Testing"]
+   [:h3 "You're early — tread lightly. This is almost ready …"]
+   [:p "This  page is still being  tested. Payments are "  [:em "not"] "
+   yet being accepted through this page. We expect the payment system to
+   be  on-line  to  the  public   Monday,  23  November,  2015,  but  we
+   are " [:em "not"] " enabling  payments until our volunteers have been
+   able  to thoroughly  review  the  system and  ensure  that there  are
+   no problems."]
    [guest/staff-applications]
    [guest-list/guest-list-box]
    [merch/merch-box]
@@ -196,9 +204,6 @@
 
 
 
-#_ (guest/marry! (first @guest-list/guests) (second @guest-list/guests))
-
-
 ;; Initialize app
 
 ;; need to run this after routes have been defined

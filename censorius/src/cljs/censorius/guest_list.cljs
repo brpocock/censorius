@@ -9,8 +9,8 @@
    [censorius.utils :as util]))
 
 (defonce guests (reagent/atom
-                 #_
-                 [] 
+                 []
+                 #_ 
                  
                  [ (reagent/atom { :called-by "Sage"
                                   :given-name "John"

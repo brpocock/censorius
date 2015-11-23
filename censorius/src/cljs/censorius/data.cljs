@@ -4,8 +4,8 @@
    [reagent.core :as reagent :refer [atom]]))
 
 (def general (reagent/atom { :invoice nil
-                            :note "Testing SUSPEND now"
-                            :waiver-signature "Bruce-Robert Fenn Pocock"}))
+                            :note nil
+                            :waiver-signature nil}))
 
 (def prices (reagent/atom {:ticket { :adult 95
                                     :child 30

@@ -52,7 +52,7 @@ Make sure that the testing mode shows up on PayPal!")
 An eMail has been sent to the Registration staff to review your registration. You will receive an eMail from the system as well."))
     (swap! d/general assoc :invoice invoice)
     (swap! d/general assoc :token token)
-    #_ (set! js/window.location "/news/"))) 
+    (set! js/window.location "/news/"))) 
 
 (defn save-action []
   (cond (empty? (:note @d/general))
@@ -105,9 +105,9 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
         :style {:display (if (pos? (count @guest-list/guests)) 
                            "table-row" "none")}} 
    [:th "Guests"] [:td (util/format-money (guest-list/price-all-guests))
-                   (for [guest @guest-list/guests]
-                     ^{:key (str "guest-price-" (:given-name @guest) "-" (:surname @guest)) }
-                     [guest-price-line guest])]])
+                   (doall (for [guest @guest-list/guests]
+                            ^{:key (str "guest-price-" (:given-name @guest) "-" (:surname @guest)) }
+                            [guest-price-line guest]))]])
 
 (defn invoice-merch-section []
   [:tr {:key "invoice-extras"
@@ -363,13 +363,26 @@ legally binding.)"]]
 
 (defn check-out-button-box []
   [:div {:class "buttonBox"}
-   [:button
+   [:div
     {:on-click try-check-out
      :style {:display (if (and (pos? (total-due))
                                (waiver-signed?)
                                (not (guest-list/need-adult-email?)))
                         "inline" "none")}}
-    "Ready, Make Payment →"]])
+    [:h4 "Payments not being accepted yet today"]
+    [:p "We have not thoroughly tested this system yet, and we will have
+   PayPal linked here shortly. However, to ensure that nobody's payments
+   are lost as we  test this system, the public page is  " [:em "not"] "
+   accepting payments  yet today (Monday,  23 November). As soon  as our
+   volunteers have established confidence in the new software, this will
+   be enabled."]]
+   
+   #_ [:button {:on-click try-check-out
+                :style {:display (if (and (pos? (total-due))
+                                          (waiver-signed?)
+                                          (not (guest-list/need-adult-email?)))
+                                   "inline" "none")}}
+       "Ready, Make Payment →"]])
 
 (defn check-out-notes []
   [:div {:key "notes-div"}
