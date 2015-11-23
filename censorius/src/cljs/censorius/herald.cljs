@@ -6,29 +6,34 @@
    
    [censorius.data :as d]
    [censorius.guest-list :as guest-list]
-   [censorius.invoice :as invoice]
    [censorius.merch :as merch]
    [censorius.utils :as util]
    [censorius.vendor :as vendor]))
 
-
 (defn map-to-post-data [hash]
   (string/join \& (map (fn [[key value]]
-                         (str (js/encodeURIComponent key) "=" 
-                              (js/encodeURIComponent value)))
+                         (str (js/encodeURIComponent (name key)) "=" 
+                              (js/encodeURIComponent (js/JSON.stringify (clj->js value)))))
                     hash)))
+
+(defn make-json-callback [callback]
+  (if callback
+    (fn [reply]
+      (if (<= 200 (.getStatus (.-target reply)) 299)
+        (callback (js->clj (.getResponseJson (.-target reply))))
+        (do (util/log "Response status " (.getStatus (.-target reply)) " ⇒ " (.getResponseBody (.-target reply)))
+            (js/alert (str "The action could not be completed.  " (.getStatusText (.-target reply)))))))
+    #(true)))
 
 (defn send-data [verb callback content]
   (util/log "Sending: verb: “" verb ",” content: " (or content "(none)"))
   (xhr/send "/reg/herald.cgi" 
-            (if callback
-              (fn [reply]
-                (callback (js->clj (.getResponseJson (.-target reply)))))
-              #(true))
+            (make-json-callback callback)
             "POST" 
-            (if content
-              (map-to-post-data (conj content {"verb" verb}))
-              (str "verb=" verb)) 
+            (str (str "verb=" verb) \&
+                 (if content
+                   (map-to-post-data (conj content))
+                   "")) 
             (clj->js {"X-Censorius-Herald" "20151122"
                       "Accept" "text/javascript"})))
 
@@ -100,24 +105,26 @@
 ;;                               (json->invoice response)
 ;;                               (js/alert (str "Failure; got " response))))}))
 
-(defn submit-invoice []
-  (send-data "save" #(js/alert "invoice sent") 
-             (reduce conj 
-                     (list {:verb "save"
-                            :invoice (or (:invoice @d/general) "*")
-                            :token (or (:invoice-token @d/general) "*")
-                            :note (:note @d/general)
-                            :signature (:signature @d/general)
-                            :scholarship∋# "php,seva,baiardi"
-                            :scholarship∋php∋scholarship "php"
-                            :scholarship∋php∋amount (:php @invoice/scholarships)
-                            :scholarship∋seva∋scholarship "seva"
-                            :scholarship∋seva∋amount (:seva @invoice/scholarships)
-                            :scholarship∋baiardi∋scholarship "baiardi"
-                            :scholarship∋baiardi∋amount (:baiardi @invoice/scholarships)}
 
-                           (hash-atoms->form "guests" @guest-list/guests)
-                           (hash-atoms->form "extras" @merch/merch)
-                           (hash-atoms->form "vending" @vendor/vending)
-                           #_ (hash-atoms->form "workshops" @d/workshops)))))
+
+;; (defn submit-invoice []
+;;   (send-data "save" #(js/alert "invoice sent") 
+;;              (reduce conj 
+;;                      (list {:verb "save"
+;;                             :invoice (or (:invoice @d/general) "*")
+;;                             :token (or (:invoice-token @d/general) "*")
+;;                             :note (:note @d/general)
+;;                             :signature (:signature @d/general)
+;;                             :scholarship∋# "php,seva,baiardi"
+;;                             :scholarship∋php∋scholarship "php"
+;;                             :scholarship∋php∋amount (:php @invoice/scholarships)
+;;                             :scholarship∋seva∋scholarship "seva"
+;;                             :scholarship∋seva∋amount (:seva @invoice/scholarships)
+;;                             :scholarship∋baiardi∋scholarship "baiardi"
+;;                             :scholarship∋baiardi∋amount (:baiardi @invoice/scholarships)}
+
+;;                            (hash-atoms->form "guests" @guest-list/guests)
+;;                            (hash-atoms->form "extras" @merch/merch)
+;;                            (hash-atoms->form "vending" @vendor/vending)
+;;                            #_ (hash-atoms->form "workshops" @d/workshops)))))
 

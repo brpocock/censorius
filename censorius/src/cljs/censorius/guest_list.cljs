@@ -452,6 +452,9 @@ For now, could you please put down the additional “"
 
 (defn guest-list-box-title []
   [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
+   [:span {:style {:display (if (:invoice @d/general)
+                              "inline" "none")}}
+    "— Invoice # " (:invoice @d/general)]
    (util/abbr "💁 Need Help?" "Look at the Assistant box for help!
 
 The Assistant box appears to the right if you're viewing this full-screen on a PC; or below, if you're on a smaller-screen device. It will update to give you hints as you go along.")])

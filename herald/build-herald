@@ -18,5 +18,6 @@ buildapp --output herald \
 
 tail -n 20 herald.buildapp.log
 
-curl 'http://www.fpgrocks.org/reg/herald.cgi?verb=about'
+curl -d 'verb=about&deployment-marker=t' 'http://www.fpgrocks.org/reg/herald.cgi'
+
 

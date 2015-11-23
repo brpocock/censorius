@@ -43,6 +43,17 @@ In the  unlikely event that you  are actually charged, somehow,  we will credit 
 Make sure that the testing mode shows up on PayPal!")
   (js/alert "Just kidding! Disabled while I test some things. ~brfp"))
 
+(defn after-save [reply]
+  (let [invoice (get reply "invoice")
+        token (get reply "token")]
+    (js/alert (str "Response from server: " (util/stringerific reply)))
+    (js/alert (str "Invoice suspended (#" invoice ")
+
+An eMail has been sent to the Registration staff to review your registration. You will receive an eMail from the system as well."))
+    (swap! d/general assoc :invoice invoice)
+    (swap! d/general assoc :token token)
+    #_ (set! js/window.location "/news/"))) 
+
 (defn save-action []
   (cond (empty? (:note @d/general))
         (js/alert "Please supply a note for the Regsitration staff as to what needs to be done.
@@ -56,13 +67,13 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
         
         :ok 
         (censorius.herald/send-data "save" 
-                                    #(js/alert (str "Response from server: " (util/stringerific %))) 
-                                    {:general @d/general
-                                     ;; :guests (map deref @guest-list/guests)
-                                     ;; :extras (map deref (filter #(pos? (:qty @%)) @merch/merch))
-                                     ;; :vendor @vendor/vending
+                                    after-save 
+                                    {:general (conj @d/general {:signature (:waiver-signature @d/general)})
+                                     :guests (map deref @guest-list/guests)
+                                     :extras (map deref (filter #(pos? (:qty @%)) @merch/merch))
+                                     :vendor @vendor/vending
                                      ;; :workshops nil
-                                     ;; :scholarships @scholarships
+                                     :scholarships @scholarships
                                      })))
 
 
