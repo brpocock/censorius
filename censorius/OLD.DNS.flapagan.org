@@ -1,0 +1,24 @@
+
+; <<>> DiG 9.10.2-P4-RedHat-9.10.2-5.P4.fc22 <<>> any flapagan.org
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 22127
+;; flags: qr rd ra; QUERY: 1, ANSWER: 5, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 512
+;; QUESTION SECTION:
+;flapagan.org.			IN	ANY
+
+;; ANSWER SECTION:
+flapagan.org.		299	IN	MX	0 flapagan.org.
+flapagan.org.		21599	IN	SOA	ns.1-sh.com. admin.1-sh.com. 2015062200 86400 7200 3600000 86400
+flapagan.org.		21599	IN	NS	ns2.1-sh.com.
+flapagan.org.		21599	IN	NS	ns.1-sh.com.
+flapagan.org.		299	IN	A	72.52.180.170
+
+;; Query time: 106 msec
+;; SERVER: 8.8.8.8#53(8.8.8.8)
+;; WHEN: Mon Nov 23 05:13:51 EST 2015
+;; MSG SIZE  rcvd: 158
+

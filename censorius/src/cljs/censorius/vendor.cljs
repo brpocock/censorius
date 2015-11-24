@@ -22,17 +22,25 @@
         @guest-list/guests))
 
 (defn vendor-agreement []
-  [:div {:key "vendor-agreement"
-         :style {:display (if (or (not (can-be-vendor?))
-                                  (:agreement @vending))
-                            "none" "block")}}
-   [:h3 "Vendor agreement"]
-   [:p "Before you can become an vendor, you need to agree to the festival's vendor rules."]
-   [:a {:href "http://fpgrocks.org/news/vendor-faq"
-        :target "VendorFAQ"} 
-    [:button {:class "true"} "Read Vendor Rules"]]
-   [:button {:on-click #(swap! vending assoc :agreement true)}
-    "✓ Accept the vendor agreement"]])
+  [:div [:div {:key "vendor-agreement"
+               :style {:display (if (or (not (can-be-vendor?))
+                                        (:agreement @vending))
+                                  "none" "block")}}
+         [:h3 "Vendor agreement"]
+         [:p "Before you can become an vendor, you need to agree to the festival's vendor rules."]
+         [:a {:href "http://fpgrocks.org/news/vendor-faq"
+              :target "VendorFAQ"} 
+          [:button {:class "true"} "Read Vendor Rules"]]
+         [:button {:on-click #(swap! vending assoc :agreement true)}
+          "✓ Accept the vendor agreement"]]
+   [:div {:key "vendor-agreement-abort"
+          :style {:display (if (or (not (can-be-vendor?))
+                                   (:agreement @vending))
+                             "block" "none")}}
+    [:label [:input {:type "checkbox" 
+                     :checked true
+                     :on-click #(swap! vending assoc :agreement false)}]
+     "Vendor agreement accepted"]]])
 
 
 
@@ -177,7 +185,7 @@ this box."]]
                        :placeholder "Enter your menu information here, if you have it."
                        :validate #(> 7500 (count %) 32)
                        :rows 10}]]
-    [vendor-license "Massage or other MQA license" :massuer? :mqa-license]]])
+    [vendor-license "Massage or other MQA license" :masseur? :mqa-license]]])
 
 
 

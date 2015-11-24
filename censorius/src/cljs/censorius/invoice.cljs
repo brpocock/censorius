@@ -98,6 +98,7 @@
   (js/alert (str "Recalled invoice # " (get document "invoice")))
   (util/log " reply: " document)
   (swap! d/general assoc :invoice (get document "invoice"))
+  (swap! d/general assoc :invoice-token (get document "invoice-token"))
   (doseq [[atom-id data] (seq document)]
     (util/log " copying atom id " (keyword atom-id) " ← " data)
     (let [a (get +atom-tags+ (keyword atom-id))]
@@ -202,8 +203,8 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
   [:thead
    [:tr {:key "invoice-header"
          :style {:display (if (:invoice @d/general) "table-row" "none")}}
-    [:th "Invoice Number"]
-    [:td (str (:invoice @d/general))]]])
+    [:th {:style {:border-bottom "2pt solid brown"}} "Invoice Number"]
+    [:td {:style {:border-bottom "2pt solid brown"}} (str (:invoice @d/general))]]])
 
 (defn guest-price-line [guest]
   [:li (util/format-money (guest/price guest)) 
@@ -465,7 +466,7 @@ legally binding.)"]]
                       :rows 1}]]
    [:div
     [text/text-input {:cursor d/general
-                      :keys :fast-check-in-zip-code
+                      :keys :fast-check-in-postal-code
                       :label "Your home ZIP code"
                       :placeholder "33000"
                       :validate util/fl-zip-code?

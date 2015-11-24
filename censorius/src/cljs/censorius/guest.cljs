@@ -411,8 +411,7 @@
                       :label "What staff job(s) would you like to do?"
                       :rows 3}]
     "The staff departments are :"
-    (string/join "; " (doall (map (fn [[dept-label {:keys [name]}]]
-                                    [dept-label name])
+    (string/join "; " (doall (map (fn [[dept-label {:keys [name]}]]  name)
                                staff/+departments+)))]
    [text/text-input {:cursor guest
                      :keys :physical-limits
@@ -689,8 +688,8 @@
                        :cursor guest
                        :tags [[nil "🗷🗷🗷🗷🗷 Wednesday→Sunday" ]
                               [:week-end "☐☐🗷🗷🗷 Friday→Sunday"]
-                              [:thu "□☐☐🗷□ Thursday Day Pass"]
-                              [:fri "□☐☐🗷□ Friday Day Pass"]
+                              [:thu "□🗷□□□ Thursday Day Pass"]
+                              [:fri "□☐🗷□□ Friday Day Pass"]
                               [:sat "□☐☐🗷□ Saturday Day Pass"]]}])
    (ed/close editing?)])
 

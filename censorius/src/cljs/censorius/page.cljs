@@ -1,6 +1,8 @@
 (ns censorius.page
   (:require
    [cljs.reader :as reader]
+   [clojure.string :as string]
+   
    [goog.events :as events]
    [goog.history.EventType :as EventType]
    [reagent.core :as reagent :refer [atom]]
@@ -18,7 +20,9 @@
    [censorius.utils :as util]
    [censorius.vendor :as vendor]
    [censorius.workshops :as workshops])
-  (:import [goog History] [goog events]))
+  (:import [goog.history EventType]
+           [goog events]
+           [goog History]))
 
 
 
@@ -97,14 +101,14 @@
 
 (defn registration-page []
   [:div
-   [:h2 "Testing"]
-   [:h3 "You're early — tread lightly. This is almost ready …"]
-   [:p "This  page is still being  tested. Payments are "  [:em "not"] "
-   yet being accepted through this page. We expect the payment system to
-   be  on-line  to  the  public   Monday,  23  November,  2015,  but  we
-   are " [:em "not"] " enabling  payments until our volunteers have been
-   able  to thoroughly  review  the  system and  ensure  that there  are
-   no problems."]
+   ;; [:h2 "Testing"]
+   ;; [:h3 "You're early — tread lightly. This is almost ready …"]
+   ;; [:p "This  page is still being  tested. Payments are "  [:em "not"] "
+   ;; yet being accepted through this page. We expect the payment system to
+   ;; be  on-line  to  the  public   Monday,  23  November,  2015,  but  we
+   ;; are " [:em "not"] " enabling  payments until our volunteers have been
+   ;; able  to thoroughly  review  the  system and  ensure  that there  are
+   ;; no problems."]
    [guest/staff-applications]
    [guest-list/guest-list-box]
    [merch/merch-box]
@@ -115,8 +119,9 @@
    [invoice/check-out-box]
    [editable/nightshade]
    [print-trailer]
-   [:div [:a {:href "#" :on-click #(invoice/recall-invoice 4153 "gtp/feAgJYYJ")}
-          4153]]])
+   ;; [:div [:a {:href "#" :on-click #(invoice/recall-invoice 4153 "gtp/feAgJYYJ")}
+   ;;        4153]]
+   ])
 
 
 (defn about-page []
@@ -185,7 +190,7 @@
                               :id nil
                               :filter nil}))
 
-(secretary/set-config! :prefix "#")
+(secretary/set-config! :prefix "#!")
 (defn location-hash [x] (set! (.-hash (.-location js/window)) x))
 
 (secretary/defroute "/" []
@@ -207,6 +212,8 @@
 (secretary/defroute "/staff-confirm/:id" [{:keys [id]}]
   (swap! uri-view assoc  :current-page staff-confirm :id id))
 
+
+
 
 
 ;; Initialize app
@@ -216,20 +223,31 @@
 (defn init! []
   #_ (reader/read-string "(defn boo [] (js/alert \"boo\"))")
   (set! js/document.title (str "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)))
+  
   (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))
 
 
 ;; History
+(defn revisit []
+  (when-let [recall (js/window.location.hash.indexOf "/recall/")]
+    (let [slash2 (.indexOf (js/window.location.hash.substring (+ 8 recall)) \/)
+          invoice (js/window.location.hash.substring (+ 8 recall) (+ 8 recall slash2))
+          cookie (js/window.location.hash.substring (+ 9 recall slash2))]
+      (util/log " Recall invoice# "(js/parseInt invoice) " with verification cookie " (js/decodeURIComponent cookie))
+      (when (> invoice 4000)
+        (invoice/recall-invoice (js/parseInt invoice) (js/decodeURIComponent cookie))))))
+
 (defn hook-browser-navigation! []
   (let [history (History.)]
-    (goog.events/listen history EventType/NAVIGATE
-                        #(secretary/dispatch! (.-token %)))
+    (goog.events/listen history EventType/NAVIGATE #(revisit))
     (doto history (.setEnabled true))))
+
 
 
 (defn main []
   (js/window.clearTimeout js/not-loaded)
   (hook-browser-navigation!)
+  (revisit)
   (init!))
 
 (main)
