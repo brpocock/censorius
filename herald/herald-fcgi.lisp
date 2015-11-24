@@ -1650,25 +1650,25 @@ where (`starting` is null or `starting` <= date(now()))
 
 (defun init-db ()
   (with-sql
-      (dolist (expr '("create table festivals (`starting` date not null unique key,
+    (dolist (expr '("create table festivals (`starting` date not null unique key,
 ending date not null unique key, season varchar(8) not null, year year not null, primary key(season, year))"
-                      "create table invoices (invoice serial primary key, created datetime,
+                    "create table invoices (invoice serial primary key, created datetime,
 closed datetime, `closed-by` text, `old-system-p` boolean not null default false, `festival-season` varchar(8),
  `festival-year` year not null, note text, `signature` varchar(60), memo text,
 foreign key (`festival-season`,`festival-year`) references festivals(season,year) on delete restrict)"
-                      "create table merch (id varchar(20) primary key, title varchar(100) unique key,
+                    "create table merch (id varchar(20) primary key, title varchar(100) unique key,
 description text, image varchar(100), price decimal(6,2) not null default 9999.99)"
-                      "create table `merch-styles` (item varchar(20),
+                    "create table `merch-styles` (item varchar(20),
 id varchar(6) not null, title varchar(100) not null, inventory integer unsigned  not null default 0,
 constraint itemstyle unique(item,id), constraint itemstylename unique(item, title),
 foreign key (item) references merch(id) on delete restrict)"
-                      "create table prices (`starting` date default null, ending date default null, price decimal (6,2), item varchar(20) not null,
+                    "create table prices (`starting` date default null, ending date default null, price decimal (6,2), item varchar(20) not null,
 constraint itemstart unique(item, `starting`), constraint itemend unique key(item, ending))"
-                      "create table `invoice-merch` (invoice bigint unsigned not null,
+                    "create table `invoice-merch` (invoice bigint unsigned not null,
  item varchar(20), style varchar(6), qty integer unsigned not null default 1,
 unique key(invoice, item, style),
 foreign key (invoice) references invoices (invoice))"
-                      "create table `invoice-guests` (invoice bigint unsigned not null,
+                    "create table `invoice-guests` (invoice bigint unsigned not null,
 `called-by` varchar(50),
 `given-name` varchar(50), surname varchar(50) not null, `formal-name` varchar(100) not null,
 `presenter-bio` text, `presenter-requests` text, `e-mail` varchar(200),
@@ -1677,54 +1677,54 @@ gender char(1), `t-shirt` varchar(8), coffeep boolean, totep boolean,
  `ticket-type` varchar(10) not null default 'adult',
 primary key(invoice,`given-name`,`called-by`,surname),
 foreign key (invoice) references invoices (invoice))"
-                      "create table people (`given-name` varchar(50), `called-by` varchar(50),
+                    "create table people (`given-name` varchar(50), `called-by` varchar(50),
 surname varchar(50) not null, `formal-name` varchar(100) not null,
 dob date, primary key(surname, `called-by`))"
-                      "create table `people-href` (surname varchar(50) not null,
+                    "create table `people-href` (surname varchar(50) not null,
 `called-by` varchar(50) not null, rel varchar(8), href varchar(255),
 foreign key (surname,`called-by`) references people (surname, `called-by`))"
-                      "create table `people-phone` (surname varchar(50) not null,
+                    "create table `people-phone` (surname varchar(50) not null,
 `called-by` varchar(50) not null, rel varchar(8), phone varchar(255),
 foreign key (surname,`called-by`) references people (surname, `called-by`))"
-                      "create table `people-email` (surname varchar(50) not null,
+                    "create table `people-email` (surname varchar(50) not null,
 `called-by` varchar(50) not null, rel varchar(8), email varchar(255),
 foreign key (surname,`called-by`) references people (surname, `called-by`))"
-                      "create table `people-rel` (`from-surname` varchar(50) not null,
+                    "create table `people-rel` (`from-surname` varchar(50) not null,
 `from-called-by` varchar(50) not null, rel varchar(8), `to-surname` varchar(50) not null,
  `to-called-by` varchar(50) not null,
 foreign key (`from-surname`,`from-called-by`) references people (surname, `called-by`),
 foreign key (`to-surname`,`to-called-by`) references people (surname, `called-by`),
 constraint relates unique  (`from-surname`,`from-called-by`,rel,`to-surname`,`to-called-by`))"
-                      "create table `invoice-scholarships` (invoice bigint unsigned not null,
+                    "create table `invoice-scholarships` (invoice bigint unsigned not null,
 scholarship varchar(10),
 amount decimal(6,2), primary key(invoice, scholarship),
 foreign key (invoice) references invoices (invoice))"
-                      "create table `invoice-vending` (invoice bigint unsigned not null primary key,
+                    "create table `invoice-vending` (invoice bigint unsigned not null primary key,
 title varchar(72),
 blurb text, notes text, qty integer unsigned not null default 1, `agreement-p` boolean,
 `mqa-license` varchar(15) null, `bpr-license` varchar(15) null,
 foreign key (invoice) references invoices (invoice))"
-                      "create table payments (invoice bigint unsigned not null,
+                    "create table payments (invoice bigint unsigned not null,
 via varchar(100), source varchar(200),
 amount decimal(6,2), confirmation text, note text, cleared datetime,
  foreign key (invoice) references invoices (invoice) on delete restrict)"))
-        (handler-case
-            (let* ((query-words (split-sequence #\Space expr))
-                   (table-name (nth 2 query-words)))
-              (tagbody again
-                 (restart-case
-                     (progn
-                       (format t "~&Creating table ~a" table-name)
-                       (format t "~& ⇒ ~a" (db-query expr)))
-                   (drop-table ()
-                     :report (lambda (s)
-                               (format s "Drop table ~a and retry" table-name))
-                     (format t "~&Dropping table ~a" table-name)
-                     (format t "~& ⇒ ~a"
-                             (db-query (concatenate 'string "drop table "
-                                                    table-name)))
-                     (go again))
-                   (continue ()))))))
+      (handler-case
+          (let* ((query-words (split-sequence #\Space expr))
+                 (table-name (nth 2 query-words)))
+            (tagbody again
+               (restart-case
+                   (progn
+                     (format t "~&Creating table ~a" table-name)
+                     (format t "~& ⇒ ~a" (db-query expr)))
+                 (drop-table ()
+                   :report (lambda (s)
+                             (format s "Drop table ~a and retry" table-name))
+                   (format t "~&Dropping table ~a" table-name)
+                   (format t "~& ⇒ ~a"
+                           (db-query (concatenate 'string "drop table "
+                                                  table-name)))
+                   (go again))
+                 (continue ()))))))
     (loop for year from 2000 upto 2016
        do (loop for (season month) in '(("Beltane" 5)
                                         ("Samhain" 11))
@@ -1768,5 +1768,82 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
        do (loop for (style-id style-title inventory) in styles
              do (db-query "insert into `merch-styles` (item, id, title, inventory) values (?,?,?,?)"
                           id style-id style-title inventory)))))
+
 
+(defun paypal-get-oath2-token ()
+  (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
+      (drakma:http-request
+       "https://api.sandbox.paypal.com/v1/oauth2/token"
+       :method :post
+       :additional-headers '(("Accept" ."application/json")
+                             ("Accept-Language". "en_US"))
+       :basic-authorization (list (paypal-client-id) (paypal-secret))
+       :parameters '(("grant_type". "client_credentials")))
+    (assert (< http-status-code 300))
+    (format *trace-output* "PayPal OAuth2 token acquired: status=~a" http-status-string)
+    (let ((jso (st-json:read-json (flexi-streams:octets-to-string response-body))))
+      (assert (string-equal "Bearer" (st-json:getjso "token_type" jso)))
+      (assert (string-equal (paypal-app-id) (st-json:getjso "app_id" jso)))
+      (values (st-json:getjso "access_token" jso)
+              (st-json:getjso "nonce" jso)
+              (st-json:getjso "expires_in" jso)))))
+
+(defun paypal-demand-payment (amount)
+  (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
+      (drakma:http-request 
+       "https://api.sandbox.paypal.com/v1/payments/payment"
+       :method :post
+       :additional-headers `(("Content-Type" . "application/json")
+                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-get-oath2-token))))
+       :content (format nil "~/json/"
+                        `(:intent "sale"
+                                  :redirect_urls (:return_url "http://flapagan.org/reg/herald.cgi?verb=paypal-return"
+                                                              :cancel_url "http://flapagan.org/reg/herald.cgi?verb=paypal-cancel")
+                                  :payer (:payment_method "paypal")
+                                  :transactions #( (:amount (:total ,(format nil "~,2f" (* .01 (round amount .01)))
+                                                             :currency "USD"))))))
+    (let ((jso (st-json:read-json (flexi-streams:octets-to-string response-body))))
+      (let* ((id (st-json:getjso "id" jso))
+             (links (mapcar (lambda (link)
+                              (list (st-json:getjso "rel" link)
+                                    (st-json:getjso "method" link)
+                                    (st-json:getjso "href" link))) (st-json:getjso "links" jso)))
+             (approval-href (cdr (find "approval_url" links :key #'car :test #'string-equal)))
+             (capture-href (cdr (find "execute" links :key #'car :test #'string-equal))))
+        (values id approval-href capture-href)))))
+
+(defun paypal-capture-payment (payment-id token payer-id)
+  (declare (ignore token))
+  (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
+      (drakma:http-request 
+       (concatenate 'string "https://api.sandbox.paypal.com/v1/payments/payment/" payment-id)
+       :method :post
+       :additional-headers `(("Content-Type" . "application/json")
+                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-get-oath2-token))))
+       :content (format nil "~/json/" `(:payer_id payer-id)))
+    (let ((jso (st-json:read-json (flexi-streams:octets-to-string response-body))))
+      jso)))
+
+;;;Get payment approval
+
+;; Please note the HATEOAS links  in the example above. Direct the user to the approval_url  on the PayPal site, so that
+;; the user can  approve the payment. The user  must approve the payment  before you can execute and  complete the sale.
+
+;; Execute the payment
+
+;; When the user approves the  payment, PayPal redirects the user to the return_url that  was specified when the payment
+;; was created. A payer Id and payment Id are appended to the return URL, as PayerID and paymentId:
+
+;; http://<return_url>?paymentId=PAY-6RV70583SB702805EKEYSZ6Y&token=EC-60U79048BN7719609&PayerID=7E7MGXCWTTKK2
+
+;; The token value appended to the return URL is not needed when you execute the payment.
+
+;; To execute the payment after the user’s approval, make a  /payment/execute/ call. In the body of the request, use the
+;; payer_id value  that was appended  to the return  URL. In  the header, use  the access token  that you used  when you
+;; created the payment.
+
+;; curl -v https://api.sandbox.paypal.com/v1/payments/payment/PAY-6RV70583SB702805EKEYSZ6Y/execute/ \
+;; -H 'Content-Type: application/json' \
+;; -H 'Authorization: Bearer {accessToken}' \
+;; -d '{ "payer_id" : "7E7MGXCWTTKK2" }'
 
