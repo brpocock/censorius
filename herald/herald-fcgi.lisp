@@ -622,6 +622,9 @@ be reached at: ~a </p>
                              #\<
                              +sysop-mail+)))))))
 
+(defun 36r (figure)
+  (format nil "~36r" figure))
+
 (defun reply-error/json (conditions)
   (cond
     ((atom conditions) (reply-error/json (list conditions)))
@@ -639,7 +642,7 @@ Content-Type: text/javascript; charset=utf-8~2%~/json/~%"
                                                         (typep c 'condition)) 
                                                       conditions)))
                      :service *cgi*
-                     :herald-version (format nil "~36r" +compile-time+)
+                     :herald-version (36r +compile-time+)
                      :you-said *request*)))))
 
 (defun reply-error (conditions)
@@ -682,7 +685,7 @@ Content-Type: text/javascript; charset=utf-8~2%~/json/~%"
                    :from +herald-mail+
                    :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail-base+))
                                         '("Organization" "Temple of Earth Gathering, Inc.")
-                                        (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
+                                        (list "X-Censorius-Herald-Version" (36r +compile-time+)))
                    :charset :utf-8
                    :type "text" :subtype "plain")
     (apply (curry #'format mail-stream) message-fmt+args)))
@@ -845,10 +848,16 @@ cookie says “~36r.”
                     (getf style :|inventory|)
                     (getf style :|description|))))))
 
+(defun inhibit-mail (invoice)
+  (cadar (db-query "select 1 from invoices where invoice=? and note like '%*shh*%' or memo like '%*shh*%'"
+                   invoice)))
+
 (defun mail-registrar-suspended-invoice (invoice)
-  (mail-reg +registrar-mail+ "SUSPENDED TEG FPG Registration"
-            (format nil "Invoice.~d." invoice)
-            "
+  (if (inhibit-mail invoice)
+      (warn "This invoice has a note or memo that inhibits sending mail.")
+      (mail-reg +registrar-mail+ "SUSPENDED TEG FPG Registration"
+                (format nil "Invoice.~d." invoice)
+                "
 Invoice # ~:d has been suspended by the user. Please visit the
 Herald program at this link:
 
@@ -885,15 +894,15 @@ operator:
 
 ~a
 "
-            invoice
-            (recall-link invoice t)
-            (mapcar #'clean-plist (read-guests invoice))
-            (merch-table-text (read-merch invoice))
-            (clean-plist (read-vending invoice))
-            (clean-plist (read-workshops invoice))
-            (read-scholarships invoice)
-            (clean-plist (read-general invoice))
-            +sysop-mail+))
+                invoice
+                (recall-link invoice t)
+                (mapcar #'clean-plist (read-guests invoice))
+                (merch-table-text (read-merch invoice))
+                (clean-plist (read-vending invoice))
+                (clean-plist (read-workshops invoice))
+                (read-scholarships invoice)
+                (clean-plist (read-general invoice))
+                +sysop-mail+)))
 
 (defun mail-user-suspended-invoice (invoice)
   (mail-reg (mail-to-user invoice) "TEG FPG Registration (suspended)"
@@ -1209,46 +1218,92 @@ cookie says “~36r.”
        '(:error 403 "Authorization refused. You cannot view the requested resource."
          "Please ensure that you copied and pasted the entire link, without spaces. Administatively…"))
       
+      ((and (not (emptyp admin-key))
+            (accept-type-p "text/html"))
+       (list :raw
+             (format nil "Content-Type: text/html; charset=utf-8
+
+<!DOCTYPE html>
+<html>
+<head><title>Invoice Edit: ~:d~:*</title> </head>
+
+<body>
+<h2>Reg Team Admin Access</h2>
+<p>
+Please note that editing the guest's registration information is a brand-new 
+feature and not everything may work 100%. 
+</p>
+<h4>
+Invoice number: ~:d
+</h4>
+<h4>
+Festival: ~{~a ~a~}
+</h4>
+<h4>
+Guests:</h4> ~{
+<p>
+ • ~{~a ~} </p>
+~}
+<p>
+If you would like to continue, please re-check all your information
+before submitting.
+</p>
+<a href=\"~a\">Understood, let me review or edit this guest's registration</a>
+</body></html>
+"
+                     invoice
+                     (let ((fest (getf (read-invoice invoice) :general)))
+                       (list (getf fest :|festival-season|)
+                             (getf fest :|festival-year|)))
+                     (mapcar (lambda (guest) 
+                               (list (getf guest :|given-name|)
+                                     (or (getf guest :|called-by|) "")
+                                     (getf guest :|surname|))) 
+                             (getf (read-invoice invoice) :guests))
+                     (recall-invoice-link invoice t))))
+      
       ((accept-type-p "text/html")
        (list :raw
-             (redirect-to-invoice invoice)
-             #+ (or) (format nil "Content-Type: text/plain; charset=utf-8
+             (format nil "Content-Type: text/html; charset=utf-8
 
-You are trying to recall a saved invoice. However, this feature has been
-temporarily  disabled   for  your  safety   while  the  new   system  is
-being tested.
+<!DOCTYPE html>
+<html>
+<head><title>Invoice Edit: ~:d~:*</title> </head>
 
+<body>
+<p>
+Please note that editing your registration information is a brand-new 
+feature and not everything may work 100%. 
+</p>
+<h4>
 Invoice number: ~:d
-
-You are ~:[the person who registered~;a member of  Registration staff~],
- confirmed by your use of the  special confirmation link you received in
- your e-mail.
-
+</h4>
+<h4>
 Festival: ~{~a ~a~}
-
-Guests: ~{
-
- • ~{~a ~} ~}
-
-… as well as other information.
-
-Please contact registration  if you need immediate assistance.
-
-~a
-
+</h4>
+<h4>
+Guests:</h4> ~{
+<p>
+ • ~{~a ~} </p>
+~}
+<p>
+If you would like to continue, please re-check all your information
+before submitting.
+</p>
+<a href=\"~a\">Understood, let me review or edit my registration</a>
+</body></html>
 "
-                             invoice 
-                             admin-key
-                             (let ((fest (getf (read-invoice invoice) :general)))
-                               (list (getf fest :|festival-season|)
-                                     (getf fest :|festival-year|)))
-                             (mapcar (lambda (guest) 
-                                       (list (getf guest :|given-name|)
-                                             (or (getf guest :|called-by|) "")
-                                             (getf guest :|surname|))) 
-                                     (getf (read-invoice invoice) :guests))
-                             +registrar-mail+)))
-
+                     invoice
+                     (let ((fest (getf (read-invoice invoice) :general)))
+                       (list (getf fest :|festival-season|)
+                             (getf fest :|festival-year|)))
+                     (mapcar (lambda (guest) 
+                               (list (getf guest :|given-name|)
+                                     (or (getf guest :|called-by|) "")
+                                     (getf guest :|surname|))) 
+                             (getf (read-invoice invoice) :guests))
+                     (recall-invoice-link invoice))))
+      
       (t (list :data (read-invoice invoice))))))
 
 (defmethod handle-verb ((verb (eql :resend-suspended)))
@@ -1297,7 +1352,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
 
 (defun admin-key (invoice)
   (when invoice
-    (let ((numberish (format nil "~36r" (logxor (numeric invoice) #x872))))
+    (let ((numberish (36r (logxor (numeric invoice) #x872))))
       (when (/= (* 2 (floor (length numberish) 2))
                 (length numberish))
         (setf numberish (concatenate 'string (subseq numberish 0 1)
@@ -1458,7 +1513,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
             :from +herald-mail+
             :other-headers (list (list "References" (concatenate 'string (string token) "." +herald-mail-base+))
                                  '("Organization" "Temple of Earth Gathering, Inc.")
-                                 (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
+                                 (list "X-Censorius-Herald-Version" (36r +compile-time+)))
             :charset :utf-8
             :type "text" :subtype "plain")
     (format nil  "Hi! This  is the Censorius Herald  program. I'm the software  agent that
@@ -1696,7 +1751,7 @@ where (`starting` is null or `starting` <= date(now()))
     (format *error-output* "~25%"))
   (list :data (list :program "Censorius Herald"
                     :copyright "© 2013-2015, Bruce-Robert Fenn Pocock"
-                    :version (format nil "~36r" +compile-time+)
+                    :version (36r +compile-time+)
                     :build-date (let ((built (multiple-value-list (decode-universal-time (+ +compile-time+
                                                                                             +compile-time-offset+)))))
                                   (list (nth 5 built) (nth 4 built) (nth 3 built))))))
@@ -1822,6 +1877,12 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
              do (db-query "insert into `merch-styles` (item, id, title, inventory) values (?,?,?,?)"
                           id style-id style-title inventory)))))
 
+
+(defun herald-user-agent (&optional (drakma-ua-key :drakma))
+  (concatenate 'string
+               (drakma::user-agent-string drakma-ua-key)
+               " "
+               "Herald/" (36r +compile-time+)))
 
 (defun paypal-get-oath2-token ()
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
@@ -2028,16 +2089,22 @@ values  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 ;; -H 'Authorization: Bearer {accessToken}' \
 ;; -d '{ "payer_id" : "7E7MGXCWTTKK2" }'
 
+(defun recall-invoice-link (invoice &optional adminp)
+  (format nil "~a/reg/#/recall/~36r/~a~@[/~a~]"
+          +host-name+
+          (princ-to-string invoice)
+          (url-encode (user-key invoice))
+          (when adminp
+            (url-encode (admin-key invoice)))))
+
 (defun redirect-to-invoice (invoice &optional adminp)
-  (declare (ignore adminp)) ;; FIXME
   (throw 'cgi-bye
     (list :raw (format nil "Status: 301 Time to go back
-Location: ~a/reg/#/recall/~36r/~a
+Location: ~a
 
-~0@* go back to ~a&invoice=~36r&verify=~a"
-                       +host-name+
-                       (princ-to-string invoice)
-                       (url-encode (user-key invoice))))))
+~0@* go back to ~a"
+                       (recall-invoice-link invoice adminp)))))
+
 (defun payment-id->invoice (payment-id)
   (cadar (db-query "select invoice from payments where source='PayPal' and via=?" payment-id)))
 
