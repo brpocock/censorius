@@ -15,7 +15,7 @@
       
       slow_load_warning = function () {
         cool_label ("¿Loading trouble? (" + document.title + ")");
-        alert("There seems to be a problem loading this application. \n\n" + document.title +
+        alert("This application is loading very slowly. \n\n" + document.title +
               "\n\nYou may  need to check your  network connection, or make  sure you have the latest update for your web browser (" +
               navigator.userAgent.substring(navigator.userAgent.lastIndexOf(" ")+1,navigator.userAgent.lastIndexOf("/")) +
               ").\n\nI'll keep trying for now, but if it  doesn't load in a few moments more,  you might want  to click “Reload” to try again.");
@@ -40,8 +40,7 @@
         <img src="css/spinner.gif" alt="Please wait… Loading">
 
         
-        <h1 style="font-size: 48pt"> WARNING Programmer debugging in progress WARNING </h1>
-
+        <!-- <h1 style="font-size: 48pt"> WARNING Programmer debugging in progress WARNING </h1> -->
         
         <br>
         <h2>Loading</h2>
