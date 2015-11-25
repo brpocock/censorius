@@ -480,7 +480,8 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
       [:h2 [party-title]]
 
       [:div {:style {:display (if (and (number? @add-first-guest-timer)
-                                       (> 30000 @add-first-guest-timer)) 
+                                       (> 30000 @add-first-guest-timer)
+                                       (= 1 (count @guests))) 
                                 "block" "none")
                      :opacity (cond
                                 (> 25000 @add-first-guest-timer) 1

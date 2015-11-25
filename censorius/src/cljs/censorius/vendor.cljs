@@ -34,8 +34,7 @@
          [:button {:on-click #(swap! vending assoc :agreement true)}
           "✓ Accept the vendor agreement"]]
    [:div {:key "vendor-agreement-abort"
-          :style {:display (if (or (not (can-be-vendor?))
-                                   (:agreement @vending))
+          :style {:display (if (:agreement @vending)
                              "block" "none")}}
     [:label [:input {:type "checkbox" 
                      :checked true

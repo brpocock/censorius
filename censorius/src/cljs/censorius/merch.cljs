@@ -146,7 +146,11 @@
      [:td {:key (str (:id @item) "∋" (:id style) "/sold")
            :style {:margin-right "1ex"}}
       [:strong {:style {:float "left"}}
-       (:qty style) "×" (.toUpperCase (util/keyword->string (:id style)))]]
+       (if (:qty style)
+         (:qty style)
+         (do (swap! item assoc-in [:styles style-index :qty] 0)
+             0)) 
+       "×" (.toUpperCase (util/keyword->string (:id style)))]]
      [purchase< item style style-index (pos? (:qty style))]
      [qty-cell item style (:qty style)]
      [purchase> item style style-index (< sold (:inventory style))]

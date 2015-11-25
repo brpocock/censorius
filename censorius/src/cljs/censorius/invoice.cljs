@@ -47,7 +47,7 @@
 
 (defn fix-up-keywords []
   (doseq [guest @guest-list/guests]
-    (doseq [field [:sleep :eat :day :gender :ticket-type :t-shirt :coffee? :tote?]]
+    (doseq [field [:sleep :eat :days :gender :ticket-type :t-shirt :coffee? :tote?]]
       (keyword-field guest field)))
   (doseq [item @merch/merch]
     (keyword-field item :id))
@@ -134,15 +134,43 @@
                               :festival-season (:season @d/festival)
                               :festival-pear (:year @d/festival)})
    :guests (map #(conj @% { :payment-due (censorius.guest/price %)}) @guest-list/guests)
-   :extras (map #(conj @%
-                       { :payment-due (* (censorius.merch/count-sold %)
-                                         (:price @%))}) 
-             (filter #(pos? (:qty @%)) @merch/merch))
+   :merch (flatten (map (fn [item]
+                          (map (fn [style]
+                                 {:item (:id @item)
+                                  :style (:id style)
+                                  :qty (:qty style)
+                                  :price (:price @item)
+                                  :subtotal (* (:qty style) (:price @item))})
+                            (filter #(pos? (:qty %))
+                                    (:styles @item))))
+                     @merch/merch))
    :vendor (conj @vendor/vending { :payment-due (vendor/price-vendor) })
    ;; :workshops nil
    :scholarships (conj @scholarships { :payment-due (scholarship-donations-amount)})
    :money { :balance-due (total-due)
            :prior-payments (reduce + (map :amount @payments))}})
+
+(defn after-pay [reply]
+  (let [invoice (get reply "invoice")
+        token (get reply "token")
+        next-hop (get reply "next-hop")]
+    #_ (js/alert (str "Response from server: " (util/stringerific reply)))
+    (swap! d/general assoc :invoice invoice)
+    (swap! d/general assoc :token token)
+    (set! js/window.location next-hop)))
+
+(defn try-check-out []
+  (if (.contains (:note @d/general) "PayPal*")
+    (censorius.herald/send-data "pay"
+                                after-pay
+                                (submission-data))
+    (js/alert "Disabled while I check a bug report. Back shortly.
+
+To run a TEST transaction, put this (exactly) somewhere in your notes box:
+
+                  PayPal*
+
+~brfp")))
 
 (defn after-save [reply]
   (let [invoice (get reply "invoice")
@@ -157,21 +185,7 @@ An eMail has been sent to the Registration staff to review your registration. Yo
       (accept-recalled-data reply)
       (set! js/window.location "/news/"))))
 
-(defn try-check-out []
-  (js/alert "This is in Testing Mode.
 
-You   are  about   to   be  asked   to   provide  payment   information. This  information  will  be  checked  for validity  —  eg,  whether  the credit-card number is valid. However, you SHOULD NOT BE CHARGED.
-
-Your registration is FAKE right now, for TESTING PURPOSES ONLY.
-
-In the  unlikely event that you  are actually charged, somehow,  we will credit it back to you immediately (but most banks will take a day or two to actually clear your account).
-
-Make sure that the testing mode shows up on PayPal!")
-  #_ (js/alert "Just kidding! Disabled while I test some things. ~brfp")
-  
-  (censorius.herald/send-data "pay" 
-                              after-save 
-                              (submission-data))) 
 
 (defn save-action []
   (cond (empty? (:note @d/general))
@@ -478,12 +492,16 @@ legally binding.)"]]
   [:div {:class "buttonBox"}
    [:div
     { :style {:display (if (and (pos? (total-due))
-                                (waiver-signed?)
-                                (not (guest-list/need-adult-email?)))
+                               (waiver-signed?)
+                               (not (guest-list/need-adult-email?)))
                          "block" "none")}}]
    
-   [:button {:on-click try-check-out}
-    "Ready, Make Payment →"]])
+   [:button {:on-click try-check-out
+             :style {:display (if (and (pos? (total-due))
+                                       (waiver-signed?)
+                                       (not (guest-list/need-adult-email?)))
+                                "inline" "none")}}
+       "Ready, Make Payment →"]])
 
 (defn check-out-notes []
   [:div {:key "notes-div"}

@@ -1,10 +1,22 @@
 #!/bin/sh
 cd ~/Projects/censorius
+echo " → update started; $(date)"
 # (cd censorius ; lein cljsbuild once || exit -1)
-# (cd herald ; ./build-herald || exit -2)
+(cd herald ; buildapp --output herald \
+	--logfile herald.buildapp.log \
+	--load ~/quicklisp/setup.lisp \
+	--asdf-path $(pwd) \
+	--eval '(mapcar (quote ql:quickload) (quote (:alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi :cl-ppcre :trivial-backtrace #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite :cl-paypal :split-sequence :flexi-streams :cl-sendmail :memoize)))' \
+	--load herald-fcgi \
+	--dispatched-entry herald.cgi/herald-fcgi::exec-cgi \
+	--dispatched-entry herald.fcgi/herald-fcgi::exec-fcgi \
+	--dispatched-entry /herald-fcgi::exec-cgi \
+	--dispatched-entry herald.repl/herald-fcgi::exec-repl \
+     || exit -2)
 rsync -r -essh --timeout 15 ./censorius/www/*  fpgrocks@fpgrocks.org:fpgrocks.org/reg/
 rsync -essh --timeout 15 ./herald/herald-fcgi.lisp ./herald/build-herald fpgrocks@fpgrocks.org:herald/
-timeout 15 ssh -l fpgrocks fpgrocks.org /home/fpgrocks/herald/build-herald
+echo " Starting build-herald…"
+timeout 40 ssh -l fpgrocks fpgrocks.org /home/fpgrocks/herald/build-herald
 
 echo " → update finished; $(date)"
 

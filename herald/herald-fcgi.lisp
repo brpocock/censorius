@@ -375,25 +375,25 @@ must use a string.)"
       (when-let (field-jso (field (make-keyword field-name)))
        (when-let (st-jso (st-json:read-json field-jso))
          (when-let (elt (elt st-jso f2))
-            (st-json:getjso (field-?-p f3) elt)))))
+           (st-json:getjso (field-?-p f3) elt)))))
     
     ((and f3
           (or (symbolp field-name) (stringp field-name))
           (numberp f2)
           (or (symbolp f3) (stringp f3)))
-      (field (string-downcase field-name) f2 (string-downcase f3)))
+     (field (string-downcase field-name) f2 (string-downcase f3)))
     
     ((and f2
           (stringp field-name)
           (stringp f2))
      (when-let (field-jso (field (make-keyword (string-upcase field-name))))
        (when-let (st-jso (st-json:read-json field-jso))
-          (st-json:getjso (field-?-p f2) st-jso))))
+         (st-json:getjso (field-?-p f2) st-jso))))
     
     ((and f2
           (or (symbolp field-name) (stringp field-name))
           (or (symbolp f2) (stringp f2)))
-      (field (string-downcase field-name) (string-downcase f2)))
+     (field (string-downcase field-name) (string-downcase f2)))
     
     ((or f2 f3)
      (error "Invalid field selector ~s ~s ~s" field-name f2 f3))
@@ -410,17 +410,17 @@ must use a string.)"
   "Replies with a plain-text error report. The first element of the list
 must be the numeric HTTP status code."
   (format *error-output* "~&text error report ~s" conditions)
-        (format nil
+  (format nil
           "Status: ~d ~a
 Content-Type: text/plain; charset=utf-8
 
 ~0@*HTTP Error ~d~2%~{~a~2%~}~2%~a~2%"
           (first conditions) (princ-to-string (second conditions))
-                (mapcar #'princ-to-string (rest conditions))
-                (with-output-to-string (s)
-                  (dolist (condition conditions)
-                    (if (typep condition 'condition)
-                        (uiop/image:print-condition-backtrace condition :stream s)
+          (mapcar #'princ-to-string (rest conditions))
+          (with-output-to-string (s)
+            (dolist (condition conditions)
+              (if (typep condition 'condition)
+                  (uiop/image:print-condition-backtrace condition :stream s)
                   (princ condition s))))))
 
 (defun sql-escape (string)
@@ -549,10 +549,10 @@ real numbers."
 (defun mail-error (condition)
   (mail-reg +sysop-mail+
             (concatenate 'string "[herald-error] " (let ((condition$ (format nil "~a" condition)))
-                                                              (subseq condition$ 0 (min (length condition$)
-                                                                                        40))))
+                                                     (subseq condition$ 0 (min (length condition$)
+                                                                               40))))
             (concatenate 'string "condition."
-                                                                 (simply$ (type-of condition))
+                         (simply$ (type-of condition))
                          "." +herald-mail-base+)
             "A condition of type ~a was signaled.
 
@@ -613,13 +613,13 @@ be reached at: ~a </p>
 
 </body></html>~%"
             status 
-            conditions
-                *cgi*
-                +compile-time+
-                (first (split-sequence
-                        #\>
-                        (second (split-sequence
-                                 #\<
+          conditions
+          *cgi*
+          +compile-time+
+          (first (split-sequence
+                  #\>
+                  (second (split-sequence
+                           #\<
                                  +sysop-mail+)))))))
 
 (defun 36r (figure)
@@ -631,17 +631,17 @@ be reached at: ~a </p>
     (t (format *error-output* "~&JSON error report ~s" conditions)
        (format nil "Status: ~d ~a
 Content-Type: text/javascript; charset=utf-8~2%~/json/~%"
-                (first conditions)
+               (first conditions)
                (princ-to-string  (second conditions))
-                (list :this-is-an-error t
-                      :error (first conditions)
-                      :conditions conditions
+               (list :this-is-an-error t
+                     :error (first conditions)
+                     :conditions conditions
                      :backtrace (with-output-to-string (s)
                                   (map nil (rcurry #'uiop/image:print-condition-backtrace :stream s)
                                        (remove-if-not (lambda (c)
                                                         (typep c 'condition)) 
                                                       conditions)))
-                      :service *cgi*
+                     :service *cgi*
                      :herald-version (36r +compile-time+)
                      :you-said *request*)))))
 
@@ -679,22 +679,22 @@ Content-Type: text/javascript; charset=utf-8~2%~/json/~%"
 (defun mail-reg (destination subject reference &rest message-fmt+args)
   (cl-sendmail:with-email
       (mail-stream destination
-                :bcc +sysop-mail+
-                :cc +archive-mail+
-                :subject subject
-                :from +herald-mail+
-                :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail-base+))
-                                     '("Organization" "Temple of Earth Gathering, Inc.")
+                   :bcc +sysop-mail+
+                   :cc +archive-mail+
+                   :subject subject
+                   :from +herald-mail+
+                   :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail-base+))
+                                        '("Organization" "Temple of Earth Gathering, Inc.")
                                         (list "X-Censorius-Herald-Version" (36r +compile-time+)))
-                :charset :utf-8
-                :type "text" :subtype "plain")
+                   :charset :utf-8
+                   :type "text" :subtype "plain")
     (apply (curry #'format mail-stream) message-fmt+args)))
 
 (defun mail-to-user (invoice)
   (getf (or (first (remove-if-not (lambda (guest)
                                     (and (getf guest :|e-mail|)
                                          (plusp (length (getf guest :|e-mail|)))
-                                         (string-equal "adult"(getf guest :|ticket-type|))))
+                                         (string-equal "adult" (getf guest :|ticket-type|))))
                                   (read-guests invoice)))
             (list :|e-mail| +registrar-mail+))
         :|e-mail|))
@@ -1069,8 +1069,8 @@ cookie says “~36r.”
 
 (defun update-general (invoice)
   (sql-update-invoice-fields (nil general) ()
-    (created closed closed-by old-system-p festival-season festival-year
-             note signature memo fast-check-in-address fast-check-in-postal-code)))
+                             (created closed closed-by old-system-p festival-season festival-year
+                                      note signature memo fast-check-in-address fast-check-in-postal-code)))
 
 (defmacro accept+update-array ((table) key-fields fields)
   `(progn
@@ -1081,10 +1081,10 @@ cookie says “~36r.”
 
 (accept+update-array (guests) (given-name surname)
   (FORMAL-NAME PRESENTER-BIO PRESENTER-REQUESTS SLEEP EAT DAYs GENDER T-SHIRT
-               COFFEEP TOTEP TICKET-TYPE STAFF-DEPARTMENT PAYMENT-DUE 
-               CALLED-BY ADDRESS CITY STATE POSTAL-CODE COUNTRY ID-NUMBER ID-STATE
-               SOCIAL-NETWORK COVEN SPIRITUAL-PATH STAFF-REC WHY-STAFF STAFF-JOB-WANTED
-               PHYSICAL-LIMITS KSA STAFF-TUE-SUN STAFF-NOTES STAFF-SUBMIT E-MAIL TELEPHONE
+                                         COFFEEP TOTEP TICKET-TYPE STAFF-DEPARTMENT PAYMENT-DUE 
+                                         CALLED-BY ADDRESS CITY STATE POSTAL-CODE COUNTRY ID-NUMBER ID-STATE
+                                         SOCIAL-NETWORK COVEN SPIRITUAL-PATH STAFF-REC WHY-STAFF STAFF-JOB-WANTED
+                                         PHYSICAL-LIMITS KSA STAFF-TUE-SUN STAFF-NOTES STAFF-SUBMIT E-MAIL TELEPHONE
                staff-approve added marriage
                CABIN-REQUEST))
 
@@ -1140,13 +1140,13 @@ cookie says “~36r.”
 
 (defun accept-state-from-form ()
   (handler-case
-  (let ((invoice (create-invoice)))
-    (list :invoice invoice
-          :general (update-general invoice)
-          :guests (accept-guests invoice)
+      (let ((invoice (create-invoice)))
+        (list :invoice invoice
+              :general (update-general invoice)
+              :guests (accept-guests invoice)
               :merch (accept-merch invoice)
               :vending (accept-vending invoice)
-          :workshops (accept-workshops invoice)
+              :workshops (accept-workshops invoice)
               :scholarships (accept-scholarships invoice)))
     (dbi.error:<dbi-database-error> (c)
       (throw 'cgi-bye 
@@ -1156,12 +1156,12 @@ cookie says “~36r.”
 
 (defun update-invoice-from-form (invoice)
   (handler-case
-  (list :invoice invoice
-        :general (update-general invoice)
-        :guests (update-guests invoice)
+      (list :invoice invoice
+            :general (update-general invoice)
+            :guests (update-guests invoice)
             :merch (update-merch invoice)
             :vending (update-vending invoice)
-        :workshops (update-workshops invoice)
+            :workshops (update-workshops invoice)
             :scholarships (update-scholarships invoice))
     (dbi.error:<dbi-database-error> (c)
       (throw 'cgi-bye 
@@ -1211,16 +1211,16 @@ cookie says “~36r.”
 
 (defun disquote (string)
   (if (and string
-             (< 3 (length string))
-             (char= #\" (first-elt string) (last-elt string)))
+           (< 3 (length string))
+           (char= #\" (first-elt string) (last-elt string)))
       
       (subseq string 1 (- (length string) 1))
       (or string "")))
 
 (defmethod handle-verb ((verb (eql :recall)))
   (let* ((invoice (parse-integer (disquote (field :invoice)) :radix 36 :junk-allowed t))
-        (admin-key (disquote (field :admin-key)))
-        (user-key (disquote (field :verify))))
+         (admin-key (disquote (field :admin-key)))
+         (user-key (disquote (field :verify))))
     (format *trace-output* "~&Requested recall of invoice ~:d ~@[as admin~]"
             invoice admin-key)
     (cond
@@ -1240,7 +1240,7 @@ cookie says “~36r.”
       
       ((and (not (emptyp admin-key))
             (accept-type-p "text/html"))
-       (list :raw 
+       (list :raw
              (format nil "Content-Type: text/html; charset=utf-8
 
 <!DOCTYPE html>
@@ -1322,15 +1322,15 @@ section (next to a guest's name).
 <pre>~a</pre>
 </body></html>
 "
-                     invoice 
-                     (let ((fest (getf (read-invoice invoice) :general)))
-                       (list (getf fest :|festival-season|)
-                             (getf fest :|festival-year|)))
-                     (mapcar (lambda (guest) 
-                               (list (getf guest :|given-name|)
-                                     (or (getf guest :|called-by|) "")
-                                     (getf guest :|surname|))) 
-                             (getf (read-invoice invoice) :guests))
+                             invoice 
+                             (let ((fest (getf (read-invoice invoice) :general)))
+                               (list (getf fest :|festival-season|)
+                                     (getf fest :|festival-year|)))
+                             (mapcar (lambda (guest) 
+                                       (list (getf guest :|given-name|)
+                                             (or (getf guest :|called-by|) "")
+                                             (getf guest :|surname|))) 
+                                     (getf (read-invoice invoice) :guests))
                      (recall-invoice-link invoice)
                      (itinerary/text invoice))))
 
@@ -1624,18 +1624,18 @@ Details: Invoice token ~s;
 
 (defun clojurize-record (record)
   (loop for (key value) on record by #'cddr
-     appending (list (make-keyword (field-?-p key)) 
+                 appending (list (make-keyword (field-?-p key)) 
                      (if (and (char= #\? (last-elt (string (field-?-p key))))
-                              (member value '(1 0)))
-                         (case value
-                           (0 :false)
-                           (1 :true))
-                         value))))
+                                          (member value '(1 0)))
+                                     (case value
+                                       (0 :false)
+                                       (1 :true))
+                                     value))))
 
 (defun read-guests (&optional invoice)
   (when invoice
     (mapcar #'clojurize-record
-    (db-query "select * from `invoice-guests` where invoice=?"
+            (db-query "select * from `invoice-guests` where invoice=?"
                       invoice))))
 
 (defun guests->edn (&optional invoice)
@@ -1655,8 +1655,8 @@ Details: Invoice token ~s;
         (* 1.0
            (+ (parse-integer units)
               (if (plusp (length fractional))
-              (* (parse-integer fractional)
-                 (if negativep -1 1)
+                  (* (parse-integer fractional)
+                     (if negativep -1 1)
                      (expt 10 (- (length fractional))))
                   0))))
       (parse-integer string)))
@@ -1664,11 +1664,11 @@ Details: Invoice token ~s;
 (defun read-merch (&optional invoice)
   (let ((styles (db-query "select * from `merch-styles`"))
         (ordered (db-query "select * from `invoice-merch` where invoice=?" invoice)))
-    (loop for row in (db-query "select * from merch")
-       collect
-         (append row
-                 (list :styles
-                 (coerce
+  (loop for row in (db-query "select * from merch")
+     collect
+       (append row
+               (list :styles
+                     (coerce
                         (loop for style-row in (remove-if-not (lambda (item) (string-equal item (getf row :|id|))) styles
                                                               :key (rcurry #'getf :|item|))
                            for qty = (let ((order (remove-if-not (lambda (line)
@@ -1677,11 +1677,11 @@ Details: Invoice token ~s;
                                                                  ordered))) 
                                        (when order (getf (first order) :|qty|)))
                              #+ (or) (db-query "select * from `merch-styles` where item=?" 
-                                               (getf row :|id|))
-                     collect
+                                                       (getf row :|id|))
+                         collect
                              (append style-row (list :|qty| qty)
                                      #+ (or) (list :qty (cadar (db-query "select qty from `invoice-merch` where  invoice=? and item = ? and style = ?"
-                                                                         invoice (getf row :|id|) (getf style-row :|id|) ))))) 
+                                                               invoice (getf row :|id|) (getf style-row :|id|) )))))
                         'vector))))))
 
 (defun prices->edn ()
@@ -2180,10 +2180,10 @@ values (?, ?, 'PayPal', ?, null, 'requested (not yet received)', 'now')"
    (- amount))) 
 
 (defun user-wants-to-pay (invoice total)
-  (multiple-value-bind (id approval-href capture-href)
-      (paypal-demand-payment total)
-    (declare (ignore capture-href))
-    (record-payment-demand invoice total id)
+    (multiple-value-bind (id approval-href capture-href)
+        (paypal-demand-payment total)
+      (declare (ignore capture-href))
+      (record-payment-demand invoice total id)
     (list :invoice invoice 
           :token (user-key invoice)
           :next-hop (second approval-href))))
