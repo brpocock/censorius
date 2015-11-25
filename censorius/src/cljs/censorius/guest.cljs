@@ -323,6 +323,7 @@
                                 "block" "none")}
              :key (legal-name guest)}
    [:h3 (str "Staff Application: " (legal-name guest))]
+   [:h4 "Warning: We have a report that this form may not work. Please hold off until after Thanksgiving on applying for a new staff position. Sorry! ~brfp"]
    [text/text-input {:cursor guest
                      :keys :address
                      :rows 2

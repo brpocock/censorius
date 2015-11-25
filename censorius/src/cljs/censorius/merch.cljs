@@ -197,7 +197,7 @@
   [:td {:key (str (:id @item) "-styles")}
    [:table
     (for [style (available-styles @item)]
-      [product-style item style])]
+      ^{:key (:id style)} [product-style item style])]
    [plus-grid-sales item]
    [:div {:style {:display (if (zero? (count-sold item))
                              "block"

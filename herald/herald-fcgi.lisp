@@ -540,9 +540,11 @@ real numbers."
             (uiop/image:print-condition-backtrace c :stream s))))
 
 (defun simply$ (thing)
-  (if (consp thing)
-      (simply$ (car thing))
-      (princ-to-string thing)))
+  (coerce (remove-if (complement #'alphanumericp) 
+                     (if (consp thing)
+                         (simply$ (car thing))
+                         (princ-to-string thing)))
+          'string))
 
 (defun mail-error (condition)
   (mail-reg +sysop-mail+
@@ -552,14 +554,6 @@ real numbers."
             (concatenate 'string "condition."
                          (simply$ (type-of condition))
                          "." +herald-mail-base+)
-            ;; :cc +herald-mail+
-            ;; :subject 
-            ;; :from +herald-mail+
-            ;; :other-headers (list (list "References" )
-            ;;                      '("Organization" "Temple of Earth Gathering, Inc.")
-            ;;                      (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
-            ;; :charset :utf-8
-            ;; :type "text" :subtype "plain"
             "A condition of type ~a was signaled.
 
 ~a
@@ -570,12 +564,18 @@ Query params:
 Backtrace:
 ~{~% → ~a~}
 
-\(end of line)"
+~@[ Invoice data:
+~{ ~a ~s ~}~]
+
+  \(end of line)"
             (type-of condition)
             (or condition "Ø")
             (ignore-errors (query-params))
-            (with-output-to-string (s)
-              (uiop/image:print-condition-backtrace condition :stream s))))
+            (ignore-errors (with-output-to-string (s)
+                             (uiop/image:print-condition-backtrace condition :stream s)))
+            (if (field :invoice)
+                (list (read-invoice (field :invoice))
+                      (itinerary/text (field :invoice))))))
 
 (defun reply-error/html (conditions)
   (format *error-output* "~&HTML error report ~s" conditions)
@@ -748,7 +748,11 @@ values (date('now'),?,?)"
             "
 Invoice # ~:d has been completed by the user.
 
-Payment was confirmed by PayPal.
+~a
+
+———
+
+~a
 
 ———
 
@@ -761,14 +765,10 @@ operator:
 "
             invoice
             (recall-link invoice t)
+            (itinerary/text invoice)
             +sysop-mail+))
 
-(defun mail-user-completed-invoice (invoice
-                                    &optional
-                                      (guests (read-guests invoice))
-                                      (vending (read-vending invoice))
-                                      (merch (read-merch invoice))
-                                      (workshops (read-workshops invoice)))
+(defun mail-user-completed-invoice (invoice)
   (mail-reg (mail-to-user invoice) "TEG FPG Registration (completed)"
             (format nil "Invoice.~d." invoice)
             "
@@ -787,28 +787,7 @@ We look forward to seeing you at Festival!
 
                                   ———
 
-                           → Your Itinerary ←
-
-~a Party — of ~r Guest~:p
-~{~2%Guest's name: ~a~@[ “~a”~] ~a~
-~@[~%Phone number: ~a~]~
-~@[~%eMail address: <~a>~]~
-~%Ticket type: ~a~
-~@[Eating on the ~:(~a~) meal plan~]~
-~%~:[Tent camping~;Staying in a ~:(~a~) bunk~]~
-~@[~%T-shirt, size ~:@(~a~)~]~
-~:[~;~%FPG Coffee Mug~]~
-~:[~;~%FPG Tote Bag~]~}
-~@[~2%Extras purchased:
-~{~{~% Item ~:(~a~), style ~:@(~a~); qty. ~:d~}~}
-~@[~2%Vendor's Row:
-~{Booth named: “~a” (10´×~d0´)
-Description:
 ~a
-~}~]
-~@[~2%Workshops:
-~{~%“~a,” presented by ~a;~%~a~%~}~]
-
                                   ———
 
 If you have further questions or comments, you can write to the TEG FPG
@@ -824,9 +803,8 @@ cookie says “~36r.”
 
 "
             invoice
+            (itinerary/text invoice)
             +registrar-mail+
-            (third (first guests)) (length guests)
-            guests merch vending workshops
             +compile-time+))
 
 (defun clean-plist (plist &key (test #'identity))
@@ -836,17 +814,77 @@ cookie says “~36r.”
 
 (defun merch-table-text (merch)
   (with-output-to-string (s)
-    (dolist (item merch)
-      (format s "~&    □ ~a ~50t (~a)~68t $~,2f.~%~10t“~a”~%~15t Style~30t ID ~35t Qty ~40t (inventory)"
-              (getf item :|title|) (getf item :|id|) (getf item :|price|) 
-              (getf item :|description|) )
-      (loop for style on (getf item :styles)
-         do (format s "~%~15t~a~30t~a~35t~:d~40t~:d~%~20t“~a”"
-                    (getf style :|title|)
-                    (getf style :|id|)
-                    (getf style :|qty|)
-                    (getf style :|inventory|)
-                    (getf style :|description|))))))
+    (let ((sum 0))
+      (dolist (item merch)
+        (format s "~&    □ ~a ~50t (~a)~60t($ ~,2f ea)~%~10t“~a”~%~15t Style~30t ID ~40t Qty"
+                (getf item :|title|) (getf item :|id|) (getf item :|price|) 
+                (getf item :|description|) )
+        (loop for style in (coerce (getf item :styles) 'list)
+           for qty = (getf style :|qty|)
+           when (and qty (not (zerop qty)))
+           do (let ((cost (* qty (getf item :|price|)))) 
+                (format s "~%~15t~a~40t~a~50t~6:d~65t $ ~5,2f"
+                        (getf style :|title|)
+                        (getf style :|id|)
+                        qty
+                        cost)
+                (incf sum cost))))
+      (format s "~2% Σ total for all “extras” … $ ~,2f ~%" sum))))
+
+(defun payments-table-text (payments)
+  (with-output-to-string (s)
+    (let ((balance 0))
+      (dolist (payment payments)
+        (let ((amount (getf payment :|amount|)))
+          (format s "~& A ~:[bill~;payment (or credit)~] for the amount $ ~,2f was issued using ~a.
+   Reference code: ~a"
+                  (plusp amount)
+                  (abs amount)
+                  (getf payment :|source|)
+                  (getf payment :|via|))
+          (if (plusp amount)
+              (format s "~%    Payment: ~a" (getf payment :|note|)))
+          (incf balance amount)))
+      (format s "~2% Balance: $ ~,2f" balance))))
+
+(defun itinerary/text (invoice)
+  (format nil " ⛤ Itinerary for TEG FPG ~{ ~:(~a~) ~d ~}
+ 
+★ Guest List ★
+~{~{ • ~:(~a~): ~s~%~}~%~}
+
+★ Additional merchandise ★
+~a
+
+★ Vending ★
+~{ • ~:(~a~): ~s~%~}
+
+★ Workshops ★
+~{ • ~:(~a~): ~s~%~}
+
+★ Scholarship Funds ★
+~{ • ~a: ~s~%~}
+
+★ General Information ★
+~{ • ~:(~a~): ~s~%~}
+
+★ Payments ★
+~a
+"
+          (let ((fest (getf (read-invoice invoice) :general)))
+            (list (getf fest :|festival-season|)
+                  (getf fest :|festival-year|)))
+          (mapcar #'clean-plist (read-guests invoice))
+          (merch-table-text (read-merch invoice))
+          (clean-plist (read-vending invoice))
+          (clean-plist (read-workshops invoice))
+          (loop for (key value) on (read-scholarships invoice) by #'cddr
+             appending (list (case key
+                               (:|php| "PHP")
+                               (otherwise (string-capitalize key)))
+                             value))
+          (clean-plist (read-general invoice))
+          (payments-table-text (read-payments invoice))))
 
 (defun inhibit-mail (invoice)
   (cadar (db-query "select 1 from invoices where invoice=? and note like '%*shh*%' or memo like '%*shh*%'"
@@ -865,25 +903,7 @@ Herald program at this link:
 
 …to review the registration and make any necessary corrections.
 
-Raw data:
- 
-★ Guest List ★
-~{~{ • ~:(~a~): ~s~%~}~%~}
-
-★ Additional merchandise ★
 ~a
-
-★ Vending ★
-~{ • ~:(~a~): ~s~%~}
-
-★ Workshops ★
-~{ • ~:(~a~): ~s~%~}
-
-★ Scholarship Funds ★
-~{ • ~s: ~s~%~}
-
-★General Information ★
-~{ • ~:(~a~): ~s~%~}
 
 ———
 
@@ -896,12 +916,7 @@ operator:
 "
                 invoice
                 (recall-link invoice t)
-                (mapcar #'clean-plist (read-guests invoice))
-                (merch-table-text (read-merch invoice))
-                (clean-plist (read-vending invoice))
-                (clean-plist (read-workshops invoice))
-                (read-scholarships invoice)
-                (clean-plist (read-general invoice))
+                (itinerary/text invoice)
                 +sysop-mail+)))
 
 (defun mail-user-suspended-invoice (invoice)
@@ -940,6 +955,10 @@ future date.
 
                                   ———
 
+~a
+
+                                  ———
+
 If you have further questions or comments, you can write to the TEG FPG
 registration team at this eMail address:
 
@@ -958,6 +977,7 @@ cookie says “~36r.”
 "
             invoice
             (field :note)
+            (itinerary/text invoice)
             +registrar-mail+
             (recall-link invoice)
             +compile-time+))
@@ -1551,6 +1571,11 @@ Details: Invoice token ~s;
    (car (db-query "select * from `invoice-vending` where invoice=?"
                   invoice))))
 
+(defun read-payments (&optional invoice)
+  (mapcar #'clojurize-record
+          (db-query "select * from `payments` where invoice=?"
+                    invoice)))
+
 (defun read-workshops (&optional invoice)
   (declare (ignore invoice)))           ; TODO
 
@@ -1567,6 +1592,7 @@ Details: Invoice token ~s;
         :vending (read-vending invoice)
         :workshops (read-workshops invoice)
         :scholarships (read-scholarships invoice)
+        :payments (read-payments invoice)
         :general (read-general invoice)))
 
 (defun read-scholarships (invoice)
@@ -1626,18 +1652,27 @@ Details: Invoice token ~s;
       (parse-integer string)))
 
 (defun read-merch (&optional invoice)
-  (loop for row in (db-query "select * from merch")
-     collect
-       (append row
-               (list :styles
-                     (coerce
-                      (loop for style-row in (db-query "select * from `merch-styles` where item=?" 
-                                                       (getf row :|id|))
-                         collect
-                           (append style-row
-                                   (list :qty (cadar (db-query "select qty from `invoice-merch` where  invoice=? and item=? and style =?"
-                                                               invoice (getf row :|id|) (getf style-row :|id|) )))))
-                      'vector)))))
+  (let ((styles (db-query "select * from `merch-styles`"))
+        (ordered (db-query "select * from `invoice-merch` where invoice=?" invoice)))
+    (loop for row in (db-query "select * from merch")
+       collect
+         (append row
+                 (list :styles
+                       (coerce
+                        (loop for style-row in (remove-if-not (lambda (item) (string-equal item (getf row :|id|))) styles
+                                                              :key (rcurry #'getf :|item|))
+                           for qty = (let ((order (remove-if-not (lambda (line)
+                                                                   (and (string-equal (getf row :|id|) (getf line :|item|))
+                                                                        (string-equal (getf style-row :|id|) (getf line :|style|))))
+                                                                 ordered))) 
+                                       (when order (getf (first order) :|qty|)))
+                             #+ (or) (db-query "select * from `merch-styles` where item=?" 
+                                               (getf row :|id|))
+                           collect
+                             (append style-row (list :|qty| qty)
+                                     #+ (or) (list :qty (cadar (db-query "select qty from `invoice-merch` where  invoice=? and item = ? and style = ?"
+                                                                         invoice (getf row :|id|) (getf style-row :|id|) ))))) 
+                        'vector))))))
 
 (defun prices->edn ()
   (format nil "~%(defonce prices (atom ~/edn/))"
@@ -2009,7 +2044,7 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
                                                      :key (curry #'st-json:getjso "rel")))))
       (warn "Updating status in database")
       (if (cadar (db-query "select 1 from `paypal-payment-metadata` where payment = ?"
-      			payment))
+                           payment))
           (db-query
            "update  `paypal-payment-metadata`  set  cart = ?, `payer/payment_method`  = ?, `payer/status`   = ?,
 `payer/email`  = ?, `payer/first_name`    = ?, `payer/last_name`    = ?, payer_id    = ?,
@@ -2043,7 +2078,9 @@ values  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
            phone_country_code              bill_to_line_1 bill_to_line_2          bill_to_city          bill_to_state
            bill_to_postal_code   bill_to_country_code   payment_amount create_time update_time approval_url execute_url))
       (db-query "update `paypal-payment-metadata` set raw = concat (coalesce(raw,'*'), concat ('\\n\\n**\\n\\n', ?))"
-               reply)
+                reply)
+      (db-query "insert into payments (invoice, via, source, amount, confirmation, note, cleared) values (?, ?, 'PayPal', ?, 'Paid by ' || ? || ' ' || ? || ' <' || ? || '>', 'NOW')"
+                (payment-id->invoice payment-id) payment-id payment_amount payer/first_name payer/last_name payer/email)
       jso)))
 
 (defun paypal-capture-payment (payment-id token payer-id)
