@@ -31,7 +31,7 @@
      (merch/price-all-merch)
      (vendor/price-vendor)
      (scholarship-donations-amount)
-     (- (reduce + (map :amount @payments)))))
+     (- (reduce + (map :amount (filter #(pos? (:amount %)) @payments))))))
 
 
 
@@ -95,7 +95,8 @@
                   :payments payments})
 
 (defn accept-recalled-data [document]
-  (js/alert (str "Recalled invoice # " (get document "invoice")))
+  (js/alert (str "Recalled invoice # " (get document "invoice")
+                 " — Please check your choices if you plan to re-submit after editing. In particular, staff member selections, and tote bags or coffee mugs ordered for each guest (in the guest list grid) are sometimes de-selected when you recall your invoice. (I am working on this bug after Thanksgiving; sorry!)"))
   (util/log " reply: " document)
   (swap! d/general assoc :invoice (get document "invoice"))
   (swap! d/general assoc :invoice-token (get document "invoice-token"))
@@ -129,7 +130,9 @@
 
 
 (defn submission-data []
-  {:general (conj @d/general {:signature (:waiver-signature @d/general)})
+  {:general (conj @d/general {:signature (:waiver-signature @d/general)
+                              :festival-season (:season @d/festival)
+                              :festival-pear (:year @d/festival)})
    :guests (map #(conj @% { :payment-due (censorius.guest/price %)}) @guest-list/guests)
    :extras (map #(conj @%
                        { :payment-due (* (censorius.merch/count-sold %)
@@ -140,23 +143,6 @@
    :scholarships (conj @scholarships { :payment-due (scholarship-donations-amount)})
    :money { :balance-due (total-due)
            :prior-payments (reduce + (map :amount @payments))}})
-
-(defn try-check-out []
-  (js/alert "This is in Testing Mode.
-
-You   are  about   to   be  asked   to   provide  payment   information. This  information  will  be  checked  for validity  —  eg,  whether  the credit-card number is valid. However, you SHOULD NOT BE CHARGED.
-
-Your registration is FAKE right now, for TESTING PURPOSES ONLY.
-
-In the  unlikely event that you  are actually charged, somehow,  we will credit it back to you immediately (but most banks will take a day or two to actually clear your account).
-
-Make sure that the testing mode shows up on PayPal!")
-  (js/alert "Just kidding! Disabled while I test some things. ~brfp")
-  
-  #_
-  (censorius.herald/send-data "pay" 
-                              after-save 
-                              (submission-data)))
 
 (defn after-save [reply]
   (let [invoice (get reply "invoice")
@@ -169,7 +155,23 @@ An eMail has been sent to the Registration staff to review your registration. Yo
     (swap! d/general assoc :token token)
     (if (< invoice 4160)
       (accept-recalled-data reply)
-      (set! js/window.location "/news/")))) 
+      (set! js/window.location "/news/"))))
+
+(defn try-check-out []
+  (js/alert "This is in Testing Mode.
+
+You   are  about   to   be  asked   to   provide  payment   information. This  information  will  be  checked  for validity  —  eg,  whether  the credit-card number is valid. However, you SHOULD NOT BE CHARGED.
+
+Your registration is FAKE right now, for TESTING PURPOSES ONLY.
+
+In the  unlikely event that you  are actually charged, somehow,  we will credit it back to you immediately (but most banks will take a day or two to actually clear your account).
+
+Make sure that the testing mode shows up on PayPal!")
+  #_ (js/alert "Just kidding! Disabled while I test some things. ~brfp")
+  
+  (censorius.herald/send-data "pay" 
+                              after-save 
+                              (submission-data))) 
 
 (defn save-action []
   (cond (empty? (:note @d/general))
@@ -475,25 +477,13 @@ legally binding.)"]]
 (defn check-out-button-box []
   [:div {:class "buttonBox"}
    [:div
-    {:on-click try-check-out
-     :style {:display (if (and (pos? (total-due))
-                               (waiver-signed?)
-                               (not (guest-list/need-adult-email?)))
-                        "inline" "none")}}
-    [:h4 "Payments not being accepted yet today"]
-    [:p "We have not thoroughly tested this system yet, and we will have
-   PayPal linked here shortly. However, to ensure that nobody's payments
-   are lost as we  test this system, the public page is  " [:em "not"] "
-   accepting payments  yet today (Monday,  23 November). As soon  as our
-   volunteers have established confidence in the new software, this will
-   be enabled."]]
+    { :style {:display (if (and (pos? (total-due))
+                                (waiver-signed?)
+                                (not (guest-list/need-adult-email?)))
+                         "block" "none")}}]
    
-   #_ [:button {:on-click try-check-out
-                :style {:display (if (and (pos? (total-due))
-                                          (waiver-signed?)
-                                          (not (guest-list/need-adult-email?)))
-                                   "inline" "none")}}
-       "Ready, Make Payment →"]])
+   [:button {:on-click try-check-out}
+    "Ready, Make Payment →"]])
 
 (defn check-out-notes []
   [:div {:key "notes-div"}

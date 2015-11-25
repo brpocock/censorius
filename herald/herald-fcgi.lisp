@@ -3,6 +3,7 @@
                            :cl-ppcre
                            :cl-sendmail
                            :com.informatimago.common-lisp.rfc2822
+                           :drakma
                            :flexi-streams
                            :memoize
                            :split-sequence
@@ -14,6 +15,7 @@
 (require :cl-ppcre)
 (require :cl-sendmail)
 (require :com.informatimago.common-lisp.rfc2822)
+(require :drakma)
 (require :flexi-streams)
 (require :memoize)
 (require :split-sequence)
@@ -84,7 +86,14 @@
  • Herald mail: ~a
  • Registrar mail: ~a
  • Archive mail: ~a
- • Compile-time version marker: ~36r~2%"
+ • Compile-time version marker: ~36r
+ • PayPal interface
+    • ~:[Production (live) mode~;Sandbox (test) mode~]
+    • PayPal App ID: ~a
+    • PayPal account: ~a
+    • PayPal client ID: ~a
+    • PayPal secret: ~:[(missing)~;(set)~]
+~2%"
           (user-homedir-pathname)
           herald-db-config:+mysql+
           (getf herald-db-config:+params+ :host)
@@ -96,7 +105,12 @@
           +herald-mail+
           +registrar-mail+
           +archive-mail+
-          +compile-time+))
+          +compile-time+
+          *paypal-sandbox-p*
+          (paypal-app-id)
+          (paypal-account)
+          (paypal-client-id)
+          (paypal-secret)))
 
 
 (defvar *accepted-currency* "USD")
@@ -114,6 +128,11 @@
 
 
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun null-if (thing other &key (test #'eql))
+    (if (funcall test thing other)
+        nil
+        thing)))
 (defmacro upgrade-vector (vector new-type &key converter)
   "Returns a vector with the same length and the same elements as VECTOR \(a
 variable holding a vector) but having element type NEW-TYPE. If CONVERTER is
@@ -300,7 +319,8 @@ from the query string and path-info."
 (defun field-?-p (token)
   (let ((naive (string-downcase token)))
     (cond
-      ((string-equal "sleep" token) naive)
+      ((member token '("sleep" "php")
+               :test #'string-equal) naive)
       ((char= #\p (last-elt naive))
        (concatenate 'string (subseq naive 0 (- (length naive)
                                                1
@@ -309,38 +329,71 @@ from the query string and path-info."
                                                    0))) "?"))
       (t naive))))
 
-(defun field (field-name &optional f2 f3)
+
+(defun interpret-field (value)
+  (case value
+    (:true t)
+    (:false nil)
+    (:null nil)
+    (otherwise value)))
+
+(defmacro defun-memoize (name arg-list &body body)
+  (let ((cache (gensym (concatenate 'string (string name) "-CACHE-")))
+        (key (gensym "KEY-"))
+        (found (gensym "FOUND-"))
+        (foundp (gensym "FOUND-P-"))
+        (new-value (gensym "NEW-VALUE-")))
+    (when (stringp (car body))
+      (setf (documentation name 'function) (car body)))
+    `(let ((,cache (make-hash-table :test #'equalp)))
+       (defun ,name ,arg-list 
+         (let ((,key (list ,@(remove-if 
+                              (lambda (symbol) (member symbol '(&rest &optional &key)))
+                              (mapcar (lambda (element)
+                                        (if (consp element)
+                                            (car element)
+                                            element))
+                                      arg-list)))))
+           (multiple-value-bind (,found ,foundp) (gethash ,key ,cache)
+             (if ,foundp
+                 ,found
+                 (let ((,new-value (progn ,@body)))
+                   (setf (gethash ,key ,cache) ,new-value)
+                   ,new-value))))))))
+
+(defun-memoize field (field-name &optional f2 f3)
   "Get the  contents of  the named form-field.  (Accepted as  a keyword,
 which  will  be downcased,  or  a  string,  which will  be  searched-for
 literally. Thus,  to get a field  with capital letters in  the name, you
 must use a string.)"
+  (interpret-field
   (cond
     ((and f3
           (stringp field-name)
           (numberp f2)
           (stringp f3))
-     (when-let (field-jso (field (make-keyword (string-upcase field-name))))
+      (when-let (field-jso (field (make-keyword field-name)))
        (when-let (st-jso (st-json:read-json field-jso))
          (when-let (elt (elt st-jso f2))
-           (st-json:getjso (field-?-p f3) elt)))))
+            (st-json:getjso (field-?-p f3) elt)))))
     
     ((and f3
           (or (symbolp field-name) (stringp field-name))
           (numberp f2)
           (or (symbolp f3) (stringp f3)))
-     (field (string-downcase field-name) f2 (string-downcase f3)))
+      (field (string-downcase field-name) f2 (string-downcase f3)))
     
     ((and f2
           (stringp field-name)
           (stringp f2))
      (when-let (field-jso (field (make-keyword (string-upcase field-name))))
        (when-let (st-jso (st-json:read-json field-jso))
-         (st-json:getjso (field-?-p f2) st-jso))))
+          (st-json:getjso (field-?-p f2) st-jso))))
     
     ((and f2
           (or (symbolp field-name) (stringp field-name))
           (or (symbolp f2) (stringp f2)))
-     (field (string-downcase field-name) (string-downcase f2)))
+      (field (string-downcase field-name) (string-downcase f2)))
     
     ((or f2 f3)
      (error "Invalid field selector ~s ~s ~s" field-name f2 f3))
@@ -348,26 +401,26 @@ must use a string.)"
     ((symbolp field-name)
      (ecase *cgi*
        (:fast (fcgx-getparam field-name *request*))
-       (:cgi (getf (query-params) field-name))))
+        (:cgi (getf (query-params) (make-keyword (string-upcase field-name))))))
     
     ((stringp field-name)
-     (field (make-keyword (string-upcase field-name))))))
+      (field (make-keyword field-name))))))
 
 (defun reply-error/text (conditions)
   "Replies with a plain-text error report. The first element of the list
 must be the numeric HTTP status code."
   (format *error-output* "~&text error report ~s" conditions)
-  (format nil
+        (format nil
           "Status: ~d ~a
 Content-Type: text/plain; charset=utf-8
 
 ~0@*HTTP Error ~d~2%~{~a~2%~}~2%~a~2%"
           (first conditions) (princ-to-string (second conditions))
-          (mapcar #'princ-to-string (rest conditions))
-          (with-output-to-string (s)
-            (dolist (condition conditions)
-              (if (typep condition 'condition)
-                  (uiop/image:print-condition-backtrace condition :stream s)
+                (mapcar #'princ-to-string (rest conditions))
+                (with-output-to-string (s)
+                  (dolist (condition conditions)
+                    (if (typep condition 'condition)
+                        (uiop/image:print-condition-backtrace condition :stream s)
                   (princ condition s))))))
 
 (defun sql-escape (string)
@@ -487,26 +540,20 @@ real numbers."
             (uiop/image:print-condition-backtrace c :stream s))))
 
 (defun simply$ (thing)
+  (coerce (remove-if (complement #'alphanumericp) 
   (if (consp thing)
       (simply$ (car thing))
       (princ-to-string thing)))
+          'string))
 
 (defun mail-error (condition)
   (mail-reg +sysop-mail+
             (concatenate 'string "[herald-error] " (let ((condition$ (format nil "~a" condition)))
-                                                     (subseq condition$ 0 (min (length condition$)
-                                                                               40))))
+                                                              (subseq condition$ 0 (min (length condition$)
+                                                                                        40))))
             (concatenate 'string "condition."
-                         (simply$ (type-of condition))
+                                                                 (simply$ (type-of condition))
                          "." +herald-mail-base+)
-            ;; :cc +herald-mail+
-            ;; :subject 
-            ;; :from +herald-mail+
-            ;; :other-headers (list (list "References" )
-            ;;                      '("Organization" "Temple of Earth Gathering, Inc.")
-            ;;                      (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
-            ;; :charset :utf-8
-            ;; :type "text" :subtype "plain"
             "A condition of type ~a was signaled.
 
 ~a
@@ -517,16 +564,25 @@ Query params:
 Backtrace:
 ~{~% → ~a~}
 
+~@[ Invoice data:
+~{ ~a ~s ~}~]
+
 \(end of line)"
             (type-of condition)
             (or condition "Ø")
             (ignore-errors (query-params))
-            (with-output-to-string (s)
-              (uiop/image:print-condition-backtrace condition :stream s))))
+            (ignore-errors (with-output-to-string (s)
+    (uiop/image:print-condition-backtrace condition :stream s)))
+            (if (field :invoice)
+                (list (read-invoice (field :invoice))
+                      (itinerary/text (field :invoice))))))
 
 (defun reply-error/html (conditions)
   (format *error-output* "~&HTML error report ~s" conditions)
-  (format nil "Status: ~d ~a
+  (when (atom conditions)
+    (return-from reply-error/html (reply-error/html (list conditions))))
+  (let ((status (if (integerp (first conditions)) (first conditions) 500)))
+    (format nil "Status: ~d Error or something
 Content-Type:text/html; charset=utf-8
 
 <!DOCTYPE html>
@@ -536,7 +592,7 @@ Content-Type:text/html; charset=utf-8
 </head>
 <body>
 
-<h1>An Error Occurred (type ~0@*~d ~a)</h1>
+<h1>An Error Occurred (type ~0@*~d)</h1>
 
 <section class=\"card\">
 <h2>An Error Occurred</h2>
@@ -556,16 +612,18 @@ Censorius Herald running in ~a service; compile-time cookie ~36r
 be reached at: ~a </p>
 
 </body></html>~%"
-          (first conditions)
-          (princ-to-string (second conditions))
-          conditions
-          *cgi*
-          +compile-time+
-          (first (split-sequence
-                  #\>
-                  (second (split-sequence
-                           #\<
-                           +sysop-mail+))))))
+            status 
+            conditions
+                *cgi*
+                +compile-time+
+                (first (split-sequence
+                        #\>
+                        (second (split-sequence
+                                 #\<
+                                 +sysop-mail+)))))))
+
+(defun 36r (figure)
+  (format nil "~36r" figure))
 
 (defun reply-error/json (conditions)
   (cond
@@ -573,18 +631,18 @@ be reached at: ~a </p>
     (t (format *error-output* "~&JSON error report ~s" conditions)
        (format nil "Status: ~d ~a
 Content-Type: text/javascript; charset=utf-8~2%~/json/~%"
-               (first conditions)
+                (first conditions)
                (princ-to-string  (second conditions))
-               (list :this-is-an-error t
-                     :error (first conditions)
-                     :conditions conditions
+                (list :this-is-an-error t
+                      :error (first conditions)
+                      :conditions conditions
                      :backtrace (with-output-to-string (s)
                                   (map nil (rcurry #'uiop/image:print-condition-backtrace :stream s)
                                        (remove-if-not (lambda (c)
                                                         (typep c 'condition)) 
                                                       conditions)))
-                     :service *cgi*
-                     :herald-version (format nil "~36r" +compile-time+)
+                      :service *cgi*
+                     :herald-version (36r +compile-time+)
                      :you-said *request*)))))
 
 (defun reply-error (conditions)
@@ -621,29 +679,58 @@ Content-Type: text/javascript; charset=utf-8~2%~/json/~%"
 (defun mail-reg (destination subject reference &rest message-fmt+args)
   (cl-sendmail:with-email
       (mail-stream destination
-                   :bcc +sysop-mail+
-                   :cc +archive-mail+
-                   :subject subject
-                   :from +herald-mail+
-                   :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail-base+))
-                                        '("Organization" "Temple of Earth Gathering, Inc.")
-                                        (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
-                   :charset :utf-8
-                   :type "text" :subtype "plain")
+                :bcc +sysop-mail+
+                :cc +archive-mail+
+                :subject subject
+                :from +herald-mail+
+                :other-headers (list (list "References" (concatenate 'string (string reference) "." +herald-mail-base+))
+                                     '("Organization" "Temple of Earth Gathering, Inc.")
+                                        (list "X-Censorius-Herald-Version" (36r +compile-time+)))
+                :charset :utf-8
+                :type "text" :subtype "plain")
     (apply (curry #'format mail-stream) message-fmt+args)))
 
 (defun mail-to-user (invoice)
   (getf (or (first (remove-if-not (lambda (guest)
                                     (and (getf guest :|e-mail|)
                                          (plusp (length (getf guest :|e-mail|)))
-                                         (string-equal "adult" (getf guest :|ticket-type|))))
+                                         (string-equal "adult"(getf guest :|ticket-type|))))
                                   (read-guests invoice)))
             (list :|e-mail| +registrar-mail+))
         :|e-mail|))
 
-(defun db-query (query &rest args)
+(defvar *select-cache* (make-hash-table :test #'equal))
+
+(defun db-query (query &rest raw-args)
+  (let ((args (mapcar (lambda (arg)
+                        (cond ((member arg '(:null :true :false)) arg)
+                              ((null arg) :null)
+                              ((eql arg t) :true)
+                              ((symbolp arg)
+                               (string-downcase arg))
+                              (t arg)))
+                      raw-args)))
+    (handler-case
+        (cond ((string-equal "select" query :end2 6)
+               
+               (multiple-value-bind (cached foundp)
+                   (gethash (list query args) *select-cache*)
+                 (when foundp
+                   (format *trace-output* "~& [SQL]* ~s ~s" query args)
+                   (return-from db-query cached)))
+               
   (format *trace-output* "~& [SQL] ~s ~s" query args)
-  (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *db* query) args)))
+               (let ((found (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *db* query) args))))
+                 (setf (gethash (list query args) *select-cache*) found)
+                 found))
+              
+              (t (format *trace-output* "~& [SQL] ~s ~s" query args)
+                 (clrhash *select-cache*)
+                 (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *db* query) args))))
+      (dbi.error:<dbi-database-error> (c)
+        (format *error-output* "~2%{{{ ERROR in SQL engine }}}~%~a~%~s~%~s~2%~s ~a"
+                query raw-args args c c)
+        (signal c)))))
 
 (defun next-invoice-number ()
   (cadar (db-query "select `auto_increment` from information_schema.tables where table_name='invoices'")))
@@ -661,7 +748,11 @@ values (date('now'),?,?)"
             "
 Invoice # ~:d has been completed by the user.
 
-Payment was confirmed by PayPal.
+~a
+
+———
+
+~a
 
 ———
 
@@ -674,14 +765,10 @@ operator:
 "
             invoice
             (recall-link invoice t)
+            (itinerary/text invoice)
             +sysop-mail+))
 
-(defun mail-user-completed-invoice (invoice
-                                    &optional
-                                      (guests (read-guests invoice))
-                                      (vending (read-vending invoice))
-                                      (merch (read-merch invoice))
-                                      (workshops (read-workshops invoice)))
+(defun mail-user-completed-invoice (invoice)
   (mail-reg (mail-to-user invoice) "TEG FPG Registration (completed)"
             (format nil "Invoice.~d." invoice)
             "
@@ -700,28 +787,7 @@ We look forward to seeing you at Festival!
 
                                   ———
 
-                           → Your Itinerary ←
-
-~a Party — of ~r Guest~:p
-~{~2%Guest's name: ~a~@[ “~a”~] ~a~
-~@[~%Phone number: ~a~]~
-~@[~%eMail address: <~a>~]~
-~%Ticket type: ~a~
-~@[Eating on the ~:(~a~) meal plan~]~
-~%~:[Tent camping~;Staying in a ~:(~a~) bunk~]~
-~@[~%T-shirt, size ~:@(~a~)~]~
-~:[~;~%FPG Coffee Mug~]~
-~:[~;~%FPG Tote Bag~]~}
-~@[~2%Extras purchased:
-~{~{~% Item ~:(~a~), style ~:@(~a~); qty. ~:d~}~}
-~@[~2%Vendor's Row:
-~{Booth named: “~a” (10´×~d0´)
-Description:
 ~a
-~}~]
-~@[~2%Workshops:
-~{~%“~a,” presented by ~a;~%~a~%~}~]
-
                                   ———
 
 If you have further questions or comments, you can write to the TEG FPG
@@ -737,13 +803,96 @@ cookie says “~36r.”
 
 "
             invoice
+            (itinerary/text invoice)
             +registrar-mail+
-            (third (first guests)) (length guests)
-            guests merch vending workshops
             +compile-time+))
 
+(defun clean-plist (plist &key (test #'identity))
+  (loop for (key value) on plist by #'cddr
+     when (funcall test value)
+     append (list key value)))
+
+(defun merch-table-text (merch)
+  (with-output-to-string (s)
+    (let ((sum 0))
+      (dolist (item merch)
+        (format s "~&    □ ~a ~50t (~a)~60t($ ~,2f ea)~%~10t“~a”~%~15t Style~30t ID ~40t Qty"
+                (getf item :|title|) (getf item :|id|) (getf item :|price|) 
+                (getf item :|description|) )
+        (loop for style in (coerce (getf item :styles) 'list)
+           for qty = (getf style :|qty|)
+           when (and qty (not (zerop qty)))
+           do (let ((cost (* qty (getf item :|price|)))) 
+                (format s "~%~15t~a~40t~a~50t~6:d~65t $ ~5,2f"
+                        (getf style :|title|)
+                        (getf style :|id|)
+                        qty
+                        cost)
+                (incf sum cost))))
+      (format s "~2% Σ total for all “extras” … $ ~,2f ~%" sum))))
+
+(defun payments-table-text (payments)
+  (with-output-to-string (s)
+    (let ((balance 0))
+      (dolist (payment payments)
+        (let ((amount (getf payment :|amount|)))
+          (format s "~& A ~:[bill~;payment (or credit)~] for the amount $ ~,2f was issued using ~a.
+   Reference code: ~a"
+                  (plusp amount)
+                  (abs amount)
+                  (getf payment :|source|)
+                  (getf payment :|via|))
+          (if (plusp amount)
+              (format s "~%    Payment: ~a" (getf payment :|note|)))
+          (incf balance amount)))
+      (format s "~2% Balance: $ ~,2f" balance))))
+
+(defun itinerary/text (invoice)
+  (format nil " ⛤ Itinerary for TEG FPG ~{ ~:(~a~) ~d ~}
+ 
+★ Guest List ★
+~{~{ • ~:(~a~): ~s~%~}~%~}
+
+★ Additional merchandise ★
+~a
+
+★ Vending ★
+~{ • ~:(~a~): ~s~%~}
+
+★ Workshops ★
+~{ • ~:(~a~): ~s~%~}
+
+★ Scholarship Funds ★
+~{ • ~a: ~s~%~}
+
+★ General Information ★
+~{ • ~:(~a~): ~s~%~}
+
+★ Payments ★
+~a
+"
+          (let ((fest (getf (read-invoice invoice) :general)))
+            (list (getf fest :|festival-season|)
+                  (getf fest :|festival-year|)))
+          (mapcar #'clean-plist (read-guests invoice))
+          (merch-table-text (read-merch invoice))
+          (clean-plist (read-vending invoice))
+          (clean-plist (read-workshops invoice))
+          (loop for (key value) on (read-scholarships invoice) by #'cddr
+             appending (list (case key
+                               (:|php| "PHP")
+                               (otherwise (string-capitalize key)))
+                             value))
+          (clean-plist (read-general invoice))
+          (payments-table-text (read-payments invoice))))
+
+(defun inhibit-mail (invoice)
+  (cadar (db-query "select 1 from invoices where invoice=? and note like '%*shh*%' or memo like '%*shh*%'"
+                   invoice)))
 
 (defun mail-registrar-suspended-invoice (invoice)
+  (if (inhibit-mail invoice)
+      (warn "This invoice has a note or memo that inhibits sending mail.")
   (mail-reg +registrar-mail+ "SUSPENDED TEG FPG Registration"
             (format nil "Invoice.~d." invoice)
             "
@@ -753,6 +902,8 @@ Herald program at this link:
 ~a
 
 …to review the registration and make any necessary corrections.
+
+~a
 
 ———
 
@@ -765,7 +916,8 @@ operator:
 "
             invoice
             (recall-link invoice t)
-            +sysop-mail+))
+                (itinerary/text invoice)
+                +sysop-mail+)))
 
 (defun mail-user-suspended-invoice (invoice)
   (mail-reg (mail-to-user invoice) "TEG FPG Registration (suspended)"
@@ -803,6 +955,10 @@ future date.
 
                                   ———
 
+~a
+
+                                  ———
+
 If you have further questions or comments, you can write to the TEG FPG
 registration team at this eMail address:
 
@@ -821,128 +977,129 @@ cookie says “~36r.”
 "
             invoice
             (field :note)
+            (itinerary/text invoice)
             +registrar-mail+
             (recall-link invoice)
             +compile-time+))
 
-(defun verify-json-fields (table row &optional columns)
-  (if columns
-      (let ((rows (st-json:read-json (field (make-keyword table)))))
-        (when (< row (length rows))
-          (when-let (row-jso (elt rows row))
+(defvar *ignored-inputs*
+  '((guest waiver-signature)))
+
+(defun verify-json-fields (table columns)
+  (labels ((verify-json (object)
+             (format *error-output* "~&jso ~a: ~a" table object)
+             (if (consp object)
+                 (dolist (element object)
+                   (verify-json element))
             (st-json:mapjso (lambda (key value)
-                              (format *error-output* "~&   (~a) ~d. ~a = ~a" table row key value)
-                              (unless (member key columns :test #'string-equal)
-                                (warn "JSO for ~a row ~d has unexpected key ~a (value ~s)"
-                                      table row key value)))
-                            row-jso))))
-      (let ((columns row))
-        (when-let (jso (st-json:read-json (field table)))
-          (st-json:mapjso (lambda (key value)
-                            (format *error-output* "~&   (~a) ~a = ~a" table key value)
-                            (unless (member key columns :test #'string-equal)
+                                   (format *error-output* "~& jso (~a) ~a = ~a" table key value)
+                                   (unless (or (member key (mapcar #'field-?-p columns) :test #'string-equal)
+                                               (find (cons table key) *ignored-inputs* :test #'equalp))
                               (warn "JSO for ~a has unexpected key ~a (value ~s)"
                                     table key value)))
-                          jso)))))
+                                 object))))
+    (let ((object (st-json:read-json (field table))))
+      (verify-json object))))
 
-(defmacro sql-insert-invoice-fields
-    ((table &optional (hash table)) (&body columns))
+(eval-when (:compile-toplevel :execute :load-toplevel)
+  (defun select-field (hash column &optional row)
+    (if row
+        `(field ',hash row ',column)
+        `(field ',hash ',column))))
+
+(defmacro sql-insert-into-invoice ((table &optional (hash table)) key-columns columns &optional row)
   `(progn
-     (verify-json-fields ',(or table :general) ',columns)
+     (verify-json-fields ',hash '(,@key-columns ,@columns))
      (db-query
-      (format nil
-              "insert into `invoice~:[s~;-~:*~(~a~)~]` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
-              ,(when table `',table)
-              (list ,@(loop for column in columns
-                         collecting (string column)))
+      ,(format nil "insert into `invoice~:[s~;-~:*~(~a~)~]` (invoice, ~{`~(~a~)`~^, ~}) values (~{~a~^, ~})"
+               table
+               (mapcar #'string (append key-columns columns))
+               (loop repeat (+ 1 (length columns) (length key-columns)) collect '?))
               invoice
-              (list ,@(loop for column in columns
-                         collecting `(field ',(or hash :general) ',column)))))))
+      ,@(mapcar (lambda (column) (select-field hash column row))
+                (append key-columns columns)))))
 
-(defmacro sql-update-invoice-fields
-    ((table) (&body columns))
+(defmacro invoice-row-exists-matching ((table &optional (hash table)) key-columns &optional row)
+  `(cadar (db-query
+           ,(format nil
+                    "select 1 from  `invoice~:[s~;-~:*~(~a~)~]` where invoice=? ~@[  ~{ and `~(~a~)` = ? ~}~]"
+                    table
+                    (mapcar #'string key-columns))
+           invoice
+           ,@(mapcar (lambda (column)
+                       (select-field hash column row))
+                     key-columns))))
+
+(defmacro sql-insert-invoice-array ((table) key-columns  columns)
   `(progn
-     (verify-json-fields ',(or table :general) ',columns)
-     (db-query
-      (format nil
-              "update `invoice~:[s~;-~:*~(~a~)~]` set ~{ `~(~a~)` = ~/sql/ ~^, ~} where invoice=~/sql/"
-              ,(when table `',table)
-              (list ,@(loop for column in columns
-                         collect (string column)
-                         collect `(field ',(or table :general) ',column)))
-              invoice))))
+     (verify-json-fields ',table '(,@key-columns ,@columns))
+     (loop for row below (length (st-json:read-json (field ,(string table))))
+        do (sql-insert-into-invoice (,table) ,key-columns ,columns row))))
 
-(defmacro sql-insert-invoice-array
-    ((table) (&body columns))
-  `(loop for row below (length (st-json:read-json (field ,(string table))))
-      do (verify-json-fields ',table row ',columns)
-      do (db-query
-          (format nil
-                  "insert into `invoice-~(~a~)` (invoice, ~{`~(~a~)`~^, ~}) values (~/sql/, ~{~/sql/~^, ~})"
-                  ',table
-                  (list ,@(loop for column in columns
-                             collecting (string column)))
-                  invoice
-                  (list ,@(loop for column in columns
-                             collecting `(field ',(or table :general) row ',column)))))))
+(defmacro sql-update-invoice ((table &optional (hash table)) key-columns columns &optional row)
+  `(db-query
+    ,(format nil
+             "update `invoice~:[s~;-~:*~(~a~)~]` set ~{ `~(~a~)` = ?~^, ~} where invoice=? ~@[  ~{ and `~(~a~)` = ? ~}~]"
+             table
+             columns
+             key-columns)
+    ,@(mapcar (lambda (column)
+                (select-field hash column row))
+              (append columns key-columns))
+    invoice))
 
-(defmacro sql-update-invoice-array
-    ((table) (&body columns) (&rest key-columns))
-  `(loop for row below (length (st-json:read-json (field ,(string table))))
-      do (verify-json-fields ',table row ',(append columns key-columns))
-      do (db-query
-          (format nil
-                  "update `invoice-~(~a~)`  set ~{ `~(~a~)` = ~/sql/~^, ~} where invoice=~/sql/ ~@[  ~{ and `~(~a~)` = ~/sql/ ~}~]"
-                  ',table
-                  (list ,@(loop for column in columns
-                             collecting (string column)
-                             collecting `(field ',(or table :general) row ',column)))
-                  invoice
-                  (list ,@(loop for column in key-columns
-                             collecting (string column)
-                             collecting `(field ',(or table :general) row ',column)))))))
+(defmacro invoice-update-or-insert (table key-columns columns &optional row)
+  `(if (invoice-row-exists-matching ,table ,key-columns ,row)
+       (sql-update-invoice ,table ,key-columns ,columns ,row)
+       (sql-insert-into-invoice ,table ,key-columns ,columns ,row)))
+
+(defmacro sql-update-invoice-array ((table &optional (hash table)) key-columns columns)
+  `(progn
+     (verify-json-fields ',hash '(,@key-columns ,@columns))
+     (loop for row below (length (st-json:read-json (field ,(string table))))
+        do (invoice-update-or-insert (,table) ,key-columns ,columns row))))
+
+(defmacro sql-update-invoice-fields ((table &optional (hash table)) key-columns
+                                              columns)
+  `(progn
+     (verify-json-fields ',hash '(,@key-columns ,@columns))
+     (if (invoice-row-exists-matching (,table ,hash) ,key-columns)
+         (sql-update-invoice (,table ,hash) ,key-columns ,columns)
+         (sql-insert-into-invoice (,table ,hash) ,key-columns ,columns))))
 
 (defun update-general (invoice)
-  (sql-update-invoice-fields (nil)
-                             (created closed closed-by old-system-p festival-season festival-year
-                                      note signature memo fast-check-in-address fast-check-in-postal-code)))
+  (sql-update-invoice-fields (nil general) ()
+    (created closed closed-by old-system-p festival-season festival-year
+             note signature memo fast-check-in-address fast-check-in-postal-code)))
 
-(defun accept-guests (invoice)
-  (sql-insert-invoice-array (guests)
-                            (FORMAL-NAME PRESENTER-BIO PRESENTER-REQUESTS SLEEP EAT DAY GENDER T-SHIRT
-                                         COFFEEP TOTEP TICKET-TYPE STAFF-DEPARTMENT PAYMENT-DUE GIVEN-NAME SURNAME
-                                         CALLED-BY ADDRESS CITY STATE POSTAL-CODE COUNTRY ID-NUMBER ID-STATE
-                                         SOCIAL-NETWORK COVEN SPIRITUAL-PATH STAFF-REC WHY-STAFF STAFF-JOB-WANTED
-                                         PHYSICAL-LIMITS KSA STAFF-TUE-SUN STAFF-NOTES STAFF-SUBMIT E-MAIL TELEPHONE
-                                         CABIN-REQUEST)))
+(defmacro accept+update-array ((table) key-fields fields)
+  `(progn
+     (defmethod ,(format-symbol *package* "ACCEPT-~a" table) (invoice)
+       (sql-insert-invoice-array (,table) ,key-fields ,fields))
+     (defmethod ,(format-symbol *package* "UPDATE-~a" table) (invoice)
+       (sql-update-invoice-array (,table) ,key-fields ,fields))))
 
-(defun update-guests (invoice)
-  (sql-update-invoice-array (guests)
-                            (FORMAL-NAME PRESENTER-BIO PRESENTER-REQUESTS SLEEP EAT DAY GENDER T-SHIRT
-                                         COFFEEP TOTEP TICKET-TYPE STAFF-DEPARTMENT PAYMENT-DUE 
-                                         CALLED-BY ADDRESS CITY STATE POSTAL-CODE COUNTRY ID-NUMBER ID-STATE
-                                         SOCIAL-NETWORK COVEN SPIRITUAL-PATH STAFF-REC WHY-STAFF STAFF-JOB-WANTED
-                                         PHYSICAL-LIMITS KSA STAFF-TUE-SUN STAFF-NOTES STAFF-SUBMIT E-MAIL TELEPHONE
-                                         CABIN-REQUEST)
-                            (given-name surname)))
-(defun accept-extras (invoice)
-  (sql-insert-invoice-array (merch)
-                            (item style qty)))
+(accept+update-array (guests) (given-name surname)
+  (FORMAL-NAME PRESENTER-BIO PRESENTER-REQUESTS SLEEP EAT DAYs GENDER T-SHIRT
+               COFFEEP TOTEP TICKET-TYPE STAFF-DEPARTMENT PAYMENT-DUE 
+               CALLED-BY ADDRESS CITY STATE POSTAL-CODE COUNTRY ID-NUMBER ID-STATE
+               SOCIAL-NETWORK COVEN SPIRITUAL-PATH STAFF-REC WHY-STAFF STAFF-JOB-WANTED
+               PHYSICAL-LIMITS KSA STAFF-TUE-SUN STAFF-NOTES STAFF-SUBMIT E-MAIL TELEPHONE
+               staff-approve added marriage
+               CABIN-REQUEST))
 
-(defun accept-vendor (invoice)
-  (let ((qty (field "vendor" "qty")))
-    (when (and qty (plusp qty))
-      (sql-insert-invoice-fields (vending vendor)
-                                 (blurb notes qty agreement masseurp meal-plan-p food-vendor-p title menu payment-due
-                                        mqa-license bpr-license)))))
+(defmacro accept+update ((table &optional (hash table)) key-fields &body fields)
+  `(progn
+     (defun ,(format-symbol *package* "ACCEPT-~a" table) (invoice)
+       (sql-insert-into-invoice (,table ,hash) ,key-fields ,fields))
+     (defun ,(format-symbol *package* "UPDATE-~a" table) (invoice)
+       (sql-update-invoice-fields (,table ,hash) ,key-fields ,fields))))
 
+(accept+update-array (merch) (item style) (qty))
 
-(defun update-vendor (invoice)
-  (let ((qty (or (field "vending" "qty") 0)))
-    (when qty
-      (sql-update-invoice-fields (vending)
-                                 (blurb notes qty agreement masseurp meal-plan-p food-vendor-p title menu payment-due
-                                        mqa-license bpr-license)))))
+(accept+update (vending vendor) ()
+  blurb notes qty agreement masseurp meal-plan-p food-vendor-p title menu payment-due
+  mqa-license bpr-license)
 
 (defun accept-workshops (invoice)
   (declare (ignore invoice))
@@ -965,12 +1122,6 @@ cookie says “~36r.”
      do (db-query "insert into `invoice-scholarships` (invoice, scholarship, amount) values (?, ?, ?)"
                   invoice (string-downcase scholarship) (as-number donation))))
 
-
-(defun update-extras (invoice)
-  (sql-update-invoice-array (merch)
-                            (qty)
-                            (item style)))
-
 (defun update-workshops (invoice)
   (declare (ignore invoice))
   (warn "not accepting workshops (TODO)"))
@@ -980,7 +1131,7 @@ cookie says “~36r.”
      for donation = (field "scholarships" scholarship) 
        
      when (and donation (plusp (as-number donation)))
-     do (if (cadar (db-query "select amount from `invoice-scholarships` where invoice = ? and scholarship = ?"
+     do (if (cadar (db-query "select 1 from `invoice-scholarships` where invoice = ? and scholarship = ?"
                              invoice (string-downcase scholarship)))
             (db-query "update `invoice-scholarships` set amount=? where invoice = ? and scholarship = ?"
                       (as-number donation) invoice (string-downcase scholarship))
@@ -989,33 +1140,33 @@ cookie says “~36r.”
 
 (defun accept-state-from-form ()
   (handler-case
-      (let ((invoice (create-invoice)))
-        (list :invoice invoice
-              :general (update-general invoice)
-              :guests (accept-guests invoice)
-              :extras (accept-extras invoice)
-              :vendor (accept-vendor invoice)
-              :workshops (accept-workshops invoice)
+  (let ((invoice (create-invoice)))
+    (list :invoice invoice
+          :general (update-general invoice)
+          :guests (accept-guests invoice)
+              :merch (accept-merch invoice)
+              :vending (accept-vending invoice)
+          :workshops (accept-workshops invoice)
               :scholarships (accept-scholarships invoice)))
     (dbi.error:<dbi-database-error> (c)
       (throw 'cgi-bye 
         (list :error 501 
-              "The record cannot be  inserted into the database, because the proposed  changes would  create inconsistent or  impossible data."
+              (format nil "The record cannot be  inserted into the database, because the proposed  changes would  create inconsistent or  impossible data. (~a)" c)
               c)))))
 
 (defun update-invoice-from-form (invoice)
   (handler-case
-      (list :invoice invoice
-            :general (update-general invoice)
-            :guests (update-guests invoice)
-            :extras (update-extras invoice)
-            :vendor (update-vendor invoice)
-            :workshops (update-workshops invoice)
+  (list :invoice invoice
+        :general (update-general invoice)
+        :guests (update-guests invoice)
+            :merch (update-merch invoice)
+            :vending (update-vending invoice)
+        :workshops (update-workshops invoice)
             :scholarships (update-scholarships invoice))
     (dbi.error:<dbi-database-error> (c)
       (throw 'cgi-bye 
         (list :error 501 
-              "The record cannot be changed in the database, because the proposed changes would create inconsistent or impossible data."
+              (format nil "The record cannot be changed in the database, because the proposed changes would create inconsistent or impossible data. (~a)" c)
               c)))))
 
 (defgeneric handle-verb (verb))
@@ -1041,10 +1192,13 @@ cookie says “~36r.”
          (equal (user-key invoice) token)
          (numeric invoice))))
 
+(defun save-invoice ()
+  (if-let (invoice (valid-invoice-and-token-sent))
+    (update-invoice-from-form invoice)
+    (accept-state-from-form)))
+
 (defmethod handle-verb ((verb (eql :save)))
-  (let ((invoice-all (if-let (invoice (valid-invoice-and-token-sent))
-                       (update-invoice-from-form invoice)
-                       (accept-state-from-form))))
+  (let ((invoice-all (save-invoice)))
     (format *trace-output* "~s" invoice-all)
     (let ((invoice (getf invoice-all :invoice)))
       (mail-registrar-suspended-invoice invoice)
@@ -1057,16 +1211,16 @@ cookie says “~36r.”
 
 (defun disquote (string)
   (if (and string
-           (< 3 (length string))
-           (char= #\" (first-elt string) (last-elt string)))
+             (< 3 (length string))
+             (char= #\" (first-elt string) (last-elt string)))
       
       (subseq string 1 (- (length string) 1))
       (or string "")))
 
 (defmethod handle-verb ((verb (eql :recall)))
   (let* ((invoice (parse-integer (disquote (field :invoice)) :radix 36 :junk-allowed t))
-         (admin-key (disquote (field :admin-key)))
-         (user-key (disquote (field :verify))))
+        (admin-key (disquote (field :admin-key)))
+        (user-key (disquote (field :verify))))
     (format *trace-output* "~&Requested recall of invoice ~:d ~@[as admin~]"
             invoice admin-key)
     (cond
@@ -1084,45 +1238,101 @@ cookie says “~36r.”
        '(:error 403 "Authorization refused. You cannot view the requested resource."
          "Please ensure that you copied and pasted the entire link, without spaces. Administatively…"))
       
+      ((and (not (emptyp admin-key))
+            (accept-type-p "text/html"))
+       (list :raw 
+             (format nil "Content-Type: text/html; charset=utf-8
+
+<!DOCTYPE html>
+<html>
+<head><title>Invoice Edit: ~:d~:*</title> </head>
+
+<body>
+<h2>Reg Team Admin Access</h2>
+<p>
+Please note that editing the guest's registration information is a brand-new 
+feature and not everything may work 100%. 
+</p>
+<h4>
+Invoice number: ~:d
+</h4>
+<h4>
+Festival: ~{~a ~a~}
+</h4>
+<h4>
+Guests:</h4> ~{
+<p>
+ • ~{~a ~} </p>
+~}
+<p>
+If you would like to continue, please re-check all the information
+before submitting.
+</p>
+<a href=\"~a\">Understood, let me review or edit this guest's registration</a>
+<hr>
+<pre>~a</pre>
+</body></html>
+"
+                     invoice
+                     (let ((fest (getf (read-invoice invoice) :general)))
+                       (list (getf fest :|festival-season|)
+                             (getf fest :|festival-year|)))
+                     (mapcar (lambda (guest) 
+                               (list (getf guest :|given-name|)
+                                     (or (getf guest :|called-by|) "")
+                                     (getf guest :|surname|))) 
+                             (getf (read-invoice invoice) :guests))
+                     (recall-invoice-link invoice t)
+                     (itinerary/text invoice))))
+
       ((accept-type-p "text/html")
        (list :raw
-             (redirect-to-invoice invoice)
-             #+ (or) (format nil "Content-Type: text/plain; charset=utf-8
+             (format nil "Content-Type: text/html; charset=utf-8
 
-You are trying to recall a saved invoice. However, this feature has been
-temporarily  disabled   for  your  safety   while  the  new   system  is
-being tested.
-
+<!DOCTYPE html>
+<html>
+<head><title>Invoice Edit: ~:d~:*</title> </head>
+<meta charset=\"utf-8\">
+<body>
+<p>
+Please note that editing your registration information is a brand-new 
+feature and not everything may work 100%. 
+</p>
+<h4>
 Invoice number: ~:d
-
-You are ~:[the person who registered~;a member of  Registration staff~],
- confirmed by your use of the  special confirmation link you received in
- your e-mail.
-
+</h4>
+<h4>
 Festival: ~{~a ~a~}
+</h4>
+<h4>
+Guests:</h4> ~{
+<p>
+ • ~{~a ~} </p>
+~}
+<p>
 
-Guests: ~{
+If you would like to continue, please re-check all your information before submitting. In particular, if you are a staff
+member,  re-check that  your department  is selected;  and  if you  ordered any  tote  bags or  coffee mugs  in the  top
+section (next to a guest's name).
 
- • ~{~a ~} ~}
-
-… as well as other information.
-
-Please contact registration  if you need immediate assistance.
-
-~a
-
+</p>
+<a href=\"~a\">Understood, let me review or edit my registration</a>
+<hr>
+<h2>Previous Itinerary</h2>
+<pre>~a</pre>
+</body></html>
 "
-                             invoice 
-                             admin-key
-                             (let ((fest (getf (read-invoice invoice) :general)))
-                               (list (getf fest :|festival-season|)
-                                     (getf fest :|festival-year|)))
-                             (mapcar (lambda (guest) 
-                                       (list (getf guest :|given-name|)
-                                             (or (getf guest :|called-by|) "")
-                                             (getf guest :|surname|))) 
-                                     (getf (read-invoice invoice) :guests))
-                             +registrar-mail+)))
+                     invoice 
+                     (let ((fest (getf (read-invoice invoice) :general)))
+                       (list (getf fest :|festival-season|)
+                             (getf fest :|festival-year|)))
+                     (mapcar (lambda (guest) 
+                               (list (getf guest :|given-name|)
+                                     (or (getf guest :|called-by|) "")
+                                     (getf guest :|surname|))) 
+                             (getf (read-invoice invoice) :guests))
+                     (recall-invoice-link invoice)
+                     (itinerary/text invoice))))
 
       (t (list :data (read-invoice invoice))))))
 
@@ -1172,7 +1382,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
 
 (defun admin-key (invoice)
   (when invoice
-    (let ((numberish (format nil "~36r" (logxor (numeric invoice) #x872))))
+    (let ((numberish (36r (logxor (numeric invoice) #x872))))
       (when (/= (* 2 (floor (length numberish) 2))
                 (length numberish))
         (setf numberish (concatenate 'string (subseq numberish 0 1)
@@ -1333,7 +1543,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
             :from +herald-mail+
             :other-headers (list (list "References" (concatenate 'string (string token) "." +herald-mail-base+))
                                  '("Organization" "Temple of Earth Gathering, Inc.")
-                                 (list "X-Censorius-Herald-Version" (format nil "~36r" +compile-time+)))
+                                 (list "X-Censorius-Herald-Version" (36r +compile-time+)))
             :charset :utf-8
             :type "text" :subtype "plain")
     (format nil  "Hi! This  is the Censorius Herald  program. I'm the software  agent that
@@ -1363,18 +1573,26 @@ Details: Invoice token ~s;
 
 (defmacro with-sql (&body body)
   `(dbi:with-connection (*db* :mysql ,@herald-db-config:+params+)
-     ,@body))
+     (dbi:with-transaction *db*
+       ,@body)))
 
 (defun read-vending (&optional invoice)
+  (clojurize-record
   (car (db-query "select * from `invoice-vending` where invoice=?"
+                  invoice))))
+
+(defun read-payments (&optional invoice)
+  (mapcar #'clojurize-record
+          (db-query "select * from `payments` where invoice=?"
                  invoice)))
 
 (defun read-workshops (&optional invoice)
   (declare (ignore invoice)))           ; TODO
 
 (defun read-general (&optional invoice)
+  (clojurize-record
   (car (db-query "select * from `invoices` where invoice=?"
-                 invoice)))
+                  invoice))))
 
 (defun read-invoice (invoice)
   (list :invoice invoice
@@ -1384,14 +1602,15 @@ Details: Invoice token ~s;
         :vending (read-vending invoice)
         :workshops (read-workshops invoice)
         :scholarships (read-scholarships invoice)
+        :payments (read-payments invoice)
         :general (read-general invoice)))
 
 (defun read-scholarships (invoice)
   (alist-plist 
    (mapcar (lambda (each)
              (cons (make-keyword (getf each :|scholarship|)) (getf each :|amount|))) 
-           (with-sql (db-query "select scholarship,amount from `invoice-scholarships` where invoice=?"
-                               invoice)))))
+           (db-query "select scholarship, amount from `invoice-scholarships` where invoice=?"
+                     invoice))))
 
 (defun read-merch-ordered (invoice)
   (let ((ordered (db-query
@@ -1403,18 +1622,20 @@ Details: Invoice token ~s;
                                          (equal (first row) item)) ordered)
                      appending (list style qty)))))
 
+(defun clojurize-record (record)
+  (loop for (key value) on record by #'cddr
+     appending (list (make-keyword (field-?-p key)) 
+                     (if (and (char= #\? (last-elt (string (field-?-p key))))
+                              (member value '(1 0)))
+                         (case value
+                           (0 :false)
+                           (1 :true))
+                         value))))
+
 (defun read-guests (&optional invoice)
   (when invoice
-    (mapcar (lambda (guest)
-              (loop for (key value) on guest by #'cddr
-                 appending (list (make-keyword (field-?-p key)) 
-                                 (if (and (char= #\? (last-elt (field-?-p key)))
-                                          (member value '(1 0)))
-                                     (case value
-                                       (0 :false)
-                                       (1 :true))
-                                     value))))
-            (db-query "select * from `invoice-guests` where invoice=?"
+    (mapcar #'clojurize-record
+    (db-query "select * from `invoice-guests` where invoice=?"
                       invoice))))
 
 (defun guests->edn (&optional invoice)
@@ -1434,25 +1655,34 @@ Details: Invoice token ~s;
         (* 1.0
            (+ (parse-integer units)
               (if (plusp (length fractional))
-                  (* (parse-integer fractional)
-                     (if negativep -1 1)
+              (* (parse-integer fractional)
+                 (if negativep -1 1)
                      (expt 10 (- (length fractional))))
                   0))))
       (parse-integer string)))
 
 (defun read-merch (&optional invoice)
-  (loop for row in (db-query "select * from merch")
-     collect
-       (append row
-               (list :styles
-                     (coerce
-                      (loop for style-row in (db-query "select * from `merch-styles` where item=?" 
-                                                       (getf row :|id|))
-                         collect
-                           (append style-row
-                                   (list :qty (cadar (db-query "select qty from `invoice-merch` where  invoice=? and item=? and style =?"
-                                                               invoice (getf row :|id|) (getf style-row :|id|) )))))
-                      'vector)))))
+  (let ((styles (db-query "select * from `merch-styles`"))
+        (ordered (db-query "select * from `invoice-merch` where invoice=?" invoice)))
+    (loop for row in (db-query "select * from merch")
+       collect
+         (append row
+                 (list :styles
+                 (coerce
+                        (loop for style-row in (remove-if-not (lambda (item) (string-equal item (getf row :|id|))) styles
+                                                              :key (rcurry #'getf :|item|))
+                           for qty = (let ((order (remove-if-not (lambda (line)
+                                                                   (and (string-equal (getf row :|id|) (getf line :|item|))
+                                                                        (string-equal (getf style-row :|id|) (getf line :|style|))))
+                                                                 ordered))) 
+                                       (when order (getf (first order) :|qty|)))
+                             #+ (or) (db-query "select * from `merch-styles` where item=?" 
+                                               (getf row :|id|))
+                     collect
+                             (append style-row (list :|qty| qty)
+                                     #+ (or) (list :qty (cadar (db-query "select qty from `invoice-merch` where  invoice=? and item = ? and style = ?"
+                                                                         invoice (getf row :|id|) (getf style-row :|id|) ))))) 
+                        'vector))))))
 
 (defun prices->edn ()
   (format nil "~%(defonce prices (atom ~/edn/))"
@@ -1561,10 +1791,12 @@ where (`starting` is null or `starting` <= date(now()))
   (list :error 555 "This is a fake error, to test error handling."))
 
 (defmethod handle-verb ((verb (eql :about)))
-  (format *trace-output* " Herald version is ~36r" +compile-time+)
+  (format *error-output* " Herald version is ~36r" +compile-time+)
+  (when (field "deployment-marker")
+    (format *error-output* "~25%"))
   (list :data (list :program "Censorius Herald"
                     :copyright "© 2013-2015, Bruce-Robert Fenn Pocock"
-                    :version (format nil "~36r" +compile-time+)
+                    :version (36r +compile-time+)
                     :build-date (let ((built (multiple-value-list (decode-universal-time (+ +compile-time+
                                                                                             +compile-time-offset+)))))
                                   (list (nth 5 built) (nth 4 built) (nth 3 built))))))
@@ -1691,6 +1923,12 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
                           id style-id style-title inventory)))))
 
 
+(defun herald-user-agent (&optional (drakma-ua-key :drakma))
+  (concatenate 'string
+               (drakma::user-agent-string drakma-ua-key)
+               " "
+               "Herald/" (36r +compile-time+)))
+
 (defun paypal-get-oath2-token ()
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
@@ -1701,11 +1939,17 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
        :basic-authorization (list (paypal-client-id) (paypal-secret))
        :parameters '(("grant_type". "client_credentials")))
     (declare (ignore response-headers stream happiness))
-    (assert (> 400 http-status-code))
-    (format *trace-output* "PayPal OAuth2 token acquired: status=~a (from ~a)" http-status-string uri)
+    (format *error-output* "~& $$$$ PayPal OAuth2 token acquired: status=~a (from ~a)" http-status-string uri)
+    (unless (> 400 http-status-code) 
+      (throw 'cgi-bye (list http-status-code
+                            (format nil
+                                    "PayPay responded to OAth2 token with (code ~d): ~a"
+                                    http-status-code http-status-string))))
     (let ((jso (st-json:read-json (flexi-streams:octets-to-string response-body))))
-      (assert (string-equal "Bearer" (st-json:getjso "token_type" jso)))
-      (assert (string-equal (paypal-app-id) (st-json:getjso "app_id" jso)))
+      (assert (string-equal "Bearer" (st-json:getjso "token_type" jso)) ()
+              "I require a Bearer token to access PayPal, but got ~a" (st-json:getjso "token_type" jso))
+      (assert (string-equal (paypal-app-id) (st-json:getjso "app_id" jso)) ()
+              "PayPal gave me a token for some other application. Huh?")
       (values (st-json:getjso "access_token" jso)
               (st-json:getjso "nonce" jso)
               (st-json:getjso "expires_in" jso)))))
@@ -1723,13 +1967,24 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
                                                               :cancel_url ,(make-self-url "paypal-cancel"))
                                   :payer (:payment_method "paypal")
                                   :transactions #( (:amount (:total ,(format nil "~,2f" (* .01 (round amount .01)))
-                                                             :currency "USD"))
-                                                  (:description ,(format nil "TEG FPG ~{~a ~a~} Registration"
-                                                                         (next-festival)))))))
+                                                             :currency "USD")
+                                                    :description ,(format nil "TEG FPG ~{~a ~a~} Registration $ ~,2f (~r dollars and ~r cents)"
+                                                                          (next-festival)
+                                                                          (* .01 (round amount .01))
+                                                                          (floor amount)
+                                                                          (multiple-value-bind (dollars cents)
+                                                                              (floor amount)
+                                                                            (declare (ignore dollars))
+                                                                            (round cents .01))))))))
     (declare (ignore response-headers stream happiness))
-    (assert (> 400 http-status-code))
-    (format *trace-output* " $$$$ PayPal at ~a reports HTTP/~d (~a) demanding payment of $ ~,2f"
-            uri http-status-code http-status-string amount)
+    (format *error-output* " $$$$ PayPal at ~a reports HTTP/~d (~a) demanding payment of $ ~,2f~2%~a"
+            uri http-status-code http-status-string amount
+            (flexi-streams:octets-to-string response-body))
+    (unless (> 400 http-status-code) 
+      (throw 'cgi-bye (list http-status-code
+                            (format nil
+                                    "PayPal responded to payment request for $ ~,2f with (code ~d): ~a"
+                                    (* .01 (round amount .01)) http-status-code http-status-string))))
     (let ((jso (st-json:read-json (flexi-streams:octets-to-string response-body))))
       (let* ((id (st-json:getjso "id" jso))
              (links (mapcar (lambda (link)
@@ -1739,6 +1994,104 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
              (approval-href (cdr (find "approval_url" links :key #'car :test #'string-equal)))
              (capture-href (cdr (find "execute" links :key #'car :test #'string-equal))))
         (values id approval-href capture-href)))))
+
+(defun paypal-get-payment-status (payment-id)
+  (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
+      (drakma:http-request 
+       (concatenate 'string "https://api.sandbox.paypal.com/v1/payments/payment/" payment-id)
+       :method :get
+       :additional-headers `(("Content-Type" . "application/json")
+                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-get-oath2-token)))))
+    (declare (ignore response-headers stream happiness))
+    (format *error-output* "~& $$$$ PayPal at ~a reports HTTP/~d (~a) reading payment status with ID ~a~2%~a"
+            uri http-status-code http-status-string payment-id 
+            (flexi-streams:octets-to-string response-body))
+    (let* ((reply (flexi-streams:octets-to-string response-body))
+           (jso (st-json:read-json reply))
+           (payer (st-json:getjso "payer" jso))
+           
+           (payment (st-json:getjso "id" jso))
+           (cart (st-json:getjso "cart" jso))           
+           (create_time (st-json:getjso "create_time" jso))
+           (update_time (st-json:getjso "update_time" jso))
+           
+           (payer/payment_method (st-json:getjso "payment_method" payer))
+           (payer/status (st-json:getjso "status" payer))
+           (payer/email (st-json:getjso "email" payer))
+           (payer/first_name (st-json:getjso "first_name" payer))
+           (payer/last_name (st-json:getjso "last_name" payer))
+           (payer_id (st-json:getjso "payer_id" payer))
+           
+           (payer-info (st-json:getjso "payer_info" payer))
+           (shipping (st-json:getjso "shipping_address" payer-info))
+           (ship_to_name (st-json:getjso "recipient_name" shipping))
+           (ship_to_line_1 (st-json:getjso "line1" shipping))
+           (ship_to_line_2 (st-json:getjso "line2" shipping))
+           (ship_to_city (st-json:getjso "city" shipping))
+           (ship_to_state (st-json:getjso "state" shipping))
+           (ship_to_postal_code (st-json:getjso "postal_code" shipping))
+           (ship_to_country_code (st-json:getjso "country_code" shipping))
+           (phone (st-json:getjso "phone" payer))
+           (phone_country_code (st-json:getjso "country_code" payer))
+           
+           (billing (st-json:getjso "billing_address" payer-info))
+           (bill_to_line_1 (when billing (st-json:getjso "line1" billing)))
+           (bill_to_line_2 (when billing (st-json:getjso "line2" billing)))
+           (bill_to_city (when billing (st-json:getjso "city" billing)))
+           (bill_to_state (when billing (st-json:getjso "state" billing)))
+           (bill_to_postal_code (when billing (st-json:getjso "postal_code" billing)))
+           (bill_to_country_code (when billing (st-json:getjso "country_code" billing)))
+           
+           (transaction (first (st-json:getjso "transactions" jso)))
+           (payment_amount (st-json:getjso "total" (st-json:getjso "amount" transaction)))
+
+           (links (st-json:getjso "links" jso))
+           (approval_url (st-json:getjso "href" (find "approval_url" links
+                                                      :test #'string=
+                                                      :key (curry #'st-json:getjso "rel"))))
+           (execute_url (st-json:getjso "href" (find "execute" links
+                                                     :test #'string=
+                                                     :key (curry #'st-json:getjso "rel")))))
+      (warn "Updating status in database")
+      (if (cadar (db-query "select 1 from `paypal-payment-metadata` where payment = ?"
+                           payment))
+          (db-query
+           "update  `paypal-payment-metadata`  set  cart = ?, `payer/payment_method`  = ?, `payer/status`   = ?,
+`payer/email`  = ?, `payer/first_name`    = ?, `payer/last_name`    = ?, payer_id    = ?,
+ship_to_name    = ?, ship_to_line_1     = ?, ship_to_line_2    = ?, ship_to_city   = ?,
+ship_to_state   = ?, ship_to_postal_code   = ?, ship_to_country_code    = ?, phone    = ?,
+phone_country_code    = ?, bill_to_line_1     = ?,  bill_to_line_2    = ?,
+bill_to_city   = ?, bill_to_state   = ?, bill_to_postal_code   = ?, bill_to_country_code   = ?,
+payment_amount    = ?, create_time   = ?, update_time   = ?, approval_url   = ?,
+execute_url =?
+ where payment = ?"
+           cart  payer/payment_method payer/status 
+           payer/email payer/first_name   payer/last_name  payer_id   
+           ship_to_name  ship_to_line_1  ship_to_line_2  ship_to_city  
+           ship_to_state ship_to_postal_code        ship_to_country_code       phone
+           phone_country_code              bill_to_line_1 bill_to_line_2   
+           bill_to_city          bill_to_state   bill_to_postal_code   bill_to_country_code   
+           payment_amount create_time update_time approval_url 
+           execute_url
+           payment)
+          (db-query
+           "insert  into  `paypal-payment-metadata`   (  
+payment, cart, `payer/payment_method` , `payer/status`  , `payer/email` , `payer/first_name`   ,
+  `payer/last_name`   , payer_id   , ship_to_name   , ship_to_line_1    , ship_to_line_2   , ship_to_city  ,
+   ship_to_state  , ship_to_postal_code  , ship_to_country_code   ,
+  phone   , phone_country_code   , bill_to_line_1    , bill_to_line_2   , bill_to_city  ,
+   bill_to_state  , bill_to_postal_code  , bill_to_country_code  ,
+  payment_amount   , create_time  , update_time  , approval_url  , execute_url  )
+values  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+           payment cart  payer/payment_method payer/status payer/email payer/first_name   payer/last_name  payer_id   ship_to_name
+           ship_to_line_1  ship_to_line_2  ship_to_city  ship_to_state ship_to_postal_code        ship_to_country_code       phone
+           phone_country_code              bill_to_line_1 bill_to_line_2          bill_to_city          bill_to_state
+           bill_to_postal_code   bill_to_country_code   payment_amount create_time update_time approval_url execute_url))
+      (db-query "update `paypal-payment-metadata` set raw = concat (coalesce(raw,'*'), concat ('\\n\\n**\\n\\n', ?))"
+                reply)
+      (db-query "insert into payments (invoice, via, source, amount, confirmation, note, cleared) values (?, ?, 'PayPal', ?, 'Paid by ' || ? || ' ' || ? || ' <' || ? || '>', 'NOW')"
+                (payment-id->invoice payment-id) payment-id payment_amount payer/first_name payer/last_name payer/email)
+      jso)))
 
 (defun paypal-capture-payment (payment-id token payer-id)
   (declare (ignore token))
@@ -1750,9 +2103,13 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
                              ("Authorization" . ,(concatenate 'string "Bearer " (paypal-get-oath2-token))))
        :content (format nil "~/json/" `(:payer_id payer-id)))
     (declare (ignore response-headers stream happiness))
-    (assert (> 400 http-status-code))
-    (format *trace-output* " $$$$ PayPal at ~a reports HTTP/~d (~a) capturing payment with ID ~a (payer ~a)"
-            uri http-status-code http-status-string payment-id payer-id)
+    (format *error-output* "~& $$$$ PayPal at ~a reports HTTP/~d (~a) capturing payment with ID ~a (payer ~a)~2%~a"
+            uri http-status-code http-status-string payment-id payer-id
+            (flexi-streams:octets-to-string response-body))
+    (unless (> 400 http-status-code)
+      (throw 'cgi-bye (list http-status-code
+                            (format nil "PayPay responded to payment capture operation with (code ~d): ~a"
+                                    http-status-code http-status-string))))
     (let ((jso (st-json:read-json (flexi-streams:octets-to-string response-body))))
       jso)))
 
@@ -1779,17 +2136,24 @@ amount decimal(6,2), confirmation text, note text, cleared datetime,
 ;; -H 'Authorization: Bearer {accessToken}' \
 ;; -d '{ "payer_id" : "7E7MGXCWTTKK2" }'
 
+(defun recall-invoice-link (invoice &optional adminp)
+  (format nil "~a/reg/#/recall/~36r/~a~@[/~a~]"
+          +host-name+
+          (princ-to-string invoice)
+          (url-encode (user-key invoice))
+          (when adminp
+            (url-encode (admin-key invoice)))))
+
 (defun redirect-to-invoice (invoice &optional adminp)
-  (declare (ignore adminp)) ;; FIXME
   (throw 'cgi-bye
     (list :raw (format nil "Status: 301 Time to go back
-Location: ~a/reg/#/recall/~36r/~a
+Location: ~a
 
-~0@* go back to ~a&invoice=~36r&verify=~a"
-                       +host-name+
-                       (princ-to-string invoice)
-                       (url-encode (user-key invoice))))))
+~0@* go back to ~a"
+                       (recall-invoice-link invoice adminp)))))
 
+(defun payment-id->invoice (payment-id)
+  (cadar (db-query "select invoice from payments where source='PayPal' and via=?" payment-id)))
 
 (defmethod handle-verb ((verb (eql :paypal-return)))
   (let* ((payment-id (field "paymentId"))
@@ -1797,14 +2161,15 @@ Location: ~a/reg/#/recall/~36r/~a
          (payer-id (field "PayerID"))
          (token (field "token")))
     (assert (and payment-id payer-id token))
-    (paypal-capture-payment payment-id token payer-id)
+    ;; (paypal-capture-payment payment-id token payer-id)
+    (paypal-get-payment-status payment-id)
     (redirect-to-invoice invoice)))
 
 (defmethod handle-verb ((verb (eql :paypal-cancel)))
   (redirect-to-invoice (payment-id->invoice (field "paymentId"))))
 
-(defun invoice-total (invoice-id)
-  (/ invoice-id 100)) ; FIXME
+(defun invoice-total ()
+  (field 'money 'balance-due))
 
 (defun record-payment-demand (invoice-id amount paypal-id)
   (db-query
@@ -1814,21 +2179,20 @@ values (?, ?, 'PayPal', ?, null, 'requested (not yet received)', 'now')"
    paypal-id
    (- amount))) 
 
+(defun user-wants-to-pay (invoice total)
+  (multiple-value-bind (id approval-href capture-href)
+      (paypal-demand-payment total)
+    (declare (ignore capture-href))
+    (record-payment-demand invoice total id)
+    (list :invoice invoice 
+          :token (user-key invoice)
+          :next-hop (second approval-href))))
+
 (defmethod handle-verb ((verb (eql :pay)))
   (let* ((invoice (field :invoice))
-         (total (invoice-total invoice)))
-    (multiple-value-bind (id approval-href capture-href)
-        (paypal-demand-payment total)
-      (declare (ignore capture-href))
-      (record-payment-demand invoice total id)
-      (list :raw "Status: 302 Go through PayPal Now
-Location: ~a
-
-Time to go to PayPal: ~0@*~a"
-            approval-href))))
-
-(defun payment-id->invoice (payment-id)
-  (cadar (db-query "select invoice from payments where where source='PayPal' and via=?" payment-id)))
+         (total (invoice-total)))
+    (setf invoice (getf (save-invoice) :invoice))
+    (throw 'cgi-bye (list :data (user-wants-to-pay invoice total)))))
 
 (defun record-payment-captured (payment-id payer-id token)
   (db-query "insert into payments (invoice, via, source, amount, confirmation, note, cleared)

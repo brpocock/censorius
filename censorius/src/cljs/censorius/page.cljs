@@ -212,7 +212,7 @@
 (secretary/defroute "/staff-confirm/:id" [{:keys [id]}]
   (swap! uri-view assoc  :current-page staff-confirm :id id))
 
-
+
 
 
 
@@ -242,7 +242,7 @@
     (goog.events/listen history EventType/NAVIGATE #(revisit))
     (doto history (.setEnabled true))))
 
-
+
 
 (defn main []
   (js/window.clearTimeout js/not-loaded)
