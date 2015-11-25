@@ -1265,10 +1265,12 @@ Guests:</h4> ~{
  • ~{~a ~} </p>
 ~}
 <p>
-If you would like to continue, please re-check all your information
+If you would like to continue, please re-check all the information
 before submitting.
 </p>
 <a href=\"~a\">Understood, let me review or edit this guest's registration</a>
+<hr>
+<pre>~a</pre>
 </body></html>
 "
                      invoice
@@ -1280,7 +1282,8 @@ before submitting.
                                      (or (getf guest :|called-by|) "")
                                      (getf guest :|surname|))) 
                              (getf (read-invoice invoice) :guests))
-                     (recall-invoice-link invoice t))))
+                     (recall-invoice-link invoice t)
+                     (itinerary/text invoice))))
       
       ((accept-type-p "text/html")
        (list :raw
@@ -1289,7 +1292,7 @@ before submitting.
 <!DOCTYPE html>
 <html>
 <head><title>Invoice Edit: ~:d~:*</title> </head>
-
+<meta charset=\"utf-8\">
 <body>
 <p>
 Please note that editing your registration information is a brand-new 
@@ -1307,10 +1310,16 @@ Guests:</h4> ~{
  • ~{~a ~} </p>
 ~}
 <p>
-If you would like to continue, please re-check all your information
-before submitting.
+
+If you would like to continue, please re-check all your information before submitting. In particular, if you are a staff
+member,  re-check that  your department  is selected;  and  if you  ordered any  tote  bags or  coffee mugs  in the  top
+section (next to a guest's name).
+
 </p>
 <a href=\"~a\">Understood, let me review or edit my registration</a>
+<hr>
+<h2>Previous Itinerary</h2>
+<pre>~a</pre>
 </body></html>
 "
                      invoice
@@ -1322,7 +1331,8 @@ before submitting.
                                      (or (getf guest :|called-by|) "")
                                      (getf guest :|surname|))) 
                              (getf (read-invoice invoice) :guests))
-                     (recall-invoice-link invoice))))
+                     (recall-invoice-link invoice)
+                     (itinerary/text invoice))))
       
       (t (list :data (read-invoice invoice))))))
 
@@ -2169,17 +2179,20 @@ values (?, ?, 'PayPal', ?, null, 'requested (not yet received)', 'now')"
    paypal-id
    (- amount))) 
 
+(defun user-wants-to-pay (invoice total)
+  (multiple-value-bind (id approval-href capture-href)
+      (paypal-demand-payment total)
+    (declare (ignore capture-href))
+    (record-payment-demand invoice total id)
+    (list :invoice invoice 
+          :token (user-key invoice)
+          :next-hop (second approval-href))))
+
 (defmethod handle-verb ((verb (eql :pay)))
   (let* ((invoice (field :invoice))
          (total (invoice-total)))
     (setf invoice (getf (save-invoice) :invoice))
-    (multiple-value-bind (id approval-href capture-href)
-        (paypal-demand-payment total)
-      (declare (ignore capture-href))
-      (record-payment-demand invoice total id)
-      (throw 'cgi-bye (list :data (list :invoice invoice 
-                                        :token (user-key invoice)
-                                        :next-hop (second approval-href)))))))
+    (throw 'cgi-bye (list :data (user-wants-to-pay invoice total)))))
 
 (defun record-payment-captured (payment-id payer-id token)
   (db-query "insert into payments (invoice, via, source, amount, confirmation, note, cleared)
