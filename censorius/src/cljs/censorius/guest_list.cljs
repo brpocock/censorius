@@ -446,7 +446,6 @@ For now, could you please put down the additional “"
              
              (address-mixed-party leader guests)))])
 
-
 (defn count-adults []
   (count (filter #(= (:ticket-type @%) :adult) @guests)))
 

@@ -650,10 +650,8 @@
    (cond
      (child? guest) (abbr* "🎫🚸" "Child" "Children from ages 5 through 17")
      (baby? guest) (abbr* "🎫👶" "Baby" "Children from birth to 4 years old")
-
-     (staff/staff? guest)
-     (abbr* "⛤" "Staff" "General staff members (not a lugal)")
-
+     (staff/staff? guest) (abbr* "⛤" "Staff" "General staff members (not a lugal)")
+     
      (staff/lugal+? guest)
      (abbr* (str "🎫" (person-icon guest) "𒈗")
             "Lugal+" "Lugals head each department. This ticket type also
@@ -678,7 +676,8 @@
   [:h5 "Tuesday→Sunday"
    [:p {:class "hint"}
     "Staff  members  are always  a  full  week admission.  All  staff
-       members are expected on-site on Tuesday."]])
+       members are expected on-site on Tuesday."]]
+  (swap! guest :days nil))
 
 (defn editing-days-cell [guest editing?]
   [:div {:class "pop-out"}

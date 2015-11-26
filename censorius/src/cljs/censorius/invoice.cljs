@@ -31,7 +31,7 @@
      (merch/price-all-merch)
      (vendor/price-vendor)
      (scholarship-donations-amount)
-     (- (reduce + (map :amount (filter #(pos? (:amount %)) @payments))))))
+     (- (reduce + (map #(:amount @%) (filter #(pos? (:amount @%)) @payments))))))
 
 
 
@@ -160,17 +160,11 @@
     (set! js/window.location next-hop)))
 
 (defn try-check-out []
-  (if (.contains (:note @d/general) "PayPal*")
+  (if true
     (censorius.herald/send-data "pay"
                                 after-pay
                                 (submission-data))
-    (js/alert "Disabled while I check a bug report. Back shortly.
-
-To run a TEST transaction, put this (exactly) somewhere in your notes box:
-
-                  PayPal*
-
-~brfp")))
+    (js/alert "Disabled while I check a bug report. Back shortly.")))
 
 (defn after-save [reply]
   (let [invoice (get reply "invoice")
@@ -205,15 +199,7 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
 
 
 
-(defn display-payment [payment]
-  [:dl [:dt {:key (str "payment-" (:cleared payment))}
-        (util/format-money (:amount payment))
-        " via " (:via payment)
-        " at " (:cleared payment)]
-   [:dd (when (:note payment) 
-          [:span [:q (:note payment)] " — "]) " confirmation: "
-    (or (:confirmation payment)
-        "(none)")]])
+
 
 (defn invoice-header []
   [:thead
@@ -242,7 +228,6 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
    [:th "Extras"] [:td (util/format-money (merch/price-all-merch))]])
 
 (defn invoice-vendor-section []
-  
   [:tr {:key "invoice-vending"
         :style {:display (if (pos? (vendor/price-vendor)) "table-row" "none")}}
    [:th "Vending"] [:td (util/format-money (vendor/price-vendor))]])
@@ -252,16 +237,39 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
         :style {:display (if (pos? (scholarship-donations-amount)) "table-row" "none")}} 
    [:th "Scholarships"] [:td (util/format-money (scholarship-donations-amount))]])
 
+(defn display-payment [payment]
+  [:li
+   (util/log (str "payment: " @payment))
+   (str "A " (if (pos? (:amount @payment)) "payment (or credit)" "bill")
+        " for the amount " (util/format-money (if (pos? (:amount @payment))
+                                                (:amount @payment)
+                                                (- (:amount @payment))))
+        " was issued using " (or (:source @payment) "(I don't know how)")
+        ".  Reference code: " (or (:via @payment) "(I don't know?)")
+        (if (and (pos? (:amount @payment))
+                 (:note @payment))
+          (str "Payment note: " (:note @payment)) ""))])
+
 (defn invoice-payments-section []
   [:tr {:key "invoice-payments"
         :style {:display (if (pos? (count @payments)) "table-row" "none")}}
-   [:th "Payments"] [:td (doall (map display-payment @payments))]])
+   [:th "Payments"] 
+   [:td [:ul (doall (map display-payment @payments))]]])
 
 (defn invoice-footer []
   [:tfoot
    [:tr {:key "invoice-total"} 
     [:th [:big " Balance Due: "]] 
-    [:td [:big (util/format-money (total-due))]]]])
+    [:td [:big (util/format-money (total-due))]
+     [:div {:style {:display (if (neg? (total-due)) "block" "none")}}
+      [:p "Based upon the current selections, you are eligible for a credit."]
+      [:p {:class "hint"} "You appear to have paid already for more than
+      the  total due.  This  usually  means that  you  are editing  your
+      itinerary, perhaps by removing members of your party."]
+      [:p "If you want to make arrangements to carry forward this credit, or
+to find out about TEG's refund policy, enter a note in the "
+       [:strong "Notes or comments"]
+       " box and " [:strong "Suspend"] " your registration."]]]]])
 
 (defn check-out-invoice []
   @guest-list/guests @merch/merch @vendor/vending
@@ -458,7 +466,7 @@ legally binding.)"]]
                                    (not (guest-list/need-adult-email?)))
                             "block" "none")}}
    [:h3 "ID Check!"]
-   [:p "At Registration, you will  need valid, State-issued photo ID for
+   [:p "At the gate, you will  need valid, State-issued photo ID for
    each adult  member of your  party. Please  be sure that  your party's
    legal names are: "
     (string/join ", " (map guest/legal-name @guest-list/guests))]

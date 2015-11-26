@@ -111,7 +111,8 @@
 
 (defn vendor-license [category symbol license-symbol]
   [:div {:key (str "vendor/" (util/keyword->string symbol))
-         :style {:display (if (:agreement @vending)
+         :style {:display (if (and (can-be-vendor?)
+                                   (:agreement @vending))
                             "block" "none")}}
    [:label [:input {:type "checkbox"
                     :on-change (if (get @vending symbol)
