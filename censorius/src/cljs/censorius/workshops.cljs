@@ -3,6 +3,7 @@
    [reagent.core :as reagent :refer [atom]]
    
    [censorius.data :as d]
+   [censorius.guest :as guest]
    [censorius.guest-list :as guest-list]
    [censorius.radio :as radio]
    [censorius.text :as text]))
@@ -90,45 +91,68 @@
      "⁂ Present a workshop"
      "+ Add another")])
 
+(defn allowed-presenter? [guest]
+  (and (guest/adult? guest)
+       (:e-mail @guest)))
+;; TODO: check blacklist?
+
+(defn presenter-name [guest]
+  (or (:formal-name @guest)
+      (str (or (:called-by @guest)
+               (:given-name @guest))
+           " "
+           (:surname @guest))))
+
 (defn all-possible-presenters []
   (map (fn [guest]
-         (let [n (or (:formal-name @guest)
-                     (str (or (:called-by @guest)
-                              (:given-name @guest))
-                          " "
-                          (:surname @guest)))]
+         (let [n (presenter-name guest)]
            [n n]))
-    @guest-list/guests))
+    (filter allowed-presenter? @guest-list/guests)))
+
+(defn adding-workshops? []
+  (and (pos? (count (all-possible-presenters)))
+       (= (:note @d/general) "⁂")))
 
 (defn add-workshop-box []
   (let [new (atom {:title "" :presenter nil})]
     (fn []  
-      [:tfoot [:tr [:td {:col-span 2}
-                    [text/text-input {:cursor new
-                                      :keys :title 
-                                      :label "Workshop title"
-                                      :placeholder (rand-nth +silly-workshop-names+)
-                                      :rows 1}]
-                    [radio/radio-set {:label "Presenter" 
-                                      :cursor new
-                                      :key :presenter
-                                      :tags (all-possible-presenters)}]
-                    (when (and (:presenter new)
-                               (not (empty? (:title new)))) 
-                      [add-workshop-button new])]]])))
+      [:tfoot 
+       [:tr {:style {:display (if (adding-workshops?) "table-row" "none")}}
+        [:td {:col-span 2}
+         [text/text-input {:cursor new
+                           :keys :title 
+                           :label "Workshop title"
+                           :placeholder (rand-nth +silly-workshop-names+)
+                           :rows 1}]
+         [radio/radio-set {:label "Presenter" 
+                           :cursor new
+                           :key :presenter
+                           :tags (all-possible-presenters)}]
+         [:div {:style {:display (if (and (:presenter new)
+                                          (< 5 (count (:title new)))) 
+                                   "block" "none")}} 
+          [add-workshop-button new]]]]])))
 
 (defn workshop-box []
   (when-not (empty? @guest-list/guests)
     [:section {:class "card"}
      [:h2 "Workshops"]
-     (when (pos? (count @workshops))
-       [:fieldset [:legend "Workshop Requests"]
-        [:table
-         [:thead [:tr [:th "Title"] [:th "Presenter"]]]
-         [:tbody
-          (map #([workshop-info %]) @workshops)]]])
-     (if :true-dont-accept-workshop-submissions
-       [:div "Please contact " [:a {:href "mailto:workshops@flapagan.org"}
-                                "workshops@flapagan.org"] 
-        " to put in any workshops that you'd like to present."]
-       [add-workshop-box])]))
+     [:fieldset
+      {:style {:display (if (or (pos? (count @workshops))
+                                (adding-workshops?))
+                          "block" "none")}}
+      [:legend "Workshop Requests"]
+      [:table
+       [:thead [:tr
+                {:style {:display (if (pos? (count @workshops))
+                                    "table-row" "none")}}
+                [:th "Title"] [:th "Presenter"]]]
+       [:tbody
+        (map #([workshop-info %]) @workshops)]
+       [add-workshop-box]]]
+     [:div {:style {:display (if (adding-workshops?) "none" "block")}}
+      "Please contact " [:a {:href "mailto:workshops@flapagan.org"}
+                         "workshops@flapagan.org"] 
+      " to put in any workshops that you'd like to present, or submit through "
+      [:a {:href "https://docs.google.com/a/star-hope.org/forms/d/1C7smFWCgZXzIqQwccJGYPvuP6BNEb291JD0KbRug5Mc/edit?usp=docslist_api"}
+       "this form"] " in the interim."]]))

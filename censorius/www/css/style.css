@@ -10,24 +10,18 @@
 }
 
 @font-face {
-    font-family: Jane-Austen;
-    src: url(./JaneAust.woff);
-}
-
-@font-face {
-    font-family: Jellyka-Castle;
-    src: url(./Jellykas.woff);
-}
-
-@font-face {
     font-family: Kells;
-    src: url(./KellsFLF.woff);
+    src: url(./FPGBeltane.ttf);
+    /* src: url(./KellsFLF.woff); */
 }
 
 @font-face {
     font-family: Meath;
-    src: url(./MeathFLF.woff);
+    src: url(./FPGBeltane.ttf);
+    /* src: url(./MeathFLF.woff); */
 }
+
+@import url(https://fonts.googleapis.com/css?family=Damion);
 
 @import url(http://fonts.googleapis.com/css?family=Cantarell:400,400italic,700,700italic);
 @import url(http://fonts.googleapis.com/css?family=Herr+Von+Muellerhoff);
@@ -1125,7 +1119,7 @@ center.centerboth {
 }
 
 .signature input, #waiver-signature input {
-    font-family: 'Herr Von Muellerhoff', cursive;
+    font-family: Damion, 'Herr Von Muellerhoff', cursive;
 }
 
 #vendor-slips {

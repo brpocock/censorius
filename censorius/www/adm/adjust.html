@@ -1,0 +1,45 @@
+<html>
+  <head>
+<title>Enter an adjustment</title>
+</head>
+<body>
+<h1>Enter an adjustment</h1>
+
+<p> To enter an adjustment to an FPG invoice, you'll need: </p>
+
+<ul>
+  <li> The invoice number </li>
+  <li> The admin key </li>
+</ul>
+
+<p> The  admin key  is displayed  when you call  up the  guests' invoice
+  using the link that was mailed to  you, or a search form. If you enter
+  it incorrectly, nothing good will happen. </p>
+
+<form method="POST" action="/reg/herald.cgi">
+  <input type="hidden" name="verb" value="adjust">
+  <div> Invoice number: <input type="text" name="invoice" size="4"> </div>
+  <div> Administration key: <input type="text" name="admin-key" size="10"> </div>
+  <div> Enter a <select size="2" name="adjust-type">
+      <option value="credit" selected="t">CREDIT (guest owes TEG less money)</option>
+      <option value="debit">DEBIT (guest owes TEG MORE money)</option>
+  </select>   in  the   amount  of   <input  type="text"   name="amount"
+                                             size="10"></div>
+  <fieldset><legend>Explain this adjustment</legend>
+    <textarea name="note" cols="72" rows="6"></textarea>
+    <p class="hint">Note, the guests will be able to see this note.</p>
+  </fieldset>
+
+  <hr>
+
+  <p> If this adjustment amount brings the balance to exactly zero, then
+    the invoice will be closed out. </p>
+  
+  <input type="submit" name="_" value="Commit Adjustment">
+</form>
+
+<address>
+Trouble? <a href="mailto:brpocock@Star-Hope.org">Bruce-Robert Fenn Pocock</a>
+</address>
+</body>
+</html>

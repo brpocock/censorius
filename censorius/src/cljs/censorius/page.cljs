@@ -77,8 +77,6 @@
                              :rows 0}]]]]]])
 
 
-
-
 (defn print-trailer []
   [:div {:class "print-only"}
    [:p "This is a copy of the registration web page, formatted for printing. This is "
@@ -98,7 +96,19 @@
    [:p "Your web browser (or other user agent application) is " js/navigator.userAgent]])
 
 
+(defn closed?-div []
+  [:section {:class "card"
+             :style {:display (if (:closed @d/general) "block" "none")}}
+   [:h2 "Closed Invoice!"]
+   [:p "Your registration has been completed,  and paid for. If you need
+   to make  any changes, your  payment balance  may need to  be manually
+   adjusted by the Registration team."] 
+   [:p "It is recommended that you "
+    [:a {:href (str "mailto:register@flapagan.org&subject=Invoice+" (:invoice @d/general))}
+     "contact the Registration team"]
+    " if you need to make any changes."]])
 
+
 (defn registration-page []
   [:div
    ;; [:h2 "Testing"]
@@ -109,6 +119,7 @@
    ;; are " [:em "not"] " enabling  payments until our volunteers have been
    ;; able  to thoroughly  review  the  system and  ensure  that there  are
    ;; no problems."]
+   [closed?-div]
    [guest/staff-applications]
    [guest-list/guest-list-box]
    [merch/merch-box]

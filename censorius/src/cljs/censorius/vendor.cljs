@@ -194,8 +194,8 @@ this box."]]
   [:div {:key "requires-admission"
          :style {:display (if (not (can-be-vendor?))
                             "block" "none")}}
-   [:p   "Vendors   must   have  at   least   one   adult,   full
-  Festival (Wed→Sun) admission."]
+   [:p "Vendors must have at least one adult, full
+ Festival (Wed→Sun) admission."]
    [:p {:class "hint"}
     "You may  see it written that  vendor admission prices
      are $140 (with discounts for buying early). This includes the price
@@ -209,7 +209,9 @@ this box."]]
 
 (defn vendor-box []
   (fn []
-    [:section {:key "vending" :class "card"}
+    [:section {:key "vending" :class "card"
+               :style {:display (if (empty? @guest-list/guests)
+                                  "none" "block")}}
      [:h2 "Vending"]
      [:div {:key "vending"}
       [vendor-requires-admission]

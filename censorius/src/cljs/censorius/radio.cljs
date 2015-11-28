@@ -31,7 +31,7 @@
    (map (partial write-option cursor key) tags)])
 
 (defn radio-button [key key-string cursor [tag name]]
-  (util/log " radio button key " key " key-string " key-string " tag " tag " name " name)
+  #_(util/log " radio button key " key " key-string " key-string " tag " tag " name " name)
   [:div {:key (str name "∈" (or tag "∞"))} 
    [:label 
     [:input {:name key-string
@@ -46,7 +46,7 @@
     name]])
 
 (defn write-radio-set [cursor label key key-string tags name] 
-  (util/log "mapping set label " label " key-string " key-string " over tags " tags)
+  #_(util/log "mapping set label " label " key-string " key-string " over tags " tags)
   [:fieldset 
    (when (not (empty? label)) [:legend label])
    (doall (map (partial radio-button key key-string cursor) tags))])
@@ -55,7 +55,7 @@
   (let [name (util/gensymreally label)
         key-string (util/keyword->string key)]
     (fn [{:keys [cursor label key tags]} kids self]
-      (util/log "Radio set label " label " with " (count tags) " tags " tags)
+      #_(util/log "Radio set label " label " with " (count tags) " tags " tags)
       [:div
        (cond
          (< 15 (count tags))

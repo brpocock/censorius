@@ -8,6 +8,7 @@
    [censorius.guest-list :as guest-list]
    [censorius.herald :as herald]
    [censorius.merch :as merch]
+   [censorius.staff :as staff]
    [censorius.text :as text]
    [censorius.utils :as util]
    [censorius.vendor :as vendor]
@@ -51,7 +52,7 @@
       (keyword-field guest field)))
   (doseq [item @merch/merch]
     (keyword-field item :id))
-  (util/log "merch = " @merch/merch))
+  #_(util/log "merch = " @merch/merch))
 
 (defn remap-styles [value]
   (let [s (vec (map (fn [style] 
@@ -60,7 +61,7 @@
                                            (if (= "id" k) (keyword v) v)}) 
                                      style))) 
                  value))]
-    (util/log "styles " s " ← " value)
+    #_(util/log "styles " s " ← " value)
     s))
 
 (defn reload-array-from-host [a atom-id data]
@@ -75,8 +76,8 @@
           (swap! row-atom assoc :styles (remap-styles value))
           (swap! row-atom assoc (keyword key) value)))
       (swap! a conj row-atom)
-      (util/log " row end…" @row-atom)))
-  (util/log "atom end … " @a))
+      #_(util/log " row end…" @row-atom)))
+  #_(util/log "atom end … " @a))
 
 (defn reload-hash-from-host [a atom-id data]
   #_ (util/log " data are a hash-table")
@@ -84,7 +85,7 @@
   (doseq [[key value] (seq data)]
     #_ (util/log " — set " (keyword key) " ← " value)
     (swap! a assoc (keyword key) value))
-  (util/log "atom end … " @a))
+  #_ (util/log "atom end … " @a))
 
 (def +atom-tags+ {:general d/general
                   :guests guest-list/guests
@@ -95,22 +96,25 @@
                   :payments payments})
 
 (defn accept-recalled-data [document]
-  (js/alert (str "Recalled invoice # " (get document "invoice")
-                 " — Please check your choices if you plan to re-submit after editing. In particular, staff member selections, and tote bags or coffee mugs ordered for each guest (in the guest list grid) are sometimes de-selected when you recall your invoice. (I am working on this bug after Thanksgiving; sorry!)"))
-  (util/log " reply: " document)
+  #_(util/log " reply: " document)
   (swap! d/general assoc :invoice (get document "invoice"))
   (swap! d/general assoc :invoice-token (get document "invoice-token"))
   (doseq [[atom-id data] (seq document)]
-    (util/log " copying atom id " (keyword atom-id) " ← " data)
+    #_(util/log " copying atom id " (keyword atom-id) " ← " data)
     (let [a (get +atom-tags+ (keyword atom-id))]
-      (if a (do (util/log " atom found for " atom-id )
+      (if a (do #_(util/log " atom found for " atom-id )
                 (if (#{"guests" "merch" "workshops" "payments"} atom-id)
                   (reload-array-from-host a atom-id data)
                   (reload-hash-from-host a atom-id data)))
           (util/log " no atom matching " atom-id))))
   (fix-up-keywords)
-  (util/log "(done recalling data)")
-  (swap! d/general assoc :waiver-signature (:signature @d/general)))
+  #_(util/log "(done recalling data)")
+  (swap! d/general assoc :waiver-signature (:signature @d/general))
+  (if (:closed @d/general)
+    (js/alert (str "Recalled Closed invoice # " (get document "invoice")
+                   " — Please contact the Registration team if you need to make changes."))
+    (js/alert (str "Recalled invoice # " (get document "invoice")
+                   " — Please check your choices if you plan to re-submit after editing. In particular, staff member selections, and tote bags or coffee mugs ordered for each guest (in the guest list grid) are sometimes de-selected when you recall your invoice. (I am working on this bug after Thanksgiving; sorry!)"))))
 
 (defn recall-invoice 
   ([invoice user-key admin-key]
@@ -132,7 +136,7 @@
 (defn submission-data []
   {:general (conj @d/general {:signature (:waiver-signature @d/general)
                               :festival-season (:season @d/festival)
-                              :festival-pear (:year @d/festival)})
+                              :festival-year (:year @d/festival)})
    :guests (map #(conj @% { :payment-due (censorius.guest/price %)}) @guest-list/guests)
    :merch (flatten (map (fn [item]
                           (map (fn [style]
@@ -239,16 +243,18 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
 
 (defn display-payment [payment]
   [:li
-   (util/log (str "payment: " @payment))
-   (str "A " (if (pos? (:amount @payment)) "payment (or credit)" "bill")
-        " for the amount " (util/format-money (if (pos? (:amount @payment))
-                                                (:amount @payment)
-                                                (- (:amount @payment))))
-        " was issued using " (or (:source @payment) "(I don't know how)")
-        ".  Reference code: " (or (:via @payment) "(I don't know?)")
-        (if (and (pos? (:amount @payment))
-                 (:note @payment))
-          (str "Payment note: " (:note @payment)) ""))])
+   #_(util/log (str "payment: " @payment))
+   [:span "A " (if (pos? (:amount @payment)) "payment (or credit)" "bill")
+    " for the amount " [:strong (util/format-money (if (pos? (:amount @payment))
+                                                     (:amount @payment)
+                                                     (- (:amount @payment))))]
+    " was issued using " (or (:source @payment) "(I don't know how)")
+    ".  Reference code: " (or [:tt (:via @payment)] "(I don't know?)")
+    (if (and (pos? (:amount @payment))
+             (:note @payment)
+             (pos? (count (:note @payment))))
+      (str "  Payment note: " (:note @payment))
+      "")]])
 
 (defn invoice-payments-section []
   [:tr {:key "invoice-payments"
@@ -500,8 +506,8 @@ legally binding.)"]]
   [:div {:class "buttonBox"}
    [:div
     { :style {:display (if (and (pos? (total-due))
-                               (waiver-signed?)
-                               (not (guest-list/need-adult-email?)))
+                                (waiver-signed?)
+                                (not (guest-list/need-adult-email?)))
                          "block" "none")}}]
    
    [:button {:on-click try-check-out
@@ -509,7 +515,15 @@ legally binding.)"]]
                                        (waiver-signed?)
                                        (not (guest-list/need-adult-email?)))
                                 "inline" "none")}}
-       "Ready, Make Payment →"]])
+    "Ready, Make Payment →"]
+   [:button {:on-click try-check-out
+             :style {:display (if (and (zero? (total-due))
+                                       (waiver-signed?)
+                                       (pos? (count @guest-list/guests))
+                                       (some staff/lugal+? @guest-list/guests)
+                                       (not (guest-list/need-adult-email?)))
+                                "inline" "none")}}
+    "Ready. Close Registration $0.00 →"]])
 
 (defn check-out-notes []
   [:div {:key "notes-div"}
