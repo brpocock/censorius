@@ -1,14 +1,15 @@
-(defpackage :herald (:use :cl :alexandria :local-time :split-sequence)
+(defpackage :herald (:use :cl :alexandria :local-time :split-sequence :cl-ppcre :herald-util)
             (:export :run :start-server))
 
 (in-package :herald)
+
+(require 'lparallel)
 
 ;;;
 ;;;  setcap 'cap_net_bind_service=+ep' /path/to/program
 
 
 
-;;; “database”
 
 (defvar *presenters* nil)
 (defvar *schedule* nil)
@@ -17,7 +18,6 @@
 (defconstant +vendor-slips+ 100)
 (defvar *vendors-row* (make-array +vendor-slips+ :initial-element nil))
 (defvar *whiteboard* nil)
-(defvar *all-events* nil)
 
 
 ;;; current configuration
@@ -60,7 +60,7 @@
      (bio-fix (subseq name 0 (position #\space name :from-end t)) bio))
     (t bio)))
 
-(defun read-presenter (row)
+(defun read-presenter-from-spreadsheet (row)
   (destructuring-bind (short-name confirmedp mundane-name name phone email prefer-contact
                                   can-record-p bio headlinerp musicalp) row
     (pushnew (list (or short-name name) mundane-name
@@ -129,14 +129,14 @@
     (t 
      (error "Don't know how to parse age ~S" ages))))
 
-(defun read-event (row)
+(defun read-event-from-spreadsheet (row)
   (unwind-protect
        (destructuring-bind (short-name grid-name requested-at presenter
                                        name description duration ages genders
                                        notes presenter-needs submitted)
            row
          (when (null short-name)
-           (return-from read-event))
+           (return-from read-event-from-spreadsheet))
          (pushnew (list (title-case-properly short-name)
                         (title-case-properly (or grid-name name))
                         :name (title-case-properly name)
@@ -167,18 +167,18 @@
 (defun read-schedule-row (row)
   (push row *schedule*))
 
-(defun read-vendor (row)
+(defun read-vendor-from-spreadsheet (row)
   (destructuring-bind (invoice-number 
-		       last-name first-name
-		       address address-2 city state 
-		       zip-code
-		       email phone registered
-		       type-admission-adult-minor-vendor-reg-fee
-		       booth-name slip-1 slip-2 slip-3
-		       vendor-fee paid-check-or-cash-vendor-fee
-		       paid-pay-pal-vendor-fee
-		       comments food-vendor-p blurb 
-		       lockedp)
+                       last-name first-name
+                       address address-2 city state 
+                       zip-code
+                       email phone registered
+                       type-admission-adult-minor-vendor-reg-fee
+                       booth-name slip-1 slip-2 slip-3
+                       vendor-fee paid-check-or-cash-vendor-fee
+                       paid-pay-pal-vendor-fee
+                       comments food-vendor-p blurb 
+                       lockedp)
       row
 
     (let ((record (list booth-name blurb
@@ -206,58 +206,22 @@
                         :lockedp (find #\Y (string-upcase lockedp))
                         :description blurb)))
       (if (or slip-1 slip-2 slip-3)
-	  (progn
-	    (pushnew record *vendors*
-		     :key #'car :test #'string-equal)
-	    (loop for slip in (remove-if #'null
-					 (mapcar (rcurry #'parse-integer :junk-allowed t)
-						 (remove-if #'null
-							    (list slip-1 slip-2 slip-3))))
-	       do (if (< 0 slip +vendor-slips+)
-		      (setf (aref *vendors-row* slip) booth-name)
-		      (warn "Ignoring vendor slip “~a” for “~a;” must be 1…~d"
-			    slip booth-name (1- +vendor-slips+)))))
-	  (warn "Vendor “~a” has no slip(s) assigned." booth-name)))))
+          (progn
+            (pushnew record *vendors*
+                     :key #'car :test #'string-equal)
+            (loop for slip in (remove-if #'null
+                                         (mapcar (rcurry #'parse-integer :junk-allowed t)
+                                                 (remove-if #'null
+                                                            (list slip-1 slip-2 slip-3))))
+               do (if (< 0 slip +vendor-slips+)
+                      (setf (aref *vendors-row* slip) booth-name)
+                      (warn "Ignoring vendor slip “~a” for “~a;” must be 1…~d"
+                            slip booth-name (1- +vendor-slips+)))))
+          (warn "Vendor “~a” has no slip(s) assigned." booth-name)))))
 
 (defun times (count thing)
   (when count
     (loop for i from 1 upto count collecting thing)))
-
-(defmacro sexp->file (file var)
-  (let ((file+ext (merge-pathnames (concatenate 'string file ".lisp"))))
-    `(progn (with-output-to-file (out ,file+ext :if-exists :supersede)
-              (format out ";;; ☿Herald data file: ~A~2%
-\(in-package :herald)
-\(setf ~A (quote ~S))~2%;;; End of file~%"
-                      ,file ,(symbol-name var) ,var))
-            (compile-file ,file+ext))))
-
-(defun save-presenters ()
-  (sexp->file "presenters" *presenters*))
-
-(defun save-events ()
-  (sexp->file "events" *events*))
-
-(defun save-schedule ()
-  (sexp->file "schedule" *schedule*))
-
-(defun save-all-events ()
-  (sexp->file "all-events" *all-events*))
-
-(defun save-vendors ()
-  (sexp->file "vendors" *vendors*))
-
-(defun save-whiteboard ()
-  (sexp->file "whiteboard" *whiteboard*))
-
-(defun save-files ()
-  (format t "~& ☠ Saving files…")
-  (save-presenters)
-  (save-events)
-  (save-all-events)
-  (save-schedule)
-  (save-vendors)
-  (save-whiteboard))
 
 (declaim (inline make-directory))
 (defun make-directory (dirname)
@@ -291,7 +255,7 @@
   (post-whiteboard '(:log :checkpoint) ":CHECKPOINT Saving data" "☿Herald")
   (make-directory "checkpoint")
   (let ((*default-pathname-defaults* (merge-pathnames "checkpoint/")))
-    (save-files)
+    (error "TODO")
     (loop for file in '("presenters" "events" "schedules" "vendors" "whiteboard" "all-events")
        do (move-file (fasl-name file) (cl-fad:pathname-parent-directory
                                        *default-pathname-defaults*))))
@@ -385,13 +349,13 @@
 (defun load-presenter-files (from-csv-p)
   (if from-csv-p
       (map-spreadsheet ("Workshop-Presenters")
-                       #'read-presenter :skip-lines 1)
+                       #'read-presenter-from-spreadsheet :skip-lines 1)
       (load (merge-pathnames "presenters")))
   (format t "~& ☠ ~R presenter~:P" (length *presenters*)))
 
 (defun load-events-files (from-csv-p)
   (if from-csv-p
-      (map-spreadsheet ("Workshop-Details") #'read-event :skip-lines 1)
+      (map-spreadsheet ("Workshop-Details") #'read-event-from-spreadsheet :skip-lines 1)
       (load (merge-pathnames "events")))
   (setf *schedule* nil)
   (if from-csv-p
@@ -405,41 +369,30 @@
              (parse-schedule))
       (progn (load (merge-pathnames "all-events"))
              (load (merge-pathnames "schedule"))))
-  (format t "~& ☠ ~R event~:P" (length *all-events*))
+  (format t "~& ☠ ~R event~:P" (length (all-events)))
   (format t "~& ☠ Schedule grid is ~:D×~:D" (length (car *schedule*)) (length *schedule*)))
 
 (defun load-vendor-files (from-csv-p)
   (if from-csv-p
-      (map-spreadsheet ("Vendor-Registrations") #'read-vendor :skip-lines 1)
+      (map-spreadsheet ("Vendor-Registrations") #'read-vendor-from-spreadsheet :skip-lines 1)
       (load (merge-pathnames "vendors")))
   (format t "~& ☠ ~R vendor~:P" (length *vendors*)))
 
-(defun load-whiteboard-files (from-csv-p)
-  (if from-csv-p
-      (format t "~& ☠ Whiteboard is empty")
-      (progn
-        (load (merge-pathnames "whiteboard"))
-        (format t "~& ☠ Whiteboard has ~R entr~:@P" (length *whiteboard*)))))
-
-(defun load-files (&key (from-csv-p t))
-  (clear-knowledgebase)
+(defun load-files-from-spreadsheets (&rest festivals)
   (format t "~& ☠ Loading files…")
-  (let ((*default-pathname-defaults* (festival-work-dir)))
-    (load-presenter-files from-csv-p)
-    (load-events-files from-csv-p)
-    (load-vendor-files from-csv-p)
-    (load-whiteboard-files from-csv-p))
-  (validate-time))
-
-
+  (loop for (*season* *year*) in festivals
+     do (let ((*default-pathname-defaults* (festival-work-dir)))
+          (load-presenter-files )
+          (load-events-files )
+          (load-vendor-files ))))
 
 (defun parse-schedule ()
-  (setf *all-events*
-        (reduce #'append
-                (remove-if #'emptyp
-                           (mapcar #'cdr
-                                   (grid-for-columns 
-                                    (seq 1 (1- (length (first *schedule*))))))))))
+  (map nil #'add-event-from-schedule
+       (reduce #'append
+               (remove-if #'emptyp
+                          (mapcar #'cdr
+                                  (grid-for-columns 
+                                   (seq 1 (1- (length (first *schedule*))))))))))
 
 
 (defun grid-for-columns (columns)
@@ -494,35 +447,29 @@
   (cond
     ((null time) nil)
     ((not (numberp time)) (string time))
-    ((= 1/2 (second (multiple-value-list (floor time))))
+    ((>= 1/2 (second (multiple-value-list (floor time))))
      (format nil "~:D½ hour~P" (floor time) (1- (floor time))))
     (t (format nil "~R hour~:P" time))))
 
-(defun string-begins (string prefix)
-  (let ((prefix-length (length prefix)))
-    (and (>= (length string) prefix-length)
-         (string-equal string prefix
-                       :end1 prefix-length))))
-
 (defun print-event-details/html (event)
   (format t "~%<h3 class=\"event\">~A<a name=\"~*~A\" ></a></h3>
-~@[<small class=\"event-presenter\"> <a href=\"presenters.html#~A\">~:*~A</a> </small> • ~]
-<small class=\"event-venue\">~A</small>
-<span class=\"event-details\"> ~A </span>
-<small class=\"event-attendees\">(<span class=\"event-ages\">~A</span>~@[;
- <span class=\"event-duration\">~A</span>~]~@[;
- <span class=\"event-gender\">~A</a>~]~@[;
+~@[<small class=\"event-presenter\"> <a href=\"presenters.html#~A\">~:*~/html/</a> </small> • ~]
+<small class=\"event-venue\">~/html/</small>
+<span class=\"event-details\"> ~/html/</span>
+<small class=\"event-attendees\">(<span class=\"event-ages\">~/html/</span>~@[;
+ <span class=\"event-duration\">~/html/</span>~]~@[;
+ <span class=\"event-gender\">~/html/</a>~]~@[;
  <a href=\"sweatlodge.html\">sweatlodge info</a>}~]~@[;
  <a href=\"celtic-games.html\">Celtic Games info</a>~]) </small>~%"
-          (~@ (getf event :name))
+          (getf event :name)
           (getf event :day) (car event)
           (when-let ((bio (presenter-by-name (getf event :presenter))))
-            (@ (getf bio :name)))
-          (~@ (getf event :location))
-          (~@ (getf event :description))
-          (~@ (interpret-age (getf event :ages)))
-          (~@ (interpret-time (getf event :duration)))
-          (~@ (interpret-sex (getf event :♂p) (getf event :♀p)))
+            (getf bio :name))
+          (getf event :location)
+          (getf event :description)
+          (interpret-age (getf event :ages))
+          (interpret-time (getf event :duration))
+          (interpret-sex (getf event :♂p) (getf event :♀p))
           (string-begins (car event) "sweat")
           (string-begins (car event) "celts")))
 
@@ -561,7 +508,7 @@
     (with-output-to-file (kids-events-file (format nil "kids-events-~A.tex" day)
                                            :if-exists :supersede)
       (let ((day-name (day-name day))
-            (day-events (remove-if-not (curry #'string-equal day) *all-events*
+            (day-events (remove-if-not (curry #'string-equal day) (all-events)
                                        :key (rcurry #'getf :day))))
         (loop for time in (sort-list (remove-duplicates
                                       (mapcar (rcurry #'getf :time-slot)
@@ -707,49 +654,10 @@
 (defun nice-grid (grid)
   (remove-if (lambda (row) (every #'null (subseq row 1))) grid))
 
-
-(defvar *fix* '(("\\&" "\\\\&")
-                ("\\$" "\\\\$")
-                ("\\x92" "'")
-                ("\\x93" " ``")
-                ("\\x94" "'' ")
-                ("\\223" " ``")
-                ("\\224" "'' ")
-                ("—" "---")
-                ("_" "\\_")
-                ("\\x96" "---")
-                ("“" "``")
-                ("”" "''")
-                ("‘" "`")
-                ("’" "'")
-                ("í" "\\'i")
-                ("#" "\\textnumero")
-                ("№" "\\textnumero")
-                ("1½" "$1\\\\frac{1}{2}$")
-                ("\\bFPG\\b" "\\fpg")
-                ("\\bFlorida Pagan Gathering\\b" "\\FPG")
-                ("\\bTemple of Earth Gatherings?\\b" "\\TEG")
-                ("\\bTEG\\b" "\\teg")
-                ("\\bFPG\\b" "\\fpg")
-                ("\\bSean\\b" "Seán")
-                ("(https?://[^\\s]+)" "\\texttt{\\1}")
-                ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
-                ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
-                ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
-                ("\\s([a-zA-Z][^\\s]@[a-zA-Z0-9.-]+\\.[a-zA-Z0-9.-]+)"  " \\texttt{\\1}")))
-
-(defun @ (s)
-    (loop for (from to) in *fix*
-       do (setf s (cl-ppcre:regex-replace-all from s to)))
-  s)
-
 (defun dishonor (string)
-  (let ((*fix* (mapcar (rcurry #'list "") 
-                       '("Dr\.? "
-                         "Mrs?\.? "
-                         "M(is)?s\.? "
-                         "Rev\.? "))))
-    (@ string)))
+  (loop for honorific in '("Dr\.? " "Mrs?\.? " "M(is)?s\.? " "Rev\.? ")
+     do (setf string (regex-rep-a))
+       (@ string)))
 
 (defun print-kids-book ()
   (format t "~& ☠ Kids' Handbook")
@@ -808,7 +716,7 @@
 (defun event-day-key (event) (day-key (getf event :day)))
 
 (defun event-by-name (event)
-  (find event *all-events* :key #'car :test #'string-equal))
+  (find event (all-events) :key #'car :test #'string-equal))
 
 (defun get-all-places ()
   (remove-if #'null (mapcar #'car (subseq *schedule* 2))))
@@ -832,7 +740,7 @@
 	     (remove-if (compose #'null #'car) set)))
 
 (defun get-events-in-place (place)
-  (remove-if-not (curry #'string-equal place) *all-events*
+  (remove-if-not (curry #'string-equal place) (all-events)
                  :key (rcurry #'getf :location)))
 
 (defun print-event-for-face-sheet-latex (event with-private-details-p)
@@ -885,7 +793,7 @@
 (defun get-all-presenters ()
   (remove-duplicates
    (remove-if #'null
-              (mapcar (rcurry #'getf :presenter) *all-events*))
+              (mapcar (rcurry #'getf :presenter) (all-events)))
    :test #'equal))
 
 (defun presenter-by-name (presenter)
@@ -935,7 +843,7 @@
           (car event)))
 
 (defun events-for-presenter (presenter)
-  (remove-if-not (curry #'string-equal presenter) *all-events*
+  (remove-if-not (curry #'string-equal presenter) (all-events)
                  :key (rcurry #'getf :presenter)))
 
 (defun print-bio/html (file normalp name bio evenp photo events
@@ -1450,6 +1358,7 @@ events listing.
 (defun print-closing/html (&key (stream *standard-output*))
   (princ "</body></html>" stream))
 
+#+oldserver
 (defun ~@ (s)
   (typecase s
     (null nil)
@@ -1462,7 +1371,7 @@ events listing.
                                           :if-exists :supersede)
     (print-preamble/html (concatenate 'string "★ Events for " (day-name day)))
     (let ((day-name (day-name day))
-          (day-events (remove-if-not (curry #'string-equal day) *all-events*
+          (day-events (remove-if-not (curry #'string-equal day) (all-events)
                                      :key (rcurry #'getf :day))))
       (loop for time in (sort-list (remove-duplicates
                                     (mapcar (rcurry #'getf :time-slot)
@@ -2034,6 +1943,7 @@ reserved your slip~P; ~{~A~^ and ~}. }"
 
 (defvar *http-acceptor* nil)
 
+#+oldserver
 (defun kill-server-for-restart (force-restart-p)
   (when *http-acceptor*
     (if (or force-restart-p (yes-or-no-p "Existing HTTP listener exists: ~S~%Terminate it first? " *http-acceptor*))
@@ -2041,6 +1951,7 @@ reserved your slip~P; ~{~A~^ and ~}. }"
         (cerror "Try to continue" "Existing HTTP acceptor not terminated"))
     (setf *http-acceptor* nil)))
 
+#+oldserver
 (defun start-hunchentoot (&key (port 80) force-restart-p)
   (kill-server-for-restart force-restart-p)
   (setf *http-acceptor* (make-instance 'hunchentoot:easy-acceptor
@@ -2049,6 +1960,7 @@ reserved your slip~P; ~{~A~^ and ~}. }"
                                        :name "FPG Herald"))
   (hunchentoot:start *http-acceptor*))
 
+#+oldserver
 (defun start-server (&key (port 80))
   (format t "~|~2% ☿ Good Morning. Starting up Herald server. ☿")
   (format t "~2% ☿ Loading static data files for baseline…")
@@ -2080,7 +1992,7 @@ reserved your slip~P; ~{~A~^ and ~}. }"
     (print-closing/html)))
 
 (defun find-event-day-time-place (day time venue)
-  (loop for ev in *all-events*
+  (loop for ev in (all-events)
      when (and (eql (getf ev :day) day)
                (eql (getf ev :time) time)
                (eql (getf ev :location) venue))
@@ -2106,15 +2018,16 @@ reserved your slip~P; ~{~A~^ and ~}. }"
         (schedule *schedule*)
         (vendors *vendors*)
         (whiteboard *whiteboard*)
-        (events *all-events*))
+        (events (all-events)))
     (save-files)
     (load-files :from-csv-p nil)
     (assert (equalp presenters *presenters*))
     (assert (equalp schedule *schedule*))
     (assert (equalp vendors *vendors*))
     (assert (equalp whiteboard *whiteboard*))
-    (assert (equalp events *all-events*))))
+    (assert (equalp events (all-events)))))
 
+#+oldserver
 (defun authorizedp ()
   (multiple-value-bind (user password) (hunchentoot:authorization)
     (or (and (equal user "sage") (equal password "victory"))
@@ -2122,6 +2035,7 @@ reserved your slip~P; ~{~A~^ and ~}. }"
         (and (equal user "mystral") (equal password "winner"))
         (and (equal user "office") (equal password "whatever")))))
 
+#+oldserver
 (hunchentoot:define-easy-handler (test :uri "/test")
     ((thing :parameter-type 'keyword))
   (error "~&Foo. ~S" thing))
@@ -2164,7 +2078,7 @@ reserved your slip~P; ~{~A~^ and ~}. }"
 (define-edit-search :location "workshop venue" 
   (mapcar #'car (subseq *schedule* 2)) #'identity #'identity)
 (define-edit-search :vendor "vendor" *vendors* #'car #'car)
-(define-edit-search :event "event" *all-events*
+(define-edit-search :event "event" (all-events)
                     #1=(lambda (event) (or (second event) (getf event :name) (car event)))
                     #1#)
 
@@ -2326,6 +2240,7 @@ reserved your slip~P; ~{~A~^ and ~}. }"
 (define-text-fields :presenter (:bio))
 (define-boolean-fields :presenter (:confirmedp :musicalp :can-record-p))
 
+#+oldserver
 (defmacro establish-plist-editor (type-symbol type-name
                                   description record-find-function
                                   (&rest prefix-fields-list)
@@ -2344,87 +2259,91 @@ reserved your slip~P; ~{~A~^ and ~}. }"
                            (hunchentoot:authorization)))
         (if-let ((record (,record-find-function id)))
 
-                (progn (print-preamble/html (format nil "Editing ~A ~A" ,type-name id))
-                       (princ ,description)
-                       (princ "<form method=\"POST\"><dl>")
-                       (format t "~%<input type=\"hidden\" name=\"-id-\" value=\"~A\">" id)
-                       (format t "~%<dt>~:(~A~):</dt><dd>~A</dd>" ',(car prefix-fields-list) (~@ (car record)))
-                       (loop for prefix-field from 1 upto ,(1- num-prefix)
-                          for prefix-field-name in ',(cdr prefix-fields-list)
-                          do (edit-for-field ,type-symbol prefix-field-name (~@ (nth prefix-field record))))
-                       (loop for (key value) on (nthcdr ,num-prefix record) by #'cddr
-                          unless ,(if minor-fields-list
-                                      `(member key '(,@minor-fields-list))
-                                      'nil)
-                          do (edit-for-field ,type-symbol key (~@ value)))
-                       (princ "<hr>")
-                       ,(when minor-fields-list
-                              `(loop for (key value) on (nthcdr ,num-prefix record) by #'cddr
-                                  when (member key '(,@minor-fields-list))
-                                  do (edit-for-field ,type-symbol key (~@ value))))
-                       (princ "</dl>")
-                       (princ "<input type=\"reset\"><input type=\"submit\" name=\"-submit-\" value=\"Save Changes\"></form>")
-                       (format t "~%<h3>Whiteboard</h3>~%<p>Leave notes here. Keywords beginning with : will be indexed for searches.
+          (progn (print-preamble/html (format nil "Editing ~A ~A" ,type-name id))
+                 (princ ,description)
+                 (princ "<form method=\"POST\"><dl>")
+                 (format t "~%<input type=\"hidden\" name=\"-id-\" value=\"~A\">" id)
+                 (format t "~%<dt>~:(~A~):</dt><dd>~A</dd>" ',(car prefix-fields-list) (~@ (car record)))
+                 (loop for prefix-field from 1 upto ,(1- num-prefix)
+                    for prefix-field-name in ',(cdr prefix-fields-list)
+                    do (edit-for-field ,type-symbol prefix-field-name (~@ (nth prefix-field record))))
+                 (loop for (key value) on (nthcdr ,num-prefix record) by #'cddr
+                    unless ,(if minor-fields-list
+                                `(member key '(,@minor-fields-list))
+                                'nil)
+                    do (edit-for-field ,type-symbol key (~@ value)))
+                 (princ "<hr>")
+                 ,(when minor-fields-list
+                        `(loop for (key value) on (nthcdr ,num-prefix record) by #'cddr
+                            when (member key '(,@minor-fields-list))
+                            do (edit-for-field ,type-symbol key (~@ value))))
+                 (princ "</dl>")
+                 (princ "<input type=\"reset\"><input type=\"submit\" name=\"-submit-\" value=\"Save Changes\"></form>")
+                 (format t "~%<h3>Whiteboard</h3>~%<p>Leave notes here. Keywords beginning with : will be indexed for searches.
 <small>Example: checking in sets the keyword <code>:CHECKIN</code> on the whiteboard.</small> </p>
 <form method=\"POST\"><textarea name=\"*whiteboard\" rows=4></textarea>
 <input type=\"hidden\" name=\"type\" value=\"~A\">
 <input type=\"hidden\" name=\"id\" value=\"~A\">
 <input type=\"submit\" name=\"-whiteboard-\" value=\"Post\"></form>~%<hr>~%~{~%~%~A~}"
-                               ,type-symbol id
-                               (mapcar #'whiteboard->html
-                                       (read-whiteboard ,type-symbol id)))
-                       (format t "~%<hr><nav><a href=\"edit?type=~A\">All <br><small>(~A)</small></a>"
-                               ,type-symbol ,type-name)
-                       (print-closing/html))
+                         ,type-symbol id
+                         (mapcar #'whiteboard->html
+                                 (read-whiteboard ,type-symbol id)))
+                 (format t "~%<hr><nav><a href=\"edit?type=~A\">All <br><small>(~A)</small></a>"
+                         ,type-symbol ,type-name)
+                 (print-closing/html))
 
-                (error "No object found with type ~S and ID ~S" ,type-symbol id))))))
+          (error "No object found with type ~S and ID ~S" ,type-symbol id))))))
 
 (establish-plist-editor :presenter "workshop presenter"
-    "<p>Workshop presenters, headliners, and musical guests have their
+                        "<p>Workshop presenters, headliners, and musical guests have their
 biographical information stored here.</p>" presenter-by-name
-    (code-name mundane-name) ()
+(code-name mundane-name) ()
 
-  (error "I didn't write a COMMIT function yet ☠"))
+(error "I didn't write a COMMIT function yet ☠"))
 
+#+oldserver
 (establish-plist-editor :vendor "vendor"
-    "<p>vendors…</p>" vendor-by-name
-    (booth-name blurb) (:address :address-2 :city :state :zip-code
-                                 :registered :reg-fee :type-admission
-                                 :cabin-fee :cabin-number :rv-space :meal-plan
-                                 :tshirt-fee :tote-bags
-                                 :water-bottle :fpg*mugs
-                                 :scholarship-donations :paid-check-or-cash-reg-fee
-                                 :paid-check-or-cash-vendor-fee
-                                 :paid-pay-pal-reg-fee :paid-pay-pal-vendor-fee
-                                 :due-on-site :vendor-foo)
+                        "<p>vendors…</p>" vendor-by-name
+                        (booth-name blurb) (:address :address-2 :city :state :zip-code
+                                                     :registered :reg-fee :type-admission
+                                                     :cabin-fee :cabin-number :rv-space :meal-plan
+                                                     :tshirt-fee :tote-bags
+                                                     :water-bottle :fpg*mugs
+                                                     :scholarship-donations :paid-check-or-cash-reg-fee
+                                                     :paid-check-or-cash-vendor-fee
+                                                     :paid-pay-pal-reg-fee :paid-pay-pal-vendor-fee
+                                                     :due-on-site :vendor-foo)
 
-  (error "I didn't write a COMMIT function yet ☠"))
+                        (error "I didn't write a COMMIT function yet ☠"))
 
+#+oldserver
 (establish-plist-editor :event "event"
-    "<p>event…</p>" event-by-name
-    (event-name thingie) (:requested :submitted)
-  
-  (let ((index (position (hunchentoot:post-parameter "-id-") *all-events*
-                         :key #'car :test #'string-equal)))
-    (assert index)
-    (setf (nth index *all-events*)
-          (append (list (hunchentoot:post-parameter "-id-")
-                        (hunchentoot:post-parameter "THINGIE"))
-                  (mapcan (lambda (pair) (list (intern (car pair) :keyword)
-                                               (cdr pair)))
-                          (remove-if (rcurry #'member '("-id-" "THINGIE" "-submit-")
-                                             :test #'equal)
-                                     (hunchentoot:post-parameters hunchentoot:*request*)
-                                     :key #'car)))))
-  (print-grid/html))
+                        "<p>event…</p>" event-by-name
+                        (event-name thingie) (:requested :submitted)
+                        
+                        (let ((index (position (hunchentoot:post-parameter "-id-") (all-events)
+                                               :key #'car :test #'string-equal)))
+                          (assert index)
+                          (setf (nth index (all-events))
+                                (append (list (hunchentoot:post-parameter "-id-")
+                                              (hunchentoot:post-parameter "THINGIE"))
+                                        (mapcan (lambda (pair) (list (intern (car pair) :keyword)
+                                                                     (cdr pair)))
+                                                (remove-if (rcurry #'member '("-id-" "THINGIE" "-submit-")
+                                                                   :test #'equal)
+                                                           (hunchentoot:post-parameters hunchentoot:*request*)
+                                                           :key #'car)))))
+                        (print-grid/html))
 
+#+oldserver
 (establish-plist-editor :presenter "workshop presenter"
-    "<p>Workshop presenters, headliners, and musical guests have their
+                        "<p>Workshop presenters, headliners, and musical guests have their
 biographical information stored here.</p>" presenter-by-name
-    (code-name mundane-name) ()
+(code-name mundane-name) ()
 
-  (error "I didn't write a COMMIT function yet ☠"))
+(error "I didn't write a COMMIT function yet ☠"))
 
+#+oldserver
 (defmethod perform-edit ((type (eql :clock)) (id null) (fast-keyword null))
   (declare (ignore id fast-keyword))
   (progs (print-preamble/html "Set Clock")
@@ -2449,6 +2368,7 @@ Date: <input name=\"yyyymmdd\" value=\"~5@*~4,'0D-~2,'0D-~3@*~2,'0D\" style=\"wi
                    (timestamp-month now)))
          (print-closing/html)))
 
+#+oldserver
 (hunchentoot:define-easy-handler (edit :uri "/edit")
     ((type :parameter-type 'keyword)
      (id :parameter-type 'string)
@@ -2457,7 +2377,9 @@ Date: <input name=\"yyyymmdd\" value=\"~5@*~4,'0D-~2,'0D-~3@*~2,'0D\" style=\"wi
     (hunchentoot:require-authorization "Herald"))
   (perform-edit type id fast-keyword))
 
+#+oldserver
 (setf hunchentoot:*show-lisp-errors-p* t)
+#+oldserver
 (setf hunchentoot:*show-lisp-backtraces-p* t)
 
 

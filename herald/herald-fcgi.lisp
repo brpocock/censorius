@@ -145,48 +145,48 @@ the external format EXTERNAL-FORMAT."
   (cond 
     ((null string) nil)
     ((zerop (length string))
-    (return-from url-decode ""))
+     (return-from url-decode ""))
     (t
-  (let ((vector (make-array (length string)
-                            :element-type '(unsigned-byte 8)
-                            :fill-pointer 0))
-        (i 0)
-        unicodep)
-    (loop
-       (unless (< i (length string))
-         (return))
-       (let ((char (aref string i)))
-         (labels ((decode-hex (length)
-                    (prog1
-                        (parse-integer string
-                                       :start i :end (+ i length) :radix 16)
-                      (incf i length)))
-                  (push-integer (integer)
-                    (vector-push integer vector))
-                  (peek ()
-                    (aref string i))
-                  (advance ()
-                    (setq char (peek))
-                    (incf i)))
-           (cond
-             ((char= #\% char)
-              (advance)
+     (let ((vector (make-array (length string)
+                               :element-type '(unsigned-byte 8)
+                               :fill-pointer 0))
+           (i 0)
+           unicodep)
+       (loop
+          (unless (< i (length string))
+            (return))
+          (let ((char (aref string i)))
+            (labels ((decode-hex (length)
+                       (prog1
+                           (parse-integer string
+                                          :start i :end (+ i length) :radix 16)
+                         (incf i length)))
+                     (push-integer (integer)
+                       (vector-push integer vector))
+                     (peek ()
+                       (aref string i))
+                     (advance ()
+                       (setq char (peek))
+                       (incf i)))
               (cond
-                ((char= #\u (peek))
-                 (unless unicodep
-                   (setq unicodep t)
-                   (upgrade-vector vector '(integer 0 65535)))
+                ((char= #\% char)
                  (advance)
-                 (push-integer (decode-hex 4)))
-                (t
-                 (push-integer (decode-hex 2)))))
-             (t (push-integer (char-code (case char
-                                           ((#\+) #\Space)
-                                           (otherwise char))))
-                (advance))))))
-    (cond (unicodep
-           (upgrade-vector vector 'character :converter #'code-char))
-          (t (flexi-streams:octets-to-string vector
+                 (cond
+                   ((char= #\u (peek))
+                    (unless unicodep
+                      (setq unicodep t)
+                      (upgrade-vector vector '(integer 0 65535)))
+                    (advance)
+                    (push-integer (decode-hex 4)))
+                   (t
+                    (push-integer (decode-hex 2)))))
+                (t (push-integer (char-code (case char
+                                              ((#\+) #\Space)
+                                              (otherwise char))))
+                   (advance))))))
+       (cond (unicodep
+              (upgrade-vector vector 'character :converter #'code-char))
+             (t (flexi-streams:octets-to-string vector
                                                 :external-format external-format)))))))
 
 (defun url-encode (string)
@@ -207,6 +207,14 @@ the external format EXTERNAL-FORMAT."
                       do (format s "%~2,'0x" octet)))))))
 
 
+;;; Core parse/deparse stuff
+
+(defun string-begins (string prefix)
+  (let ((prefix-length (length prefix)))
+    (and (>= (length string) prefix-length)
+         (string-equal string prefix
+                       :end1 prefix-length))))
+
 (defun parse-decimal (string)
   "Parses a simple  decimal number. Accepts optional - sign  (but not +)
 and  does not  attempt  to  understand such  things  as, eg,  scientific
@@ -312,6 +320,46 @@ real numbers."
   (assert (not atp) () "The @ modifier is not used for ~~/SQL/")
   (assert (null parameters) () "~~/SQL/ does not accept parameters; saw ~s" parameters)
   (princ (->sql object) stream))
+
+(defvar *tex-escape* '(("\\&" "\\\\&")
+                       ("\\$" "\\\\$")
+                       ("\\x92" "'")
+                       ("\\x93" " ``")
+                       ("\\x94" "'' ")
+                       ("\\223" " ``")
+                       ("\\224" "'' ")
+                       ("—" "---")
+                       ("_" "\\_")
+                       ("\\x96" "---")
+                       ("“" "``")
+                       ("”" "''")
+                       ("‘" "`")
+                       ("’" "'")
+                       ("í" "\\'i")
+                       ("#" "\\textnumero")
+                       ("№" "\\textnumero")
+                       ("1½" "$1\\\\frac{1}{2}$")
+                       ("\\bFPG\\b" "\\fpg")
+                       ("\\bFlorida Pagan Gathering\\b" "\\FPG")
+                       ("\\bTemple of Earth Gatherings?\\b" "\\TEG")
+                       ("\\bTEG\\b" "\\teg")
+                       ("\\bFPG\\b" "\\fpg")
+                       ("\\bSean\\b" "Seán")
+                       ("(https?://[^\\s]+)" "\\texttt{\\1}")
+                       ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
+                       ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
+                       ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
+                       ("\\s([a-zA-Z][^\\s]@[a-zA-Z0-9.-]+\\.[a-zA-Z0-9.-]+)"  " \\texttt{\\1}")))
+
+(defun cl-user::tex (stream object colonp atp &rest parameters)
+  (assert (not colonp))
+  (assert (not atp))
+  (assert (null parameters))
+  (let ((string (princ-to-string object)))
+    (loop for (from to) in *tex-escape*
+       do (setf string (regex-replace-all from string to)))
+    (write string :stream stream)))
+
 
 (defun html-escape (string)
   "Escapes < and & from strings for safe printing as HTML (text node) content."
@@ -883,13 +931,13 @@ Content-Type: text/plain; charset=utf-8
 (defun simple-record-table-has-column (object column)
   (member column (simple-record-table-columns object) :test #'string=))
 
-(defmethod initialize-instance :after ((object simple-record-table) &rest initargs
+(defmethod initialize-instance :after ((object simple-record-table)
                                        &key db-table primary-key-columns trailer-tables
                                          parent-table start-column end-column
                                          volatility logical-deletion-column)
   (setf (slot-value object 'table-description) (mapplist (key value)
-                                                         (db-query (format nil "describe `~a`" db-table))
-                                                         (list (make-keyword (string-upcase key)) value)))
+                                                   (db-query (format nil "describe `~a`" db-table))
+                                                 (list (make-keyword (string-upcase key)) value)))
   (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
           (primary-key-columns)
           "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
@@ -900,10 +948,20 @@ Content-Type: text/plain; charset=utf-8
      do (assert (simple-record-table-has-column object column-name)
                 ()
                 "The ~a given for ~a is ~a, which is not a column on that table"
-                column db-table column-name)))
+                column db-table column-name))
+  (let ((missing (remove-if-not (lambda (table)
+                                  (ignore-errors
+                                    (length (db-query (format nil "describe `~a`" table)))))
+                                (append (list parent-table) trailer-tables))))
+    (assert (null missing) (parent-table trailer-tables)
+            "All parent and trailer tables must exist; ~r missing table~:p: ~{~a~^, ~}"
+            (length missing) missing))
+  (assert (simple-record-volatility-p volatility) (volatility)
+          "The volatility of the table must be valid (~a is not)" volatility))
 
-(make-instance 'simple-record-table :db-table "invoices" :primary-key-columns '("invoice")
-               :volatility :session)
+(with-sql
+  (make-instance 'simple-record-table :db-table "invoices" :primary-key-columns '("invoice")
+                 :volatility :session))
 
 (defclass simple-record ()
   ((table :type simple-record-table :reader record-table :initarg :table)
@@ -1272,6 +1330,10 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
              (<= 400 (first conditions)))
     (format *error-output* "~&ERROR condition: ~{~a~^  ~}" conditions)
     (map nil #'mail-error (rest conditions))))
+
+(defun prompt-for-authentication (&rest stuff)
+  (declare (ignore stuff))
+  (format t "Content-Type: text/plain; charset=utf-8~10%LOGON PLEASE>")) ; TODO
 
 (defun reply (structure)
   (format *error-output* "~& Handling reply: ~s" structure)
@@ -2166,126 +2228,6 @@ Details: Invoice token ~s;
                                                                                             +compile-time-offset+)))))
                                   (list (nth 5 built) (nth 4 built) (nth 3 built))))))
 
-;; (defun init-db ()
-;;   (with-sql
-;;     (dolist (expr '("create table festivals (`starting` date not null unique key,
-;; ending date not null unique key, season varchar(8) not null, year year not null, primary key(season, year))"
-;;                     "create table invoices (invoice serial primary key, created datetime,
-;; closed datetime, `closed-by` text, `old-system-p` boolean not null default false, `festival-season` varchar(8),
-;;  `festival-year` year not null, note text, `signature` varchar(60), memo text,
-;; foreign key (`festival-season`,`festival-year`) references festivals(season,year) on delete restrict)"
-;;                     "create table merch (id varchar(20) primary key, title varchar(100) unique key,
-;; description text, image varchar(100), price decimal(6,2) not null default 9999.99)"
-;;                     "create table `merch-styles` (item varchar(20),
-;; id varchar(6) not null, title varchar(100) not null, inventory integer unsigned  not null default 0,
-;; constraint itemstyle unique(item,id), constraint itemstylename unique(item, title),
-;; foreign key (item) references merch(id) on delete restrict)"
-;;                     "create table prices (`starting` date default null, ending date default null, price decimal (6,2), item varchar(20) not null,
-;; constraint itemstart unique(item, `starting`), constraint itemend unique key(item, ending))"
-;;                     "create table `invoice-merch` (invoice bigint unsigned not null,
-;;  item varchar(20), style varchar(6), qty integer unsigned not null default 1,
-;; unique key(invoice, item, style),
-;; foreign key (invoice) references invoices (invoice))"
-;;                     "create table `invoice-guests` (invoice bigint unsigned not null,
-;; `called-by` varchar(50),
-;; `given-name` varchar(50), surname varchar(50) not null, `formal-name` varchar(100) not null,
-;; `presenter-bio` text, `presenter-requests` text, `e-mail` varchar(200),
-;; telephone varchar(30), sleep varchar(10), eat varchar(10), day varchar(10),
-;; gender char(1), `t-shirt` varchar(8), coffeep boolean, totep boolean,
-;;  `ticket-type` varchar(10) not null default 'adult',
-;; primary key(invoice,`given-name`,`called-by`,surname),
-;; foreign key (invoice) references invoices (invoice))"
-;;                     "create table people (`given-name` varchar(50), `called-by` varchar(50),
-;; surname varchar(50) not null, `formal-name` varchar(100) not null,
-;; dob date, primary key(surname, `called-by`))"
-;;                     "create table `people-href` (surname varchar(50) not null,
-;; `called-by` varchar(50) not null, rel varchar(8), href varchar(255),
-;; foreign key (surname,`called-by`) references people (surname, `called-by`))"
-;;                     "create table `people-phone` (surname varchar(50) not null,
-;; `called-by` varchar(50) not null, rel varchar(8), phone varchar(255),
-;; foreign key (surname,`called-by`) references people (surname, `called-by`))"
-;;                     "create table `people-email` (surname varchar(50) not null,
-;; `called-by` varchar(50) not null, rel varchar(8), email varchar(255),
-;; foreign key (surname,`called-by`) references people (surname, `called-by`))"
-;;                     "create table `people-rel` (`from-surname` varchar(50) not null,
-;; `from-called-by` varchar(50) not null, rel varchar(8), `to-surname` varchar(50) not null,
-;;  `to-called-by` varchar(50) not null,
-;; foreign key (`from-surname`,`from-called-by`) references people (surname, `called-by`),
-;; foreign key (`to-surname`,`to-called-by`) references people (surname, `called-by`),
-;; constraint relates unique  (`from-surname`,`from-called-by`,rel,`to-surname`,`to-called-by`))"
-;;                     "create table `invoice-scholarships` (invoice bigint unsigned not null,
-;; scholarship varchar(10),
-;; amount decimal(6,2), primary key(invoice, scholarship),
-;; foreign key (invoice) references invoices (invoice))"
-;;                     "create table `invoice-vending` (invoice bigint unsigned not null primary key,
-;; title varchar(72),
-;; blurb text, notes text, qty integer unsigned not null default 1, `agreement` boolean,
-;; `mqa-license` varchar(15) null, `bpr-license` varchar(15) null,
-;; foreign key (invoice) references invoices (invoice))"
-;;                     "create table payments (invoice bigint unsigned not null,
-;; via varchar(100), source varchar(200),
-;; amount decimal(6,2), confirmation text, note text, cleared datetime,
-;;  foreign key (invoice) references invoices (invoice) on delete restrict)"))
-;;       (handler-case
-;;           (let* ((query-words (split-sequence #\Space expr))
-;;                  (table-name (nth 2 query-words)))
-;;             (tagbody again
-;;                (restart-case
-;;                    (progn
-;;                      (format t "~&Creating table ~a" table-name)
-;;                      (format t "~& ⇒ ~a" (db-query expr)))
-;;                  (drop-table ()
-;;                    :report (lambda (s)
-;;                              (format s "Drop table ~a and retry" table-name))
-;;                    (format t "~&Dropping table ~a" table-name)
-;;                    (format t "~& ⇒ ~a"
-;;                            (db-query (concatenate 'string "drop table "
-;;                                                   table-name)))
-;;                    (go again))
-;;                  (continue ()))))))
-;;     (loop for year from 2000 upto 2016
-;;        do (loop for (season month) in '(("Beltane" 5)
-;;                                         ("Samhain" 11))
-;;              do (with-simple-restart (skip "Skip this one")
-;;                   (db-query (format nil "insert into festivals (season, year, `starting`,ending) values (?,?,'~a-~d-1','~a-~d-1')"
-;;                                     year month year month)
-;;                             season year))))
-;;     (db-query "alter table invoices auto_increment=4000")
-;;     (loop for (id title description image price styles)
-;;        in '(("general-shirt" "FPG general T-shirt"
-;;              "The FPG general T-shirt" "/merch/tshirt_Gen.png" 15
-;;              (("XS" "Extra-small" 999)
-;;               ("S" "Small" 999)
-;;               ("M" "Medium" 999)
-;;               ("L" "Large" 999)
-;;               ("XL" "Extra-large" 999)
-;;               ("X2L" "Double extra-large" 999)
-;;               ("X3L" "Triple extra-large" 999)
-;;               ("X4L" "Quadruple extra-large" 999)
-;;               ("X5L" "Quintuple extra-large" 999)))
-;;             ("tote-bag" "FPG Tote Bag"
-;;              "FPG Tote Bag" "/merch/tote-bag.jpeg" 10
-;;              (("tote" "Tote Bag" 999)))
-;;             ("coffee" "FPG Coffee Mug"
-;;              "The FPG thermal coffee mug is great for other beverages, too" 5
-;;              (("coffee" "Coffee mug" 999)))
-;;             ("festival-shirt" "Festival T-shirt"
-;;              "The new T-shirt for the next festival" "/merch/tshirt_next.png" 15
-;;              (("XS" "Extra-small" 999)
-;;               ("S" "Small" 999)
-;;               ("M" "Medium" 999)
-;;               ("L" "Large" 999)
-;;               ("XL" "Extra-large" 999)
-;;               ("X2L" "Double extra-large" 999)
-;;               ("X3L" "Triple extra-large" 999)
-;;               ("X4L" "Quadruple extra-large" 999)
-;;               ("X5L" "Quintuple extra-large" 999))))
-;;        do (db-query "insert into merch (id, title, description, image) values (?,?,?,?)"
-;;                     id title description image)
-;;        do (db-query "insert into prices (item, price) values (?,?)" id price)
-;;        do (loop for (style-id style-title inventory) in styles
-;;              do (db-query "insert into `merch-styles` (item, id, title, inventory) values (?,?,?,?)"
-;;                           id style-id style-title inventory)))))
 
 
 (defun herald-user-agent (&optional (drakma-ua-key :drakma))
@@ -2830,12 +2772,13 @@ values (?, ?, 'PayPal', ?, payment-id, 'Paid via PayPal, token ' || ? || ' payer
     ;; (apply (lambda (name value &rest attributes)
     ;;          (apply
     ;;           (mapcan (lambda (pair) (list (make-keyword (string-upcase (first pair))) (second pair)))))) pairs)
-    (destructuring-bind (name value &rest) pairs
+    (destructuring-bind (name value &rest _) pairs
+      (declare (ignore _))
       (assert (string-equal name "Herald-Friend-Cookie"))
       value)))
 
 (defun check-admin-auth (); TODO
-    (warn "Ignoring and assuming this is a valid admin user: ~a ⁂" user-ident)
+  (warn "Ignoring and assuming this is a valid admin user: ~a ⁂" (remote-user))
   t 
   
   
@@ -3025,14 +2968,14 @@ Vendor Concierge Notes:
 (defun vendor-report/text (&optional (season (next-festival-season)) 
                              (year (next-festival-year)))
   (with-output-to-string (*standard-output*)
-  (let ((vendors (sort (sort (vendors-report-for-festival season year)
-                             #'string< :key (rcurry #'getf :title))
-                       #'< :key (lambda (n)
-                                  (or (and (getf n :slip)
-                                           (parse-integer (getf n :slip)
-                                                          :junk-allowed t))
-                                      9999)))))
-    (format t "
+    (let ((vendors (sort (sort (vendors-report-for-festival season year)
+                               #'string< :key (rcurry #'getf :title))
+                         #'< :key (lambda (n)
+                                    (or (and (getf n :slip)
+                                             (parse-integer (getf n :slip)
+                                                            :junk-allowed t))
+                                        9999)))))
+      (format t "
 
 ⛤ Vendors Report
 
@@ -3047,14 +2990,14 @@ There are ~r vendor registration~:p for ~a ~a.
 ~]~[~:;~:* • ~r vendor~:p awaiting final approval.
 
 ~]"
-            (length vendors) season year
-            (count-if (rcurry #'getf :closed) vendors)
-            (count-if-not (rcurry #'getf :closed) vendors)
-            (count-if #'vendor-report/needs-mqa-license-checked-p vendors)
-            (count-if #'vendor-report/needs-bpr-license-checked-p vendors)
-            (count-if #'vendor-report/needs-approval-p vendors))
-    (format t "~%★ All Vendors ★~%")
-    (dolist (vendor vendors)
+              (length vendors) season year
+              (count-if (rcurry #'getf :closed) vendors)
+              (count-if-not (rcurry #'getf :closed) vendors)
+              (count-if #'vendor-report/needs-mqa-license-checked-p vendors)
+              (count-if #'vendor-report/needs-bpr-license-checked-p vendors)
+              (count-if #'vendor-report/needs-approval-p vendors))
+      (format t "~%★ All Vendors ★~%")
+      (dolist (vendor vendors)
         (vendor-status/text vendor)))))
 
 (defun mail-vendors-completed-invoice (invoice)
