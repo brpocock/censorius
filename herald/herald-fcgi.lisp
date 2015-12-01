@@ -142,8 +142,11 @@ The macro also uses SETQ to store the new vector in VECTOR."
 (defun url-decode (string &optional (external-format +utf-8+))
   "Decodes a URL-encoded STRING which is assumed to be encoded using
 the external format EXTERNAL-FORMAT."
-  (when (zerop (length string))
+  (cond 
+    ((null string) nil)
+    ((zerop (length string))
     (return-from url-decode ""))
+    (t
   (let ((vector (make-array (length string)
                             :element-type '(unsigned-byte 8)
                             :fill-pointer 0))
@@ -184,7 +187,7 @@ the external format EXTERNAL-FORMAT."
     (cond (unicodep
            (upgrade-vector vector 'character :converter #'code-char))
           (t (flexi-streams:octets-to-string vector
-                                             :external-format external-format)))))
+                                                :external-format external-format)))))))
 
 (defun url-encode (string)
   "URL-encodes a string"
@@ -843,6 +846,74 @@ Content-Type: text/plain; charset=utf-8
                    :attachments attachments)
     (apply (curry #'format mail-stream) message-fmt+args)))
 
+(in-package :herald-db)
+
+(defun simple-record-volatility-p (symbol)
+  (member symbol '(:session :query :volatile)))
+
+(deftype simple-record-volatility ()
+  '(and keyword (satisfies #'simple-record-volatility-p)))
+
+(defclass simple-record-table ()
+  ((db-table :type 'string :reader simple-record-db-table :initarg :db-table)
+   (primary-key-columns :type 'list :reader simple-record-primary-key-columns :initarg :primary-key-columns)
+   (trailer-tables :type 'list :reader simple-record-trailer-tables :initarg :trailer-tables)
+   (parent-table :type string :reader simple-record-parent-table :initarg :parent-table)
+   (start-column :type 'string :reader simple-record-effective-start-column :initarg :start-column)
+   (end-column :type 'string :reader simple-record-effective-end-column :initarg :end-column)
+   (volatility :type 'record-volatility :reader simple-record-volatility :initarg :volatility)
+   (logical-deletion-column :type 'string :reader simple-record-logical-deletion-column :initarg :logical-deletion-column)
+   (table-description :type 'list :reader simple-record-table-description)))
+
+(defvar *simple-record-tables* (make-hash-table))
+
+(define-condition duplicate-table-definition (error)
+  ((initargs :initarg :initargs :reader duplicate-table-definition-initargs)
+   (existing-object :initarg :existing-object :reader duplicate-table-definition-existing-object)))
+
+(defmethod make-instance :before ((class (eql 'simple-record-table)) &rest initargs)
+  (destructuring-bind (&key db-table &allow-other-keys) initargs
+    (multiple-value-bind (found foundp) (gethash (intern db-table) *simple-record-tables*)
+      (when foundp
+        (error 'duplicate-table-definition :initargs initargs :existing-object found)))))
+
+(defmethod simple-record-table-columns (table simple-record-table)
+  (mapcar (rcurry #'getf :field) (simple-record-table-description table)))
+
+(defun simple-record-table-has-column (object column)
+  (member column (simple-record-table-columns object) :test #'string=))
+
+(defmethod initialize-instance :after ((object simple-record-table) &rest initargs
+                                       &key db-table primary-key-columns trailer-tables
+                                         parent-table start-column end-column
+                                         volatility logical-deletion-column)
+  (setf (slot-value object 'table-description) (mapplist (key value)
+                                                         (db-query (format nil "describe `~a`" db-table))
+                                                         (list (make-keyword (string-upcase key)) value)))
+  (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
+          (primary-key-columns)
+          "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
+          (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
+          db-table)
+  (loop for column in '(start-column end-column logical-deletion-column)
+     for column-name in (list start-column end-column logical-deletion-column)
+     do (assert (simple-record-table-has-column object column-name)
+                ()
+                "The ~a given for ~a is ~a, which is not a column on that table"
+                column db-table column-name)))
+
+(make-instance 'simple-record-table :db-table "invoices" :primary-key-columns '("invoice")
+               :volatility :session)
+
+(defclass simple-record ()
+  ((table :type simple-record-table :reader record-table :initarg :table)
+   (primary-keys :type 'list :reader primary-keys :initarg :primary-keys)
+   (plist :type 'list :reader record-plist)))
+
+
+
+(in-package :herald-fcgi)
+
 (defun read-guests (&optional invoice)
   (when invoice
     (db-query "select * from `invoice-guests` where invoice=?"
@@ -1205,6 +1276,7 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
 (defun reply (structure)
   (format *error-output* "~& Handling reply: ~s" structure)
   (ecase (car structure)
+    (:auth (prompt-for-authentication (rest structure)))
     (:error (reply-error (rest structure)))
     (:data (cond
              ((accept-type-p "application/javascript")
@@ -1622,6 +1694,9 @@ cookie says “~36r.”
               c)))))
 
 (defgeneric handle-verb (verb))
+
+(defmethod handle-verb ((verb (eql :nil)))
+  (list :error 404 "No verb supplied."))
 
 (defmethod handle-verb ((verb t))
   (list :error 404
@@ -2743,10 +2818,34 @@ values (?, ?, 'PayPal', ?, payment-id, 'Paid via PayPal, token ' || ? || ' payer
     (mapcar #'invoice-summary
             invoice-numbers)))
 
+(defun cookie-value ()
+  (let* ((pairs (mapcar (lambda (pair)
+                          (let ((key (url-decode (first pair)))
+                                (value (or (url-decode (second pair)) t)))
+                            (list key value))) 
+                        (mapcar (curry #'split-sequence #\=) 
+                                (mapcar #'string-trim " " 
+                                        (cl-ppcre:split "[;,]" 
+                                                        (getf *request* :http-cookie)))))))
+    ;; (apply (lambda (name value &rest attributes)
+    ;;          (apply
+    ;;           (mapcan (lambda (pair) (list (make-keyword (string-upcase (first pair))) (second pair)))))) pairs)
+    (destructuring-bind (name value &rest) pairs
+      (assert (string-equal name "Herald-Friend-Cookie"))
+      value)))
+
 (defun check-admin-auth (); TODO
-  (let ((user-ident (remote-user)))
     (warn "Ignoring and assuming this is a valid admin user: ~a ⁂" user-ident)
-    t))
+  t 
+  
+  
+  #+ (or)(let ((cookie (cookie-value)))
+           (cond ((and cookie (plusp (length cookie)))
+                  (if-let (()))
+                  )
+                 (:else 
+                  (setf (getf *request* user-cookie) (format nil "~"))
+                  nil))))
 
 (defmethod handle-verb ((verb (eql :find-invoice)))
   (check-admin-auth)
@@ -2926,14 +3025,14 @@ Vendor Concierge Notes:
 (defun vendor-report/text (&optional (season (next-festival-season)) 
                              (year (next-festival-year)))
   (with-output-to-string (*standard-output*)
-    (let ((vendors (sort (sort (vendors-report-for-festival season year)
-                               #'string< :key (rcurry #'getf :title))
-                         #'< :key (lambda (n)
-                                    (or (and (getf n :slip)
-                                             (parse-integer (getf n :slip)
-                                                            :junk-allowed t))
-                                        9999)))))
-      (format t "
+  (let ((vendors (sort (sort (vendors-report-for-festival season year)
+                             #'string< :key (rcurry #'getf :title))
+                       #'< :key (lambda (n)
+                                  (or (and (getf n :slip)
+                                           (parse-integer (getf n :slip)
+                                                          :junk-allowed t))
+                                      9999)))))
+    (format t "
 
 ⛤ Vendors Report
 
@@ -2948,14 +3047,14 @@ There are ~r vendor registration~:p for ~a ~a.
 ~]~[~:;~:* • ~r vendor~:p awaiting final approval.
 
 ~]"
-              (length vendors) season year
-              (count-if (rcurry #'getf :closed) vendors)
-              (count-if-not (rcurry #'getf :closed) vendors)
-              (count-if #'vendor-report/needs-mqa-license-checked-p vendors)
-              (count-if #'vendor-report/needs-bpr-license-checked-p vendors)
-              (count-if #'vendor-report/needs-approval-p vendors))
-      (format t "~%★ All Vendors ★~%")
-      (dolist (vendor vendors)
+            (length vendors) season year
+            (count-if (rcurry #'getf :closed) vendors)
+            (count-if-not (rcurry #'getf :closed) vendors)
+            (count-if #'vendor-report/needs-mqa-license-checked-p vendors)
+            (count-if #'vendor-report/needs-bpr-license-checked-p vendors)
+            (count-if #'vendor-report/needs-approval-p vendors))
+    (format t "~%★ All Vendors ★~%")
+    (dolist (vendor vendors)
         (vendor-status/text vendor)))))
 
 (defun mail-vendors-completed-invoice (invoice)
@@ -3054,4 +3153,18 @@ This is an automated message. I'm just a robot, doing what I'm told … ~2% —�
               (format nil "TEGBoD: Registration Weekly Overview for ~:(~a~) ~d" season year)
               (format nil "TEGBoD.Festival.~a.~d" season year)
               "~a" (festival-overview-report/text season year t))))
+
+;; (defmethod handle-verb ((verb (eql :login)))
+;;   (cond ((and (field :user)
+;;               (field :password))
+;;          (perform-log-in (field :user) (field :password)))
+;;         ())
+;;   (list :auth 401 "Authorization Required"
+;;         :www-authenticate-realm "Censorius Herald Privileged Functions"))
+
+;; (defun prompt-for-authentication (http-status-code http-status-message
+;;                                   &key 
+;;                                     (www-authenticate-realm "Censorius Herald")
+;;                                     (explain "You must log in to access this feature")
+;;                                     (user-privilege-type "Authorized User")))
 
