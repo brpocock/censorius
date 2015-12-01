@@ -142,49 +142,52 @@ The macro also uses SETQ to store the new vector in VECTOR."
 (defun url-decode (string &optional (external-format +utf-8+))
   "Decodes a URL-encoded STRING which is assumed to be encoded using
 the external format EXTERNAL-FORMAT."
-  (when (zerop (length string))
-    (return-from url-decode ""))
-  (let ((vector (make-array (length string)
-                            :element-type '(unsigned-byte 8)
-                            :fill-pointer 0))
-        (i 0)
-        unicodep)
-    (loop
-       (unless (< i (length string))
-         (return))
-       (let ((char (aref string i)))
-         (labels ((decode-hex (length)
-                    (prog1
-                        (parse-integer string
-                                       :start i :end (+ i length) :radix 16)
-                      (incf i length)))
-                  (push-integer (integer)
-                    (vector-push integer vector))
-                  (peek ()
-                    (aref string i))
-                  (advance ()
-                    (setq char (peek))
-                    (incf i)))
-           (cond
-             ((char= #\% char)
-              (advance)
+  (cond 
+    ((null string) nil)
+    ((zerop (length string))
+     (return-from url-decode ""))
+    (t
+     (let ((vector (make-array (length string)
+                               :element-type '(unsigned-byte 8)
+                               :fill-pointer 0))
+           (i 0)
+           unicodep)
+       (loop
+          (unless (< i (length string))
+            (return))
+          (let ((char (aref string i)))
+            (labels ((decode-hex (length)
+                       (prog1
+                           (parse-integer string
+                                          :start i :end (+ i length) :radix 16)
+                         (incf i length)))
+                     (push-integer (integer)
+                       (vector-push integer vector))
+                     (peek ()
+                       (aref string i))
+                     (advance ()
+                       (setq char (peek))
+                       (incf i)))
               (cond
-                ((char= #\u (peek))
-                 (unless unicodep
-                   (setq unicodep t)
-                   (upgrade-vector vector '(integer 0 65535)))
+                ((char= #\% char)
                  (advance)
-                 (push-integer (decode-hex 4)))
-                (t
-                 (push-integer (decode-hex 2)))))
-             (t (push-integer (char-code (case char
-                                           ((#\+) #\Space)
-                                           (otherwise char))))
-                (advance))))))
-    (cond (unicodep
-           (upgrade-vector vector 'character :converter #'code-char))
-          (t (flexi-streams:octets-to-string vector
-                                             :external-format external-format)))))
+                 (cond
+                   ((char= #\u (peek))
+                    (unless unicodep
+                      (setq unicodep t)
+                      (upgrade-vector vector '(integer 0 65535)))
+                    (advance)
+                    (push-integer (decode-hex 4)))
+                   (t
+                    (push-integer (decode-hex 2)))))
+                (t (push-integer (char-code (case char
+                                              ((#\+) #\Space)
+                                              (otherwise char))))
+                   (advance))))))
+       (cond (unicodep
+              (upgrade-vector vector 'character :converter #'code-char))
+             (t (flexi-streams:octets-to-string vector
+                                                :external-format external-format)))))))
 
 (defun url-encode (string)
   "URL-encodes a string"
@@ -843,6 +846,74 @@ Content-Type: text/plain; charset=utf-8
                    :attachments attachments)
     (apply (curry #'format mail-stream) message-fmt+args)))
 
+(in-package :herald-db)
+
+(defun simple-record-volatility-p (symbol)
+  (member symbol '(:session :query :volatile)))
+
+(deftype simple-record-volatility ()
+  '(and keyword (satisfies #'simple-record-volatility-p)))
+
+(defclass simple-record-table ()
+  ((db-table :type 'string :reader simple-record-db-table :initarg :db-table)
+   (primary-key-columns :type 'list :reader simple-record-primary-key-columns :initarg :primary-key-columns)
+   (trailer-tables :type 'list :reader simple-record-trailer-tables :initarg :trailer-tables)
+   (parent-table :type string :reader simple-record-parent-table :initarg :parent-table)
+   (start-column :type 'string :reader simple-record-effective-start-column :initarg :start-column)
+   (end-column :type 'string :reader simple-record-effective-end-column :initarg :end-column)
+   (volatility :type 'record-volatility :reader simple-record-volatility :initarg :volatility)
+   (logical-deletion-column :type 'string :reader simple-record-logical-deletion-column :initarg :logical-deletion-column)
+   (table-description :type 'list :reader simple-record-table-description)))
+
+(defvar *simple-record-tables* (make-hash-table))
+
+(define-condition duplicate-table-definition (error)
+  ((initargs :initarg :initargs :reader duplicate-table-definition-initargs)
+   (existing-object :initarg :existing-object :reader duplicate-table-definition-existing-object)))
+
+(defmethod make-instance :before ((class (eql 'simple-record-table)) &rest initargs)
+  (destructuring-bind (&key db-table &allow-other-keys) initargs
+    (multiple-value-bind (found foundp) (gethash (intern db-table) *simple-record-tables*)
+      (when foundp
+        (error 'duplicate-table-definition :initargs initargs :existing-object found)))))
+
+(defmethod simple-record-table-columns (table simple-record-table)
+  (mapcar (rcurry #'getf :field) (simple-record-table-description table)))
+
+(defun simple-record-table-has-column (object column)
+  (member column (simple-record-table-columns object) :test #'string=))
+
+(defmethod initialize-instance :after ((object simple-record-table) &rest initargs
+                                       &key db-table primary-key-columns trailer-tables
+                                         parent-table start-column end-column
+                                         volatility logical-deletion-column)
+  (setf (slot-value object 'table-description) (mapplist (key value)
+                                                         (db-query (format nil "describe `~a`" db-table))
+                                                         (list (make-keyword (string-upcase key)) value)))
+  (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
+          (primary-key-columns)
+          "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
+          (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
+          db-table)
+  (loop for column in '(start-column end-column logical-deletion-column)
+     for column-name in (list start-column end-column logical-deletion-column)
+     do (assert (simple-record-table-has-column object column-name)
+                ()
+                "The ~a given for ~a is ~a, which is not a column on that table"
+                column db-table column-name)))
+
+(make-instance 'simple-record-table :db-table "invoices" :primary-key-columns '("invoice")
+               :volatility :session)
+
+(defclass simple-record ()
+  ((table :type simple-record-table :reader record-table :initarg :table)
+   (primary-keys :type 'list :reader primary-keys :initarg :primary-keys)
+   (plist :type 'list :reader record-plist)))
+
+
+
+(in-package :herald-fcgi)
+
 (defun read-guests (&optional invoice)
   (when invoice
     (db-query "select * from `invoice-guests` where invoice=?"
@@ -1205,6 +1276,7 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
 (defun reply (structure)
   (format *error-output* "~& Handling reply: ~s" structure)
   (ecase (car structure)
+    (:auth (prompt-for-authentication (rest structure)))
     (:error (reply-error (rest structure)))
     (:data (cond
              ((accept-type-p "application/javascript")
@@ -1622,6 +1694,9 @@ cookie says “~36r.”
               c)))))
 
 (defgeneric handle-verb (verb))
+
+(defmethod handle-verb ((verb (eql :nil)))
+  (list :error 404 "No verb supplied."))
 
 (defmethod handle-verb ((verb t))
   (list :error 404
@@ -2733,15 +2808,44 @@ values (?, ?, 'PayPal', ?, payment-id, 'Paid via PayPal, token ' || ? || ' payer
           :payments payments
           :balance (reduce #'+ payments))))
 
+(defun invoice-simple-line (invoice)
+  (destructuring-bind (&key guests balance &allow-other-keys) (invoice-summary invoice)
+    (format nil "Invoice # ~:d (~{~a~^, ~}) — Balance $ ~$"
+            invoice guests balance)))
+
 (defun find-invoice-simple-search (table field operator pattern)
   (let ((invoice-numbers (find-invoice-by-field table field (keyword* operator) pattern)))
     (mapcar #'invoice-summary
             invoice-numbers)))
 
+(defun cookie-value ()
+  (let* ((pairs (mapcar (lambda (pair)
+                          (let ((key (url-decode (first pair)))
+                                (value (or (url-decode (second pair)) t)))
+                            (list key value))) 
+                        (mapcar (curry #'split-sequence #\=) 
+                                (mapcar #'string-trim " " 
+                                        (cl-ppcre:split "[;,]" 
+                                                        (getf *request* :http-cookie)))))))
+    ;; (apply (lambda (name value &rest attributes)
+    ;;          (apply
+    ;;           (mapcan (lambda (pair) (list (make-keyword (string-upcase (first pair))) (second pair)))))) pairs)
+    (destructuring-bind (name value &rest) pairs
+      (assert (string-equal name "Herald-Friend-Cookie"))
+      value)))
+
 (defun check-admin-auth (); TODO
-  (let ((user-ident (remote-user)))
-    (warn "Ignoring and assuming this is a valid admin user: ~a ⁂" user-ident)
-    t))
+   (warn "Ignoring and assuming this is a valid admin user: ~a ⁂" user-ident)
+  t 
+  
+  
+  #+ (or)(let ((cookie (cookie-value)))
+           (cond ((and cookie (plusp (length cookie)))
+                  (if-let (()))
+                  )
+                 (:else 
+                  (setf (getf *request* user-cookie) (format nil "~"))
+                  nil))))
 
 (defmethod handle-verb ((verb (eql :find-invoice)))
   (check-admin-auth)
@@ -2776,10 +2880,45 @@ where `festival-season`=? and `festival-year` =? and closed is null
 and payments.invoice is null"
                     season year)))
 
-(defun festival-overview-report (season year)
+(defun festival-overview-report (&optional (season (next-festival-season)) 
+                                   (year (next-festival-year)))
   (list :closed (closed-invoices-for-festival season year)
         :unclosed (unclosed-invoices-for-festival season year)
         :suspended (suspended-invoices-for-festival season year)))
+
+(defun festival-overview-report/text (&optional (season (next-festival-season)) 
+                                        (year (next-festival-year)))
+  (destructuring-bind (&key closed unclosed suspended)
+      (festival-overview-report season year)
+    (format nil "
+
+⛤ Festival Overview Report on Invoices ⛤
+
+Festival: ~a ~d
+
+Invoice status:
+ • Closed (ready to go): ~:d~*
+ • Unclosed: ~:d~*
+ • Suspended for review: ~:d~*
+~2@*
+
+★ There are ~r closed invoice~:p.
+~{~% • ~a~}
+
+★ There are ~r unclosed invoice~:p.
+~{~% • ~a~}
+
+★ There are ~r suspended invoice~:p.
+~{~{~% • ~a~@[~%    Note: “~a”~]~}~}
+
+End of report."
+            season year
+            (length closed) (mapcar #'invoice-simple-line closed)
+            (length unclosed) (mapcar #'invoice-simple-line unclosed)
+            (length suspended) (mapcar (lambda (invoice)
+                                         (list (invoice-simple-line invoice)
+                                               (let ((general (read-general invoice)))
+                                                 (getf general :note)))) suspended))))
 
 
 
@@ -2883,6 +3022,7 @@ Vendor Concierge Notes:
 
 (defun vendor-report/text (&optional (season (next-festival-season)) 
                              (year (next-festival-year)))
+  (with-output-to-string (*standard-output*)
   (let ((vendors (sort (sort (vendors-report-for-festival season year)
                              #'string< :key (rcurry #'getf :title))
                        #'< :key (lambda (n)
@@ -2913,7 +3053,7 @@ There are ~r vendor registration~:p for ~a ~a.
             (count-if #'vendor-report/needs-approval-p vendors))
     (format t "~%★ All Vendors ★~%")
     (dolist (vendor vendors)
-      (vendor-status/text vendor))))
+        (vendor-status/text vendor)))))
 
 (defun mail-vendors-completed-invoice (invoice)
   (mail-reg +vendors-mail+
@@ -2992,6 +3132,34 @@ This is an automated message. I'm just a robot, doing what I'm told … ~2% —�
                        (abs (parse-money (field :amount))))
                     (field :note))
     (redirect-to-invoice invoice t)))
+
+(defmethod handle-verb ((verb (eql :cron-weekly-reports)))
+  (destructuring-bind  (season year) (next-festival)
+    (mail-reg +registrar-mail+
+              (format nil "Registration Overview for ~:(~a~) ~d" season year)
+              (format nil "Festival.~a.~d" season year)
+              "~a" (festival-overview-report/text season year))
+    (mail-reg +vendors-mail+
+              (format nil "Vendor Registration Overview for ~:(~a~) ~d" season year)
+              (format nil "Vendors.~a.~d" season year)
+              "~a" (vendor-report/text))
+    (mail-reg +workshops-mail+
+              (format nil "Workshop Registration Overview for ~:(~a~) ~d" season year)
+              (format nil "Workshops.~a.~d" season year)
+              "Workshop registration is disabled for now.")))
+
 
+;; (defmethod handle-verb ((verb (eql :login)))
+;;   (cond ((and (field :user)
+;;               (field :password))
+;;          (perform-log-in (field :user) (field :password)))
+;;         ())
+;;   (list :auth 401 "Authorization Required"
+;;         :www-authenticate-realm "Censorius Herald Privileged Functions"))
 
+;; (defun prompt-for-authentication (http-status-code http-status-message
+;;                                   &key 
+;;                                     (www-authenticate-realm "Censorius Herald")
+;;                                     (explain "You must log in to access this feature")
+;;                                     (user-privilege-type "Authorized User")))
 
