@@ -2733,6 +2733,11 @@ values (?, ?, 'PayPal', ?, payment-id, 'Paid via PayPal, token ' || ? || ' payer
           :payments payments
           :balance (reduce #'+ payments))))
 
+(defun invoice-simple-line (invoice)
+  (destructuring-bind (&key guests balance &allow-other-keys) (invoice-summary invoice)
+    (format nil "Invoice # ~:d (~{~a~^, ~}) — Balance $ ~$"
+            invoice guests balance)))
+
 (defun find-invoice-simple-search (table field operator pattern)
   (let ((invoice-numbers (find-invoice-by-field table field (keyword* operator) pattern)))
     (mapcar #'invoice-summary
@@ -2776,10 +2781,47 @@ where `festival-season`=? and `festival-year` =? and closed is null
 and payments.invoice is null"
                     season year)))
 
-(defun festival-overview-report (season year)
+(defun festival-overview-report (&optional (season (next-festival-season)) 
+                                   (year (next-festival-year)))
   (list :closed (closed-invoices-for-festival season year)
         :unclosed (unclosed-invoices-for-festival season year)
         :suspended (suspended-invoices-for-festival season year)))
+
+(defun festival-overview-report/text (&optional (season (next-festival-season)) 
+                                        (year (next-festival-year))
+                                        summary-only-p)
+  (destructuring-bind (&key closed unclosed suspended)
+      (festival-overview-report season year)
+    (format nil "
+
+⛤ Festival Overview Report on Invoices ⛤
+
+Festival: ~a ~d
+
+Invoice status:
+ • Closed (ready to go): ~:d~*
+ • Unclosed: ~:d~*
+ • Suspended for review: ~:d~*
+~:[~2@*
+
+★ There are ~r closed invoice~:p.
+~{~% • ~a~}
+
+★ There are ~r unclosed invoice~:p.
+~{~% • ~a~}
+
+★ There are ~r suspended invoice~:p.
+~{~{~% • ~a~@[~%    Note: “~a”~]~}~}
+~;~]
+End of report."
+            season year
+            (length closed) (mapcar #'invoice-simple-line closed)
+            (length unclosed) (mapcar #'invoice-simple-line unclosed)
+            (length suspended) (mapcar (lambda (invoice)
+                                         (list (invoice-simple-line invoice)
+                                               (let ((general (read-general invoice)))
+                                                 (getf general :note)))) suspended)
+            summary-only-p)))
 
 
 
@@ -2883,14 +2925,15 @@ Vendor Concierge Notes:
 
 (defun vendor-report/text (&optional (season (next-festival-season)) 
                              (year (next-festival-year)))
-  (let ((vendors (sort (sort (vendors-report-for-festival season year)
-                             #'string< :key (rcurry #'getf :title))
-                       #'< :key (lambda (n)
-                                  (or (and (getf n :slip)
-                                           (parse-integer (getf n :slip)
-                                                          :junk-allowed t))
-                                      9999)))))
-    (format t "
+  (with-output-to-string (*standard-output*)
+    (let ((vendors (sort (sort (vendors-report-for-festival season year)
+                               #'string< :key (rcurry #'getf :title))
+                         #'< :key (lambda (n)
+                                    (or (and (getf n :slip)
+                                             (parse-integer (getf n :slip)
+                                                            :junk-allowed t))
+                                        9999)))))
+      (format t "
 
 ⛤ Vendors Report
 
@@ -2905,15 +2948,15 @@ There are ~r vendor registration~:p for ~a ~a.
 ~]~[~:;~:* • ~r vendor~:p awaiting final approval.
 
 ~]"
-            (length vendors) season year
-            (count-if (rcurry #'getf :closed) vendors)
-            (count-if-not (rcurry #'getf :closed) vendors)
-            (count-if #'vendor-report/needs-mqa-license-checked-p vendors)
-            (count-if #'vendor-report/needs-bpr-license-checked-p vendors)
-            (count-if #'vendor-report/needs-approval-p vendors))
-    (format t "~%★ All Vendors ★~%")
-    (dolist (vendor vendors)
-      (vendor-status/text vendor))))
+              (length vendors) season year
+              (count-if (rcurry #'getf :closed) vendors)
+              (count-if-not (rcurry #'getf :closed) vendors)
+              (count-if #'vendor-report/needs-mqa-license-checked-p vendors)
+              (count-if #'vendor-report/needs-bpr-license-checked-p vendors)
+              (count-if #'vendor-report/needs-approval-p vendors))
+      (format t "~%★ All Vendors ★~%")
+      (dolist (vendor vendors)
+        (vendor-status/text vendor)))))
 
 (defun mail-vendors-completed-invoice (invoice)
   (mail-reg +vendors-mail+
@@ -2993,5 +3036,22 @@ This is an automated message. I'm just a robot, doing what I'm told … ~2% —�
                     (field :note))
     (redirect-to-invoice invoice t)))
 
-
+(defmethod handle-verb ((verb (eql :cron-weekly-reports)))
+  (destructuring-bind  (season year) (next-festival)
+    (mail-reg +registrar-mail+
+              (format nil "Registration Weekly Overview for ~:(~a~) ~d" season year)
+              (format nil "Festival.~a.~d" season year)
+              "~a" (festival-overview-report/text season year))
+    (mail-reg +vendors-mail+
+              (format nil "Vendor Registration Weekly Overview for ~:(~a~) ~d" season year)
+              (format nil "Vendors.~a.~d" season year)
+              "~a" (vendor-report/text))
+    (mail-reg +workshops-mail+
+              (format nil "Workshop Registration Weekly Overview for ~:(~a~) ~d" season year)
+              (format nil "Workshops.~a.~d" season year)
+              "Workshop registration is disabled for now.")
+    (mail-reg "tegbod@flapagan.org"
+              (format nil "TEGBoD: Registration Weekly Overview for ~:(~a~) ~d" season year)
+              (format nil "TEGBoD.Festival.~a.~d" season year)
+              "~a" (festival-overview-report/text season year t))))
 

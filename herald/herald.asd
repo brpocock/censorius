@@ -9,7 +9,8 @@
                :cl-ppcre
                :trivial-backtrace
                :dbd-mysql)
-  :components ((:file "herald-fcgi")))
+  :components ((:file "herald-fcgi")
+               (:file "herald")))
 
 
 
