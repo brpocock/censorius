@@ -48,6 +48,9 @@
    :plist-keys
    :remove-commas
    :schemey-record
+   :string-begins
+   :take
+   :take-if
    :upgrade-vector
    :url-decode
    :url-encode
@@ -214,6 +217,38 @@ the external format EXTERNAL-FORMAT."
     (and (>= (length string) prefix-length)
          (string-equal string prefix
                        :end1 prefix-length))))
+
+(defun take (count source)
+  (check-type count (integer 0 *))
+  (if (zerop count)
+      nil
+      (if (typep source 'sequence)
+          (subseq source 0 count)
+          (loop repeat count collect (funcall source)))))
+
+(defun base-type-of (object)
+  (cond
+    ((consp object) 'list)
+    ((typep object 'string) 'string)
+    ((typep object 'vector) 'vector)))
+
+(defun take-if (count predicate source)
+  (check-type count (integer 0 *))
+  (if (zerop count)
+      nil
+      (if (typep source 'sequence)
+          (coerce (let ((first (elt source 0))
+                        (rest (subseq source 1)))
+                    (if (funcall predicate first)
+                        (concatenate (base-type-of source) 
+                                     (vector first)
+                                     (take-if (1- count) predicate rest)) 
+                        (take-if count predicate rest)))
+                  (base-type-of source))
+          (let ((this (funcall source)))
+            (if (funcall predicate this)
+                (cons this (take-if (1- count) predicate source))
+                (take-if count predicate (cdr source)))))))
 
 (defun parse-decimal (string)
   "Parses a simple  decimal number. Accepts optional - sign  (but not +)
@@ -935,9 +970,11 @@ Content-Type: text/plain; charset=utf-8
                                        &key db-table primary-key-columns trailer-tables
                                          parent-table start-column end-column
                                          volatility logical-deletion-column)
-  (setf (slot-value object 'table-description) (mapplist (key value)
-                                                   (db-query (format nil "describe `~a`" db-table))
-                                                 (list (make-keyword (string-upcase key)) value)))
+  (setf (slot-value object 'table-description) 
+        (mapcar (lambda (row) 
+                  (mapplist (key value) row
+                    (list (make-keyword (string-upcase key)) value)))
+                (db-query (format nil "describe `~a`" db-table))))
   (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
           (primary-key-columns)
           "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
@@ -1183,7 +1220,7 @@ where (`starting` is null or `starting` <= date(now()))
                   (getf payment :source)
                   (getf payment :via))
           (if (plusp amount)
-              (format s "~%    Payment: ~a" (getf payment :note)))
+              (format s "~%    Note: ~a" (getf payment :note)))
           (incf balance amount)))
       (format s "~2% Balance: $ ~$" balance))))
 
@@ -1216,7 +1253,7 @@ where (`starting` is null or `starting` <= date(now()))
     your party.
 
 ~]
-~:[Waiver not signed.~;Waiver and Release signed; electronic signature on file.~]~@[
+~:[Waiver not signed.~;Waiver and Release signed; electronic signature on file.~]~:[~;
 
 Note on invoice:
   “~a”
@@ -1232,6 +1269,7 @@ Note on invoice:
                    (getf fest :fast-check-in-postal-code))
               (getf fest :signature)
               (getf fest :note)
+              (word-wrap (getf fest :note) "  ")
               (getf fest :closed)))
     (format s "~% ★ Payments ★~% ~a~%"
             (payments-table-text (read-payments invoice)))))
@@ -1822,7 +1860,8 @@ cookie says “~36r.”
       ((not (numberp invoice))
        `(:error 404 "No invoice number supplied"))
 
-      ((not (equal user-key (user-key invoice)))
+      ((not (equal user-key (user-key invoice))
+            (or (equal user-key (concatenate 'string (user-key invoice) "/" (admin-key invoice)))))
        (whine "~&Recall refused; mismatched user-key (got ~a) for invoice ~:d" user-key invoice)
        '(:error 403 "Authorization refused. You cannot view the requested resource."
          "Please ensure that you copied and pasted the entire link, without spaces."))
@@ -3110,4 +3149,75 @@ This is an automated message. I'm just a robot, doing what I'm told … ~2% —�
 ;;                                     (www-authenticate-realm "Censorius Herald")
 ;;                                     (explain "You must log in to access this feature")
 ;;                                     (user-privilege-type "Authorized User")))
+
+
+(defun invoice-closed-p (invoice)
+  (getf (read-general invoice) :closed))
+
+(defun invoice-festival-season (invoice)
+  (getf (read-general invoice) :festival-season))
+
+(defun invoice-festival-year (invoice)
+  (getf (read-general invoice) :festival-year))
+
+(defun festival-start-date (season year)
+  (cadar (db-query "select `starting` from festivals where season=? and year=?"
+                   season year)))
+
+(defun invoice-festival-start-date (invoice)
+  (festival-start-date (invoice-festival-season invoice)
+                       (invoice-festival-year invoice)))
+
+
+
+(defun decode-fl-id-swipe (swipe)
+  (check-type swipe string)
+  (assert (string-begins swipe "%FL"))
+  ;; The city→surname ^ is omitted when the city name is truncated at position 16 (13 chars of city name)
+  (let* ((city-end (let ((first^ (position #\^ swipe :test #'char=)))
+                     (if (< 16 first^) 16 first^)))
+         #+unused (city-name (subseq swipe 3 city-end))
+         (surname-start (if (char= #\^ (elt swipe city-end))
+                            (1+ city-end)
+                            city-end))
+         (surname-end (position #\$ swipe :test #'char= :start surname-start))
+         (surname (subseq swipe surname-start surname-end))
+         (given-name (subseq swipe 
+                             (1+ surname-end)
+                             (position #\$ swipe :test #'char= :start (1+ surname-end))))
+         (house-number-start (1+ (position #\^ swipe :test #'char= :start (1+ surname-end))))
+         (house-number (subseq swipe
+                               house-number-start
+                               (position-if (complement #'digit-char-p) swipe :start house-number-start)))
+         (track-1-end (position #\? swipe :test #'char= :start house-number-start))
+         (track-2-end (position #\? swipe :test #'char= :start (1+ track-1-end)))
+         (zip-code (take-if 5 #'digit-char-p (subseq swipe (+ 2 track-2-end)))))
+    (values given-name surname (parse-integer house-number :junk-allowed t) (parse-integer zip-code))))
+
+(multiple-value-bind (given-name surname house-number zip-code)
+    (decode-fl-id-swipe "%FLSILVER SPRINGDUSTMAN$JAMES$JON^2130 SE 172ND TER^                            ?;6360100423545068304=2108196899240=?+! 344885936  E               1600                                   ECCECC00000?")
+  (assert (string-equal given-name "James") ()
+          "Decoding FL ID failed to extract given name correctly")
+  (assert (string-equal surname "Dustman") ()
+          "Decoding FL ID failed to extract surname correctly")
+  (assert (= house-number 2130) ()
+          "Decoding FL ID failed to extract house number correctly")
+  (assert (= zip-code 34488) ()
+          "Decoding FL ID failed to extract ZIP code correctly"))
+
+(defun find-invoices-by-fast-check-in (given-name surname house-number zip-code)
+  (db-query "select invoices.invoice from invoices left join `invoice-guests` on invoices.invoice=`invoice-guests`.invoice
+where `invoice-guests`.`given-name`=? and `invoice-guests`.surname=? 
+and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
+            given-name surname house-number zip-code))
+
+(defun find-invoices-by-fast-check-in-swipe (swipe)
+  (multiple-value-bind (given-name surname house-number zip-code) 
+      (ignore-errors (decode-fl-id-swipe swipe))
+    (when (and given-name surname house-number zip-code)
+      (find-invoices-by-fast-check-in given-name surname house-number zip-code))))
+
+(defmethod handle-verb ((verb (eql :fast-check-in)))
+  (:data (sort (remove-if-not #'invoice-closed-p (find-invoices-by-fast-check-in-swipe (string-trim " " (field :swipe))))
+               #'invoice-festival-start-date)))
 

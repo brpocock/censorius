@@ -135,10 +135,10 @@ Valet level of access. They can review some information, but may require
 a Registrar to access arbitrary records.
 
 @node Vendor Concierge, Workshop Facilitator, Check-In Valet, Privileged Staff
-@subsection Vendor Concierge
+@subsection Vendor Lugal & Concierge
 
 @node Workshop Facilitator,  , Vendor Concierge, Privileged Staff
-@subsection Workshop Facilitator
+@subsection Workshop Lugal & Facilitator
 
 @node Registration, Workshops, Setting Up, Top
 @chapter Registration
@@ -147,7 +147,6 @@ a Registrar to access arbitrary records.
 * Effects of a Registration::
 * Parts of a Registration::
 * Registration Staff Access::
-* Historical Invoices::
 @end menu
 
 
@@ -175,11 +174,10 @@ e-mail address supplied. The party's leader will be:
 informed of  the invoice  being created  (initial billing)  during their
 registration process;
 @item
-informed of  any payment  or adjustment  made, either  via PayPal  or by
-Registration staff
+informed when the invoice is closed out (payment or credit);
 @item
 able to return to edit their  Registration by voiding or adding items in
-future (TODO, this will not work 100% yet)
+future (TODO, this does not work 100% yet)
 @end enumerate
 
 
@@ -191,7 +189,7 @@ eating and  sleeping arrangements  selections, and  optional merchandise
 and  donation (scholarship  funds) amounts,  as well  as the  associated
 invoice of billing and payments (typically, one of each).
 
-@node Registration Staff Access, Historical Invoices, Parts of a Registration, Registration
+@node Registration Staff Access,  , Parts of a Registration, Registration
 @section Registration Staff Access
 The Registration team can provide  privileged access to the invoices for
 every guest registration to a limited list of people.
@@ -202,6 +200,22 @@ Note that the system operators will also have full access.
 @menu
 * Signing In::
 * Searching for an Invoice::
+* Historical Invoices::
+* Entering an Adjustment::
+* Entering a Fully-Comped Invoice::
+@end menu
+
+@node Signing In, Searching for an Invoice, Registration Staff Access, Registration Staff Access
+@subsection Signing In
+WRITEME
+
+@node Searching for an Invoice, Historical Invoices, Signing In, Registration Staff Access
+@subsection Searching for an Invoice
+
+There are several ways to call up an invoice:
+
+@menu
+* Known Invoice Number::
 * Party Member's Name::
 * Payment Reference ::
 * Notes::
@@ -209,20 +223,7 @@ Note that the system operators will also have full access.
 * Card Number?::
 @end menu
 
-@node Signing In, Searching for an Invoice, Registration Staff Access, Registration Staff Access
-@subsection Signing In
-WRITEME
-
-@node Searching for an Invoice, Party Member's Name, Signing In, Registration Staff Access
-@subsection Searching for an Invoice
-
-There are several ways to call up an invoice:
-
-@menu
-* Known Invoice Number::
-@end menu
-
-@node Known Invoice Number,  , Searching for an Invoice, Searching for an Invoice
+@node Known Invoice Number, Party Member's Name, Searching for an Invoice, Searching for an Invoice
 @subsubsection Known Invoice Number
 
 If  you know  the invoice  number, you  can key  it in  here. The  saved
@@ -231,24 +232,24 @@ invoice will open.
 If the invoice was created in Herald for a future festival, you can make
 adjustments to it.
 
-@node Party Member's Name, Payment Reference , Searching for an Invoice, Registration Staff Access
-@subsection Party Member's Name
+@node Party Member's Name, Payment Reference , Known Invoice Number, Searching for an Invoice
+@subsubsection Party Member's Name
 
 
-@node Payment Reference , Notes, Party Member's Name, Registration Staff Access
-@subsection Payment Reference 
+@node Payment Reference , Notes, Party Member's Name, Searching for an Invoice
+@subsubsection Payment Reference 
 
-@node Notes, Payment Amount and Date, Payment Reference , Registration Staff Access
-@subsection Notes
+@node Notes, Payment Amount and Date, Payment Reference , Searching for an Invoice
+@subsubsection Notes
 
 Search notes from the person registering or comments associated with any
 payment or adjustment.
 
-@node Payment Amount and Date, Card Number?, Notes, Registration Staff Access
-@subsection Payment Amount and Date
+@node Payment Amount and Date, Card Number?, Notes, Searching for an Invoice
+@subsubsection Payment Amount and Date
 
-@node Card Number?,  , Payment Amount and Date, Registration Staff Access
-@subsection Card Number?
+@node Card Number?,  , Payment Amount and Date, Searching for an Invoice
+@subsubsection Card Number?
 
 Note that we never receive  anyone's credit-card numbers; PayPal handles
 that part for us. There will never be any reason for anyone on our staff
@@ -256,13 +257,95 @@ to ask  for a card  number, and we cannot  discover what card  was used.
 In the same way, we can't tell what payment was made from a card number.
 
 
-@node Historical Invoices,  , Registration Staff Access, Registration
-@section Historical Invoices
+@node Historical Invoices, , Searching for an Invoice, Registration Staff Access
+@subsection Historical Invoices
 
 TODO. Historical invoices  from the legacy TEG  registration system will
 be imported as time permits; but this has not been done yet.
 
 These invoices may be less complete or accurate than current invoices.
+
+@node Entering an Adjustment, , Historical Invoices, Registration Staff Access
+@subsection Entering an Adjustment
+
+How do I enter an adjustment?
+
+@enumerate
+@item
+First, recall the invoice's ``face  sheet'' (the ``white page''). At the
+top, you'll  see the invoice  number, the names  of the guests,  and the
+admin key. Below  this, comes a summary of the  invoice, which ends with
+the balance of payments.
+@item
+Check the payment history to be sure that the invoice is not yet closed.
+If  the  invoice has  been  closed,  contact  the operator  for  special
+handling -- this will be a special case.
+@item
+From the ``white page,'' click the adjustment link (in the upper area).
+@item
+Enter the invoice number (without commas)
+@item
+Enter the admin key. This may contain punctuation, and is usually around
+6 characters long. (Capital vs. lower-case letters are significant.)
+@item
+Choose  whether the  adjustment is  to be  a credit  or debit.  A credit
+adjustment @emph{reduces}  the amount that  the guest will need  to pay.
+For example, if a  guest is receiving a $40 admission  rather than a $95
+admission,  you   might  enter   a  $55   credit.  A   debit  adjustment
+@emph{increases} the  amount a guest must  pay. For example, if  a guest
+were being charged an extra $100  for a golf-cart rental, you might need
+to enter a  debit adjustment. This might also occur  if someone paid for
+a staff registration, but then subsequently left the staff.
+@item
+Enter the adjustment amount. Please do @emph{not} enter anything but the
+dollar  amount   in  digits.  For  example:   @t{1502}  or  @t{1792.12}.
+In particular, don't enter a @t{-}  (minus sign); select credit or debit
+to indicate the ``sign'' of the adjustment.
+@item
+Enter a  meaningful note. This note  will be e-mailed to  the registrar,
+and will be visible on the guest's invoice, so please be both reasonably
+detailed  and  consider  that  the  guest  will  be  able  to  see  your
+note's text.
+@item
+Click the big, friendly button to submit your adjustment.
+@end enumerate
+
+If your  adjustment brings  the balance  due to  zero, the  invoice will
+automatically be closed out, and e-mail the guest their final itinerary.
+
+Otherwise, you should (manually) send a note back to the guest to inform
+them that the adjustment has been entered, and invite them to make their
+payment of the balance due on-line.
+
+TODO: A  nice mechanism to  send the ``balance  due'' bill to  the guest
+will be forthcoming. In the mean  time, unfortunately, you'll have to do
+it yourself.
+
+@node Entering a Fully-Comped Invoice,  , Entering an Adjustment, Registration Staff Access
+@subsection Entering a Fully-Comped Invoice
+
+If a guests's ticket is fully  compensated (there are no items for which
+the guest is expected to enter a payment), there is not yet a simple way
+to close their invoice out.
+
+Instead, we'll have to ``work around'' the system a little bit:
+
+@enumerate
+@item
+First:  enter a  debit adjustment  for  any amount;  say, $1.  (Invoice,
+admin key, DEBIT, and 1) with a note like ``comp invoice.''
+@item
+Then, enter  a balancing credit adjustment  for the same amount  with an
+appropriate note.
+@end enumerate
+
+By ``bumping''  the invoice like this,  the balance will re-set  to zero
+and the invoice will automatically be closed out.
+
+@node
+@subsection Re-opening a Closed Invoice
+
+This requires manual intervention by the Operator for now. TODO
 
 @node Workshops, Vendors, Registration, Top
 @chapter Workshops and Events
