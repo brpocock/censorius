@@ -46,6 +46,7 @@
    :parse-decimal
    :parse-money
    :plist-keys
+   :plist-values
    :remove-commas
    :schemey-record
    :string-begins
@@ -59,7 +60,7 @@
 (defpackage :herald-db
   (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
         :cl-ppcre :split-sequence :herald-util)
-  (:export :db-query :*db* :with-sql :*arc* :with-archive-sql :archive-query))
+  (:export :db-query :*db* :with-sql :*arc* :with-archive-sql :archive-query :record-plist))
 
 (defpackage :herald-fcgi
   (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
@@ -97,6 +98,10 @@ If it matters: TEST is always called with OTHER, then THING."
 (defun plist-keys (object)
   (mapplist (key _) object
     (list key)))
+
+(defun plist-values (object)
+  (mapplist (_ value) object
+    (list value)))
 
 (defun clean-plist (plist &key (test #'identity))
   (mapplist (key value) plist
@@ -960,51 +965,121 @@ Content-Type: text/plain; charset=utf-8
       (when foundp
         (error 'duplicate-table-definition :initargs initargs :existing-object found)))))
 
-(defmethod simple-record-table-columns (table simple-record-table)
+(defmethod simple-record-table-columns ((table simple-record-table))
   (mapcar (rcurry #'getf :field) (simple-record-table-description table)))
 
 (defun simple-record-table-has-column (object column)
   (member column (simple-record-table-columns object) :test #'string=))
 
+(defun table-exists-p (table)
+  (ignore-errors
+    (plusp (length (db-query (format nil "describe `~a`" table))))))
+
+(defun singular (name)
+  (assert (char-equal #\s (last-elt (string name))))
+  (subseq name 0 (1- (length name))))
+
 (defmethod initialize-instance :after ((object simple-record-table)
                                        &key db-table primary-key-columns trailer-tables
                                          parent-table start-column end-column
                                          volatility logical-deletion-column)
-  (setf (slot-value object 'table-description) 
-        (mapcar (lambda (row) 
-                  (mapplist (key value) row
-                    (list (make-keyword (string-upcase key)) value)))
-                (db-query (format nil "describe `~a`" db-table))))
-  (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
-          (primary-key-columns)
-          "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
-          (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
-          db-table)
-  (loop for column in '(start-column end-column logical-deletion-column)
-     for column-name in (list start-column end-column logical-deletion-column)
-     do (assert (simple-record-table-has-column object column-name)
-                ()
-                "The ~a given for ~a is ~a, which is not a column on that table"
-                column db-table column-name))
-  (let ((missing (remove-if-not (lambda (table)
-                                  (ignore-errors
-                                    (length (db-query (format nil "describe `~a`" table)))))
-                                (append (list parent-table) trailer-tables))))
-    (assert (null missing) (parent-table trailer-tables)
-            "All parent and trailer tables must exist; ~r missing table~:p: ~{~a~^, ~}"
-            (length missing) missing))
-  (assert (simple-record-volatility-p volatility) (volatility)
-          "The volatility of the table must be valid (~a is not)" volatility))
+  (let ((table-description (db-query (format nil "describe `~a`" db-table))))
+    (setf (slot-value object 'table-description) 
+          (mapcar (lambda (row) 
+                    (mapplist (key value) row
+                      (list (make-keyword (string-upcase key)) value)))
+                  table-description))
+    (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
+            (primary-key-columns)
+            "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
+            (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
+            db-table)
+    (loop for column in '(start-column end-column logical-deletion-column)
+       for column-name in (list start-column end-column logical-deletion-column)
+       when column-name
+       do (assert (simple-record-table-has-column object column-name)
+                  ()
+                  "The ~a given for ~a is ~a, which is not a column on that table"
+                  column db-table column-name))
+    (let ((missing (remove-if-not #'table-exists-p
+                                  (remove-if #'null
+                                             (append (list parent-table) trailer-tables)))))
+      (assert (null missing) (parent-table trailer-tables)
+              "All parent and trailer tables must exist; ~r missing table~:p: ~{~a~^, ~}"
+              (length missing) missing))
+    (assert (simple-record-volatility-p volatility) (volatility)
+            "The volatility of the table must be valid (~a is not)" volatility))
+  (let ((function-name (format-symbol :herald-db "FIND-~:@(~a~)" (singular db-table)))
+        (record-class (intern (string-upcase (singular db-table))))
+        (primary-keys (mapcar (compose #'intern #'string-upcase) (simple-record-primary-key-columns object))))
+    (eval `(defclass ,record-class (simple-record) ()))
+    (export record-class)
+    (eval `(defmethod ,function-name ,primary-keys
+               (find-simple-record ,object ,@primary-keys)))
+    (export function-name)
+    (dolist (column-name (mapcar (rcurry #'getf :field) (db-query "describe `~a`" db-table)))
+      (let ((accessor-name (format-symbol :herald-db "~:@(~a~)-~:@(~a~)" (singular db-table) column-name)))
+        (eval `(defmethod ,accessor-name ((instance ',record-class))
+                   (getf instance ,(keyword* column-name)))))))
+  (setf (gethash db-table *simple-record-tables*) object))
 
 (with-sql
   (make-instance 'simple-record-table :db-table "invoices" :primary-key-columns '("invoice")
                  :volatility :session))
 
 (defclass simple-record ()
-  ((table :type simple-record-table :reader record-table :initarg :table)
-   (primary-keys :type 'list :reader primary-keys :initarg :primary-keys)
-   (plist :type 'list :reader record-plist)))
+  ((table :type 'simple-record-table :reader record-table :initarg :table)
+   (plist :type 'list :reader record-plist :initarg :plist)
+   (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
 
+(defmethod print-object ((object simple-record) stream)
+  (let ((table (record-table object))
+        (plist (record-plist object)))
+    (format stream "#.(FIND-~@:(~a~) ~{~s ~s~^ ~})"
+            (simple-record-db-table table) 
+            (loop
+               for key in (mapcar (compose #'make-keyword #'string-upcase) (simple-record-primary-key-columns table))
+               appending (list key (getf plist key))))))
+
+(defvar *simple-record-query-cache* (make-hash-table :test #'equalp))
+
+(defun find-cached-records (table-class column-plist)
+  (let ((sorted-plist (alist-plist (sort (plist-alist column-plist)
+                                         #'string< :key #'car))))
+    (ecase (simple-record-volatility table-class)
+      ((:session :query) (gethash (list table-class sorted-plist) *simple-record-query-cache*))
+      (:volatile (values nil nil)))))
+
+(defun cache-found-records (set table-class column-plist)
+  (let ((sorted-plist (alist-plist (sort (plist-alist column-plist)
+                                         #'string< :key #'car))))
+    (ecase (simple-record-volatility table-class)
+      ((:session :query) (setf (gethash (list table-class sorted-plist) *simple-record-query-cache*) set)
+       (values set t))
+      (:volatile (values nil nil)))))
+
+(defun find-simple-records (table-class column-plist)
+  (multiple-value-bind (found foundp)
+      (find-cached-records table-class column-plist)
+    (if foundp
+        found
+        (let ((found (mapcar (curry #'make-instance 'simple-record :table table-class :dirtyp nil :plist)
+                             (db-query (format nil "select * from `~a` where ~{`~a`=?~}" 
+                                               (simple-record-db-table table-class) (plist-keys column-plist))
+                                       (plist-values column-plist)))))
+          (cache-found-records found table-class column-plist) 
+          found))))
+
+(defun find-simple-record (table-class &rest primary-key-values)
+  (let ((results (find-simple-records table-class
+                                      (loop 
+                                         for key in (simple-record-primary-key-columns table-class)
+                                         for value in primary-key-values
+                                         appending (list key value)))))
+    (assert (member (length results) '(0 1)) (table-class)
+            "The supposed primary key set of table ~a (~{~a~^, ~}) yielded ~r result~:p when confronted by the values (~{~a~^, ~})"
+            (simple-record-db-table table-class) (simple-record-primary-key-columns table-class) primary-key-values)
+    (first results)))
 
 
 (in-package :herald-fcgi)
@@ -1103,9 +1178,8 @@ where (`starting` is null or `starting` <= date(now()))
                    collect (char numberish i))
                 'string)))))
 
-(defun read-general (&optional invoice)
-  (car (db-query "select * from `invoices` where invoice=?"
-                 invoice)))
+(defun read-general (invoice)
+  (record-plist (find-invoice invoice)))
 
 (defun read-scholarships (invoice)
   (alist-plist
@@ -1157,7 +1231,7 @@ where (`starting` is null or `starting` <= date(now()))
             guests)))
 
 (defun invoice-festival (invoice)
-  (let ((fest (read-general invoice)))
+  (let ((fest (find-inv invoice)))
     (list (getf fest :festival-season)
           (getf fest :festival-year))))
 
@@ -1860,8 +1934,8 @@ cookie says “~36r.”
       ((not (numberp invoice))
        `(:error 404 "No invoice number supplied"))
 
-      ((not (equal user-key (user-key invoice))
-            (or (equal user-key (concatenate 'string (user-key invoice) "/" (admin-key invoice)))))
+      ((not (or (equal user-key (user-key invoice))
+                (equal user-key (concatenate 'string (user-key invoice) "/" (admin-key invoice)))))
        (whine "~&Recall refused; mismatched user-key (got ~a) for invoice ~:d" user-key invoice)
        '(:error 403 "Authorization refused. You cannot view the requested resource."
          "Please ensure that you copied and pasted the entire link, without spaces."))
@@ -3218,6 +3292,8 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
       (find-invoices-by-fast-check-in given-name surname house-number zip-code))))
 
 (defmethod handle-verb ((verb (eql :fast-check-in)))
-  (:data (sort (remove-if-not #'invoice-closed-p (find-invoices-by-fast-check-in-swipe (string-trim " " (field :swipe))))
-               #'invoice-festival-start-date)))
+  (list :data (sort (remove-if-not #'invoice-closed-p (find-invoices-by-fast-check-in-swipe (string-trim " " (field :swipe))))
+                    #'invoice-festival-start-date)))
+
+
 
