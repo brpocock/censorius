@@ -533,9 +533,9 @@ with some crap being translated from MySQL crap."
        ,@body)))
 
 (defmacro with-archive-sql (&body body)
-  `(dbi:with-connection (*db* :mysql ,@(remove-from-plist herald-db-config:+params+ :database-name)
-                              :database-name "fpg_archive_tegadmin")
-     (dbi:with-transaction *db*
+  `(dbi:with-connection (*arc* :mysql ,@(remove-from-plist herald-db-config:+params+ :database-name)
+                               :database-name "fpg_archive_tegadmin")
+     (dbi:with-transaction *arc*
        ,@body)))
 
 (defun invalidate-db-cache ()
@@ -3285,3 +3285,30 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
   (:data (sort (remove-if-not #'invoice-closed-p (find-invoices-by-fast-check-in-swipe (string-trim " " (field :swipe))))
                #'invoice-festival-start-date)))
 
+
+
+(defun print-plist->table (plist &optional (stream *standard-output*))
+  (let* ((columns (plist-keys (first plist)))
+         (column-widths (mapcar (lambda (column)
+                                  (max (reduce #'max
+                                               (mapcar (compose #'length #'princ-to-string
+                                                                (rcurry #'getf column))
+                                                       plist))
+                                       (length (string column))))
+                                columns)))
+    (fresh-line stream)
+    (loop for width in column-widths
+       for column in columns
+       do (format stream "~:(~va~) " width column))
+    (fresh-line stream)
+    (dolist (width column-widths)
+      (format stream "~v,,,'-a " width ""))
+    (dolist (row plist)
+      (fresh-line stream)
+      (loop for width in column-widths
+         for column in columns
+         do (format stream "~va " width (getf row column))))
+    (fresh-line stream)
+    (force-output stream)))
+
+
