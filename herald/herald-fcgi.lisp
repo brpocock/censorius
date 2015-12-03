@@ -547,6 +547,12 @@ with some crap being translated from MySQL crap."
                        (list (keyword* key) value)))
        (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *db* query) args))))
 
+(defun archive-filter-execution (query args)
+  (map 'list
+       (lambda (row) (mapplist (key value) row
+                       (list (keyword* key) value)))
+       (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *arc* query) args))))
+
 (defun archive-query (query &rest raw-args)
   (let ((args (mapcar (lambda (arg)
                         (cond ((member arg '(:null :true :false)) arg)
@@ -557,9 +563,9 @@ with some crap being translated from MySQL crap."
                       raw-args)))
     (handler-case
         (progn (format *error-output* "~& [SQL] ~s ~s" query args)
-               (db-filter-execution query args))
+               (archive-filter-execution query args))
       (dbi.error:<dbi-database-error> (c)
-        (herald-fcgi::whine "~2%{{{ ERROR in SQL engine }}}~%~a~%~s~%~s~2%~s ~a"
+        (herald-fcgi::whine "~2%{{{ ERROR in SQL archive query }}}~%~a~%~s~%~s~2%~s ~a"
                             query raw-args args c c)
         (signal c)))))
 
@@ -1208,6 +1214,18 @@ where (`starting` is null or `starting` <= date(now()))
 (defun workshop-record-beautify (invoice)
   (clean-plist (schemey-record (read-workshops invoice))))
 
+(defun payment-amount (payment)
+  (getf payment :amount))
+
+(defun invoice-payments-with-amounts (invoice)
+  (remove-if-not #'numberp (invoice-payments invoice)
+                 :key (rcurry #'getf :amount)))
+
+(defun invoice-balance (invoice)
+  (reduce #'+
+          (mapcar #'payment-amount
+                  (invoice-payments-with-amounts invoice))))
+
 (defun payments-table-text (payments)
   (with-output-to-string (s)
     (let ((balance 0))
@@ -1542,11 +1560,14 @@ not do any good; I am a  lowly robot without the ability to read eMails.
 If this looks like a software problem, you might contact my operator:
 
 ~a
+
+Secret cookie: ~36r
 "
                 invoice
                 (recall-link invoice t)
                 (itinerary/text invoice)
-                +sysop-mail+)))
+                +sysop-mail+
+                +compile-time+)))
 
 (defun mail-user-suspended-invoice (invoice)
   (mail-reg (mail-to-user invoice)
@@ -1860,8 +1881,8 @@ cookie says “~36r.”
       ((not (numberp invoice))
        `(:error 404 "No invoice number supplied"))
 
-      ((not (equal user-key (user-key invoice))
-            (or (equal user-key (concatenate 'string (user-key invoice) "/" (admin-key invoice)))))
+      ((not (or (equal user-key (user-key invoice))
+                (equal user-key (concatenate 'string (user-key invoice) "/" (admin-key invoice)))))
        (whine "~&Recall refused; mismatched user-key (got ~a) for invoice ~:d" user-key invoice)
        '(:error 403 "Authorization refused. You cannot view the requested resource."
          "Please ensure that you copied and pasted the entire link, without spaces."))
@@ -2183,6 +2204,9 @@ Details: Invoice token ~s;
 (defun read-payments (&optional invoice)
   (db-query "select * from `payments` where invoice=?"
             invoice))
+
+(defun invoice-payments (&optional invoice)
+  (read-payments invoice))
 
 (defun read-workshops (&optional invoice)
   ;; (db-query "select * from `workshops` where invoice=?"
@@ -3061,11 +3085,13 @@ not do any good; I am a  lowly robot without the ability to read eMails.
 If this looks like a software problem, you might contact my operator:
 
 ~a
-"
+
+Secret cookie: ~36r"
             invoice
             (vendor-status/text invoice)
             (itinerary/text invoice)
-            +sysop-mail+))
+            +sysop-mail+
+            +compile-time+))
 
 (defun mail-workshops-completed-invoice (invoice)
   (mail-reg +workshops-mail+
@@ -3085,26 +3111,55 @@ not do any good; I am a  lowly robot without the ability to read eMails.
 If this looks like a software problem, you might contact my operator:
 
 ~a
+
+Secret cookie: ~36r
 "
             invoice
             (itinerary/text invoice)
-            +sysop-mail+))
+            +sysop-mail+
+            +compile-time+))
 
+(defun mail-registrar-adjustment (invoice amount note ref)
+  (mail-reg +registrar-mail+ 
+            (format nil "Manual adjustment toTEG FPG invoice ~:d ($ ~$)" invoice amount)
+            (format nil "Herald/adjust/~a" ref)
+            "A manual adjustment has been entered on invoice # ~:d.~2%
+An adjustment in the amount of $ ~$ was entered by ~a. Reference # ~a.~2%
+Reason given: ~2% ~a~%
+This is an automated message. I'm just a robot, doing what I'm told … ~2% ————~2% ~a"
+            invoice amount (remote-user) ref note (itinerary/text invoice)))
+
+(defun mail-user-adjustment (invoice amount note ref)
+  (mail-reg (mail-to-user invoice)
+            (format nil "Adjustment toTEG FPG invoice ~:d ($ ~$)" invoice amount)
+            (format nil "Herald/adjust/~a" ref)
+            "An adjustment has been entered on invoice # ~:d.~2%
+A   ~:[debit~;credit~]*  adjustment   in  the   amount  of   $  ~$   was
+entered (reference # ~a).~2%
+(* — This is ~2:*~:[an increase~;a  drecrease~] in the amount you owe by $ ~$.)~2%
+   Reason given: ~2% ~a~%
+   ~2% ————~%
+   ~a
+   ~2% ————~2%
+   Please DO NOT reply to this eMail. I, the lowly Herald, am but a robotic
+   messenger, and am  unable to read eMail nor help  you further. My secret
+   cookie says “~36r.”
+   "
+            invoice 
+            (plusp amount)
+            (abs amount) ref
+            note (itinerary/text invoice)
+            +compile-time+))
+
 (defun add-adjustment (invoice amount note)
   (check-admin-auth)
   (let ((ref (36r (get-universal-time))))
     (db-query "insert into payments (invoice,via,source,amount,confirmation,note,cleared)
 values (?,?,'Adjustment',?,?,?,now())"
               invoice ref amount (remote-user) note)
-    (close-if-paid invoice)
-    (mail-reg +registrar-mail+ 
-              (format nil "Manual adjustment toTEG FPG invoice ~:d ($ ~$)" invoice amount)
-              (format nil "Herald/adjust/~a" ref)
-              "A manual adjustment has been entered on invoice # ~:d.~%
-An adjustment in the amount of $ ~$ was entered by ~a. Reference # ~a.~%
-Reason given: ~2% ~a~%
-This is an automated message. I'm just a robot, doing what I'm told … ~2% ————~2% ~a"
-              invoice amount (remote-user) ref note (itinerary/text invoice))))
+    (mail-registrar-adjustment invoice amount note ref)    
+    (mail-user-adjustment invoice amount note ref)
+    (close-if-paid invoice)))
 
 (defmethod handle-verb ((verb (eql :adjust)))
   (let ((invoice (parse-integer (field :invoice))))
@@ -3114,6 +3169,15 @@ This is an automated message. I'm just a robot, doing what I'm told … ~2% —�
                              ((string-equal "debit" (field :adjust-type)) -1)
                              (t (error "Credit or debit?")))
                        (abs (parse-money (field :amount))))
+                    (field :note))
+    (close-invoice invoice)
+    (redirect-to-invoice invoice t)))
+
+(defmethod handle-verb ((verb (eql :comp)))
+  (let ((invoice (parse-integer (field :invoice))))
+    (assert (equal (admin-key invoice) (field :admin-key)))
+    (add-adjustment invoice 
+                    (- (invoice-balance invoice))
                     (field :note))
     (redirect-to-invoice invoice t)))
 
