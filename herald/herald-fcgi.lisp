@@ -34,6 +34,7 @@
    :+utf-8+
    :36r
    :as-number
+   :boolbool
    :clean-plist
    :field-?-p
    :interleave
@@ -46,7 +47,9 @@
    :parse-decimal
    :parse-money
    :plist-keys
+   :plist-p
    :remove-commas
+   :repeat
    :schemey-record
    :string-begins
    :take
@@ -70,8 +73,15 @@
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
 
-
 ;;; General utility functions
+
+(defun boolbool (generalized-boolean)
+  "Cast a generalized Boolean value to precisely T or NIL"
+  (if generalized-boolean t nil))
+
+(deftype funcallable ()
+  '(or (and symbol (satisfies fboundp))
+    function))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun null-if (thing other &key (test #'eql))
@@ -82,6 +92,7 @@ OTHER may be a  set, in which case, NIL is returned  for any THING which
 matches (under TEST) any member of that set.
 
 If it matters: TEST is always called with OTHER, then THING."
+    (check-type test funcallable)
     (if (atom other)
         (if (funcall test other thing)
             nil
@@ -91,20 +102,41 @@ If it matters: TEST is always called with OTHER, then THING."
             thing))))
 
 (defmacro mapplist ((key value) plist &body body)
+  "Map  over the  key/value pairs  of  a plist,  appending the  results.
+Typically  used  to  rebuild  a   plist  by  returning  lists  with  new
+key/value pairs."
   `(loop for (,key ,value) on ,plist by #'cddr
       appending (progn ,@body)))
 
-(defun plist-keys (object)
-  (mapplist (key _) object
+(defun plist-keys (plist)
+  "Return the keys of a plist"
+  (mapplist (key _) plist
     (list key)))
 
+(defun plist-p (object)
+  "Guesses whether OBJECT  is a plist. The heuristic tests  that this is
+a list of  an even number of  objects, and the positions  which would be
+the keys of a plist are all keywords. This isn't technically the precise
+definition of a plist, but it's an extremely useful approximation."
+  (and (consp object)
+       (evenp (length object))
+       (every #'keywordp (plist-keys object))))
+
 (defun clean-plist (plist &key (test #'identity))
+  "Clean a  plist by removing  key/value pairs  when the value  does not
+satisfy TEST.
+
+The default  TEST is `IDENTITY',  which causes key/value pairs  when the
+ value is NIL."
+  (check-type test funcallable)
   (mapplist (key value) plist
     (when (funcall test value)
       (list key value))))
 
 (defmacro interleave (&rest sets)
   "Interleave elements from each set: (a b c) (1 2 3) ⇒ (a 1 b 2 c 3)"
+  (assert (every #'consp sets) (sets)
+          "Every set must be a list")
   (let ((gensyms
          (loop for i below (length sets)
             collecting (gensym (or (and (consp (elt sets i))
@@ -117,6 +149,11 @@ If it matters: TEST is always called with OTHER, then THING."
              appending (list 'collect (elt gensyms i))))))
 
 (defun 36r (figure)
+  "Simply format the  number as a base-36 figure  in upper-case, without
+a radix sigil.
+
+eg, 10 → \"A\""
+  (check-type figure (integer 0 *))
   (format nil "~@:(~36r~)" figure))
 
 
@@ -129,22 +166,24 @@ of VECTOR before the result is stored in the new vector. The resulting vector
 will have a fill pointer set to its end.
 
 The macro also uses SETQ to store the new vector in VECTOR."
-  `(setq ,vector
-         (loop with length = (length ,vector)
-            with new-vector = (make-array length
-                                          :element-type ,new-type
-                                          :fill-pointer length)
-            for i below length
-            do (setf (aref new-vector i)
-                     ,(if converter
-                          `(funcall ,converter (aref ,vector i))
-                          `(aref ,vector i)))
-            finally (return new-vector))))
+  `(progn
+     (setq ,vector
+           (loop with length = (length ,vector)
+              with new-vector = (make-array length
+                                            :element-type ,new-type
+                                            :fill-pointer length)
+              for i below length
+              do (setf (aref new-vector i)
+                       ,(if converter
+                            `(funcall ,converter (aref ,vector i))
+                            `(aref ,vector i)))
+              finally (return new-vector)))))
 
 ;;; this function is taken from Hunchentoot 1.1.0 without effective modification
 (defun url-decode (string &optional (external-format +utf-8+))
   "Decodes a URL-encoded STRING which is assumed to be encoded using
 the external format EXTERNAL-FORMAT."
+  (check-type string string)
   (cond 
     ((null string) nil)
     ((zerop (length string))
@@ -194,6 +233,7 @@ the external format EXTERNAL-FORMAT."
 
 (defun url-encode (string)
   "URL-encodes a string"
+  (check-type string string)
   (with-output-to-string (s)
     (loop for c across string
        for index from 0
@@ -212,28 +252,59 @@ the external format EXTERNAL-FORMAT."
 
 ;;; Core parse/deparse stuff
 
-(defun string-begins (string prefix)
+(defun string-begins (string prefix &key (test #'string-equal))
+  "Returns  a generalized  Boolean indicating  whether the  given PREFIX
+matches the beginning of STRING.
+
+TEST  is called  with  STRING, PREFIX,  ':end1, and  the  length of  the
+PREFIX. This is the signature of (at least) `STRING-EQUAL' (the default)
+or `STRING='"
+  (check-type string string)
+  (check-type prefix string)
+  (check-type test funcallable)
   (let ((prefix-length (length prefix)))
     (and (>= (length string) prefix-length)
-         (string-equal string prefix
-                       :end1 prefix-length))))
+         (funcall test string prefix
+                  :end1 prefix-length))))
+
+(defun repeat (count object)
+  (if (functionp object)
+      (loop repeat count collecting (funcall object))
+      (make-list count :initial-element object)))
 
 (defun take (count source)
+  "Take COUNT elements from SOURCE.
+
+If SOURCE  is a sequence,  returns a sequence  of a similar  type (list,
+string, or vector) with the first COUNT elements from SOURCE.
+
+If SOURCE  is a function or  a symbol, calls that  function COUNT times,
+collecting the results into a list."
   (check-type count (integer 0 *))
   (if (zerop count)
       nil
       (if (typep source 'sequence)
-          (subseq source 0 count)
+          (progn
+            (assert (< count (length source)) (count source)
+                    "Cannot take ~:d element~:p from a sequence with only ~:d element~:p"
+                    count (length source))
+            (subseq source 0 count))
           (loop repeat count collect (funcall source)))))
 
-(defun base-type-of (object)
+(defun base-type-of (sequence)
+  "Identifies the essential type of a sequence: list, string, or vector.
+Returns NIL for any other type of object."
   (cond
-    ((consp object) 'list)
-    ((typep object 'string) 'string)
-    ((typep object 'vector) 'vector)))
+    ((consp sequence) 'list)
+    ((typep sequence 'string) 'string)
+    ((typep sequence 'vector) 'vector)))
 
 (defun take-if (count predicate source)
+  "As `TAKE', but discards elements which do not satisfy PREDICATE.
+
+eg: (take-if 5 #'digit-char-p \" a 1 b 2 c 3 d 4 e 5 f 6 g 7\") ⇒ \"12345\""
   (check-type count (integer 0 *))
+  (check-type predicate funcallable)
   (if (zerop count)
       nil
       (if (typep source 'sequence)
@@ -254,6 +325,7 @@ the external format EXTERNAL-FORMAT."
   "Parses a simple  decimal number. Accepts optional - sign  (but not +)
 and  does not  attempt  to  understand such  things  as, eg,  scientific
 notation or the like."
+  (check-type string string)
   (if (find #\. string)
       (let* ((decimal (search "." string))
              (units (subseq string 0 decimal))
@@ -269,19 +341,22 @@ notation or the like."
       (parse-integer string)))
 
 (defun remove-commas (string)
-  "Useful for parsing figures"
-  (coerce
-   (remove-if (curry #'char= #\,) string)
-   'string))
+  "Useful for parsing figures. Simply removes commas, and nothing more."
+  (check-type string string)
+  (remove-if (curry #'char= #\,) string))
 
 (defun parse-money (string)
   "Parses  a  monetary  amount,  taking  into  account  $  or  ¢  signs.
-  Assumes dollars without a ¢ sign."
+  Assumes dollars, unless the string contains a ¢ sign."
+  (check-type string string)
   (if (find #\¢ string :test #'char=)
       (* .01 (parse-decimal (remove-commas (string-trim " ¢" string))))
       (parse-decimal (remove-commas (string-trim " $" string)))))
 
 (defun numeric (x)
+  "If  given  a number,  returns  it;  if  given a  string  representing
+a number, returns the result of calling `PARSE-DECIMAL' on it. "
+  (check-type x (or string number))
   (etypecase x
     (number x)
     (string (parse-decimal x))))
@@ -289,13 +364,15 @@ notation or the like."
 (defun as-number (n)
   "Returns N as a  number; parses it as money if it were  a string, so ¢
 has the desired effect. Does not handle more complex forms."
+  (check-type n (or string number))
   (etypecase n
     (number n)
     (string (parse-money n))))
 
 (defun keyword* (word)
-  "If WORD  is all  caps or  all lower-case, capture  it as  an all-caps
+  "If WORD  is all  caps or  all lower-case, interns  it as  an all-caps
 keyword. Otherwise, preserve its (mixed) case."
+  (check-type word (or string symbol))
   (if (or (string-equal word (string-upcase word))
           (string-equal word (string-downcase word)))
       (make-keyword (string-upcase word))
@@ -313,43 +390,55 @@ keyword. Otherwise, preserve its (mixed) case."
   (mapcar #'st-json:read-json list))
 
 (defun field-?-p (token)
-  (let ((naive (string-downcase token)))
+  "Given a  string designator  TOKEN, if  that TOKEN ends  with a  P and
+seems likely to  indicate a Boolean predicate value, changes  the P to ?
+to be nice to Clojure. Tries to do the right thing with regards to words
+ending in P and -P endings."
+  (check-type token (or string symbol))
+  (let ((naïve (string-downcase token)))
     (cond
       ((member token '("sleep" "php")
-               :test #'string-equal) naive)
-      ((char= #\p (last-elt naive))
-       (concatenate 'string (subseq naive 0 (- (length naive)
+               :test #'string-equal) naïve)
+      ((and (char= #\p (last-elt naïve))
+            (not (find #\= naïve)))
+       (concatenate 'string (subseq naïve 0 (- (length naïve)
                                                1
-                                               (if (char= #\- (elt naive (- (length naive) 2)))
+                                               (if (char= #\- (elt naïve (- (length naïve) 2)))
                                                    1
                                                    0))) "?"))
-      (t naive))))
+      (t naïve))))
 
-(defgeneric interpret-field (value))
-(defmethod interpret-field ((value (eql :true))) t)
-(defmethod interpret-field ((value (eql :false))) nil)
-(defmethod interpret-field ((value (eql :null))) nil)
-(defmethod interpret-field ((value t)) value)
+(defgeneric interpret-field (value)
+  (:documentation  "Interpret a  field's value  as it  arrives in  JSON;
+  particularly, translate keywords :true, :false, and :null into T, NIL,
+  and NIL resp.")
+  (:method ((value (eql :true))) t)
+  (:method((value (eql :false))) nil)
+  (:method ((value (eql :null))) nil)
+  (:method((value t)) value))
 
 
 (defun sql-escape (string)
   "Simply replaces  ' with  '' in  strings (that's  paired/escape single
-quotes)"
+quotes). This is the  right thing to do for standard  SQL, but MySQL and
+other servers might be naughtier than you'd like."
+  (check-type string string)
   (regex-replace-all "\\'" string "''"))
 
-(defgeneric ->sql (object))
-(defmethod ->sql ((object (eql :null))) "NULL")
-(defmethod ->sql ((object (eql :true))) "TRUE")
-(defmethod ->sql ((object (eql :false))) "FALSE")
-(defmethod ->sql ((object (eql t))) "TRUE")
-(defmethod ->sql ((object string)) (concatenate 'string "'" (sql-escape object) "'"))
-(defmethod ->sql ((object integer)) (princ-to-string object))
-(defmethod ->sql ((object real)) (princ-to-string (* 1.0 object)))
-(defmethod ->sql ((object cons)) (format nil "(~{~/sql/~^, ~})" object))
-(defmethod ->sql ((object null)) "NULL")
+(defgeneric ->sql (object)
+  (:documentation "Convert an object into an SQL-escaped form.")
+  (:method ((object (eql :null))) "NULL")
+  (:method ((object (eql :true))) "TRUE")
+  (:method ((object (eql :false))) "FALSE")
+  (:method ((object (eql t))) "TRUE")
+  (:method ((object string)) (concatenate 'string "'" (sql-escape object) "'"))
+  (:method ((object integer)) (princ-to-string object))
+  (:method ((object real)) (princ-to-string (* 1.0 object)))
+  (:method ((object cons)) (format nil "(~{~/sql/~^, ~})" object))
+  (:method ((object null)) "NULL"))
 
 (defun cl-user::sql (stream object colonp atp &rest parameters)
-  "FORMAT ~/SQL/ printer. Handles  strings, integers, and floating-point
+  "`FORMAT' ~/SQL/ printer. Handles  strings, integers, and floating-point
 real numbers."
   (assert (not colonp) () "The colon modifier is not used for ~~/SQL/")
   (assert (not atp) () "The @ modifier is not used for ~~/SQL/")
@@ -384,9 +473,13 @@ real numbers."
                        ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
                        ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
                        ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
-                       ("\\s([a-zA-Z][^\\s]@[a-zA-Z0-9.-]+\\.[a-zA-Z0-9.-]+)"  " \\texttt{\\1}")))
+                       ("\\s([a-zA-Z][^\\s]@[a-zA-Z0-9.-]+\\.[a-zA-Z0-9.-]+)"  " \\texttt{\\1}"))
+  "A set of things  that need to be specially marked-up  to look nice in
+  LaTeΧ output. Regex replacements.")
 
 (defun cl-user::tex (stream object colonp atp &rest parameters)
+  "`FORMAT' printer  for LaTeΧ  output. Convert  an Unicode  string into
+a LaTeΧ-friendly output sequence."
   (assert (not colonp))
   (assert (not atp))
   (assert (null parameters))
@@ -397,7 +490,8 @@ real numbers."
 
 
 (defun html-escape (string)
-  "Escapes < and & from strings for safe printing as HTML (text node) content."
+  "Escapes  <  and &  from  strings  for  safe  printing as  HTML  (text
+node) content."
   (regex-replace-all "\\<"
                      (regex-replace-all "\\&"
                                         (typecase string
@@ -407,6 +501,7 @@ real numbers."
                      "&lt;"))
 
 (defun condition->html (c)
+  "Formats a condition object as (relatively) pretty HTML."
   (format nil "<section class=\"error\">
 <h2> A condition of type ~/html/ was signaled. </h2>
 <h3>~/html/</h3>
@@ -420,6 +515,7 @@ real numbers."
             (uiop/image:print-backtrace :condition c :stream s))))
 
 (defun cl-user::html (stream object colonp atp &rest parameters)
+  "`FORMAT' ~/HTML/ formatter which escapes < and &."
   (assert (not colonp))
   (assert (not atp))
   (assert (null parameters))
@@ -429,24 +525,44 @@ real numbers."
     (condition (princ (condition->html object) stream))
     (t (princ (html-escape (princ-to-string object)) stream))))
 
+
+(defvar *edn-pretty-indent* "  ")
+
+(defgeneric ->edn (object)
+  (:method ((object (eql t))) "true")
+  (:method ((object (eql :true))) "true")
+  (:method ((object (eql :false))) "false")
+  (:method ((object null)) "nil")
+  (:method ((object symbol)) (concatenate 'string #(#\:) 
+                                          (string-downcase (symbol-name object))))
+  (:method ((object string)) (concatenate 'string
+                                          #(#\")
+                                          (regex-replace-all "\\\"" object "\\\"")
+                                          #(#\")))
+  (:method ((object integer)) (princ-to-string object))
+  (:method ((object real)) (princ-to-string (* 1.0 object)))
+  (:method ((object vector))
+    (format nil
+            (concatenate 'string 
+                         "[~<~%" *edn-pretty-indent* "~1:;~{~/edn/~>~^, ~}]")
+            (coerce object 'list)))
+  (:method ((object list)) 
+    (if (plist-p object)
+        (format nil (concatenate 'string 
+                                 "{~<~%" *edn-pretty-indent* "~1:;~{~/edn/ ~/edn/~>~^, ~}}")
+                object)
+        (->edn (coerce object 'vector)))))
+
 (defun cl-user::edn (stream object colonp atp &rest parameters)
+  "`FORMAT' ~/EDN/  formatter which handles  sexp→EDN output with  a few
+optimizations.  One  “gotcha”  is  that most  lists  are  translated  to
+vectors,  but lists  that  appear to  be plists  with  keyword keys  are
+instead translated to Clojure maps."
   (assert (not colonp))
   (assert (not atp))
   (assert (null parameters))
-  (case object
-    ((t :true 'true) (princ "true" stream))
-    ((:false 'false) (princ "false" stream))
-    (otherwise (etypecase object
-                 (null (princ "nil" stream))
-                 (keyword (princ #\: stream)
-                          (princ (string-downcase (string object)) stream))
-                 (symbol (princ #\: stream)
-                         (princ (string-downcase (string object)) stream))
-                 (string (prin1 object stream))
-                 (integer (prin1 object stream))
-                 (real (prin1 (* 1.0 object) stream))
-                 (vector (format stream "[~{~/edn/~^ ~}]" (coerce object 'list)))
-                 (list (format stream "{~{~/edn/ ~/edn/~^,~%~t~}}" object))))))
+  (let ((*edn-pretty-indent* (concatenate 'string *edn-pretty-indent* "     ")))
+    (princ (->edn object) stream)))
 
 (defun jso-escape (string)
   "Simply replaces  ' with  '' in  strings (that's  paired/escape single
@@ -458,31 +574,37 @@ quotes)"
 
 (defvar *json-pretty-indent* "  ")
 
-(defgeneric ->json (object))
-(defmethod ->json ((object (eql :true))) "true")
-(defmethod ->json ((object (eql :false))) "false")
-(defmethod ->json ((object (eql t))) "true")
-(defmethod ->json ((object null)) "null")
-(defmethod ->json ((object symbol))
-  (format nil "\"~a\"" (if (string= (string-upcase object) (string object))
-                           (string-downcase object)
-                           object)))
-(defmethod ->json ((object string))
-  (format nil "\"~a\"" object))
-(defmethod ->json ((object integer))
-  (princ-to-string object))
-(defmethod ->json ((object real))
-  (princ-to-string (* 1.0 object)))
-(defmethod ->json ((object vector))
-  (format nil "[~{~/json/~^, ~}]" (coerce object 'list)))
-(defmethod ->json ((object cons))
-  (if (and (evenp (length object))
-           (every #'keywordp (plist-keys object)))
-      (format nil (concatenate 'string "{~{~/json/: ~/json/~^,~%" *json-pretty-indent* "~}}") 
-              object)
-      (->json (coerce object 'vector))))
-(defmethod ->json ((object t))
-  (format nil "~a" object))
+(defgeneric ->json (object)
+  (:method ((object (eql :true))) "true")
+  (:method ((object (eql :false))) "false")
+  (:method ((object (eql t))) "true")
+  (:method ((object null)) "null")
+  (:method ((object symbol))
+    (format nil "\"~a\"" (if (string= (string-upcase object) (string object))
+                             (string-downcase object)
+                             object)))
+  (:method ((object string))
+    (format nil "\"~a\"" object))
+  (:method ((object integer))
+    (princ-to-string object))
+  (:method ((object real))
+    (princ-to-string (* 1.0 object)))
+  (:method ((object vector))
+    (format nil (concatenate
+                 'string 
+                 "[~{~<~%" *json-pretty-indent* "~1:;~/json/~>~^, ~}]") 
+            (coerce object 'list)))
+
+  (:method ((object cons))
+    (if (plist-p object)
+        (format nil (concatenate 
+                     'string
+                     "{~{~<~%" *json-pretty-indent* "~1:;~/json/: ~/json/~>~^, ~}}") 
+                object)
+        (->json (coerce object 'vector))))
+  (:method ((object t))
+    (format nil "~a" object)))
+
 (defun cl-user::json (stream object colonp atp &rest parameters)
   (assert (not colonp))
   (assert (not atp))
@@ -513,7 +635,6 @@ with some crap being translated from MySQL crap."
                              (second (split-sequence #\<
                                                      address))))
       address))
-
 
 (in-package :herald-db)
 
@@ -966,7 +1087,7 @@ Content-Type: text/plain; charset=utf-8
       (when foundp
         (error 'duplicate-table-definition :initargs initargs :existing-object found)))))
 
-(defmethod simple-record-table-columns (table simple-record-table)
+(defmethod simple-record-table-columns ((table simple-record-table))
   (mapcar (rcurry #'getf :field) (simple-record-table-description table)))
 
 (defun simple-record-table-has-column (object column)
@@ -1042,10 +1163,12 @@ Content-Type: text/plain; charset=utf-8
                              (coerce (merge-merch-styles row styles ordered)
                                      'vector))))))
 
-(defun read-prices ()
+(defun read-prices (&optional date)
   (let ((price-list (db-query "select * from prices
-where (`starting` is null or `starting` <= date(now()))
-   and (ending is null or ending >= date(now()));")))
+where (`starting` is null or `starting` <= date(?))
+   and (ending is null or ending >= date(?));"
+                              (or date 'now)
+                              (or date 'now))))
     (macrolet
         ((with-prices ((&rest symbols) &body body)
            `(let* (,@(mapcar
@@ -1114,12 +1237,14 @@ where (`starting` is null or `starting` <= date(now()))
                  invoice)))
 
 (defun read-scholarships (invoice)
-  (alist-plist
-   (mapcar (lambda (each)
-             (cons (keyword* (getf each :scholarship))
-                   (getf each :amount)))
-           (db-query "select scholarship, amount from `invoice-scholarships` where invoice=?"
-                     invoice))))
+  (etypecase invoice
+    (integer
+     (alist-plist
+      (mapcar (lambda (each)
+                (cons (keyword* (getf each :scholarship))
+                      (getf each :amount)))
+              (db-query "select scholarship, amount from `invoice-scholarships` where invoice=?"
+                        invoice))))))
 
 (defun read-invoice (invoice)
   (list :invoice invoice
@@ -1871,6 +1996,19 @@ cookie says “~36r.”
           (when adminp
             (url-encode (admin-key invoice)))))
 
+(defun invoice-guest-given-name (guest)
+  (person-given-name guest))
+
+(defun invoice-guest-called-by (guest)
+  (person-called-by guest))
+
+(defun invoice-guest-surname (guest)
+  (person-surname guest))
+
+(defun invoice-guests (invoice)
+  (etypecase invoice
+    (integer (read-guests invoice))))
+
 (defmethod handle-verb ((verb (eql :recall)))
   (let* ((invoice (parse-integer (disquote (field :invoice)) :radix 36 :junk-allowed t))
          (admin-key (disquote (field :admin-key)))
@@ -1917,7 +2055,7 @@ Festival: ~{~a ~a~}
 <h4>
 Guests:</h4> ~{
 <p>
- • ~{~a ~} </p>
+ • ~{~a ~@[“~a” ~]~a~} </p>
 ~}
 <p>
 If you would like to continue, please re-check all the information
@@ -1932,14 +2070,13 @@ before submitting.
 </body></html>
 "
                      invoice
-                     (let ((fest (getf (read-invoice invoice) :general)))
-                       (list (getf fest :festival-season)
-                             (getf fest :festival-year)))
+                     (list (invoice-festival-season invoice)
+                           (invoice-festival-year invoice))
                      (mapcar (lambda (guest)
-                               (list (getf guest :given-name)
-                                     (or (getf guest :called-by) "")
-                                     (getf guest :surname)))
-                             (getf (read-invoice invoice) :guests))
+                               (list (invoice-guest-given-name guest)
+                                     (invoice-guest-called-by guest)
+                                     (invoice-guest-surname guest)))
+                             (invoice-guests invoice))
                      (recall-invoice-link invoice t)
                      admin-key
                      (itinerary/text invoice))))
@@ -1986,9 +2123,8 @@ section (next to a guest's name).
 </body></html>
 "
                      invoice
-                     (let ((fest (getf (read-invoice invoice) :general)))
-                       (list (getf fest :festival-season)
-                             (getf fest :festival-year)))
+                     (list (invoice-festival-season invoice)
+                           (invoice-festival-year invoice))
                      (mapcar (lambda (guest)
                                (list (getf guest :given-name)
                                      (or (getf guest :called-by) "")
@@ -2206,7 +2342,8 @@ Details: Invoice token ~s;
             invoice))
 
 (defun invoice-payments (&optional invoice)
-  (read-payments invoice))
+  (etypecase invoice
+    (integer (read-payments invoice))))
 
 (defun read-workshops (&optional invoice)
   ;; (db-query "select * from `workshops` where invoice=?"
@@ -2215,18 +2352,19 @@ Details: Invoice token ~s;
   )
 
 (defun read-merch-ordered (invoice)
-  (let ((ordered (db-query
-                  "select * from `invoice-merch`  where invoice=?"
-                  invoice)))
-    (loop for item in (remove-duplicates (mapcar #'first ordered))
-       collecting (loop for (nil style qty)
-                     in (remove-if-not (lambda (row)
-                                         (equal (first row) item)) ordered)
-                     appending (list style qty)))))
+  (etypecase invoice
+    (integer (let ((ordered (db-query
+                             "select * from `invoice-merch`  where invoice=?"
+                             invoice)))
+               (loop for item in (remove-duplicates (mapcar #'first ordered))
+                  collecting (loop for (nil style qty)
+                                in (remove-if-not (lambda (row)
+                                                    (equal (first row) item)) ordered)
+                                appending (list style qty)))))))
 
-(defun guests->edn (&optional invoice)
+(defun guests->edn (invoice)
   (format nil "(defonce guests (atom ~/edn/))"
-          (coerce (read-guests invoice) 'vector)))
+          (coerce (invoice-guests invoice) 'vector)))
 
 (defun merch->edn (&optional invoice)
   (format nil "(defonce merch (atom {~{:~(~a~) (atom ~/edn/)~}}))"
@@ -3216,6 +3354,8 @@ values (?,?,'Adjustment',?,?,?,now())"
 
 
 (defun invoice-closed-p (invoice)
+  (boolbool (getf (read-general invoice) :closed)))
+(defun invoice-closed (invoice)
   (getf (read-general invoice) :closed))
 
 (defun invoice-festival-season (invoice)
@@ -3282,8 +3422,10 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
       (find-invoices-by-fast-check-in given-name surname house-number zip-code))))
 
 (defmethod handle-verb ((verb (eql :fast-check-in)))
-  (:data (sort (remove-if-not #'invoice-closed-p (find-invoices-by-fast-check-in-swipe (string-trim " " (field :swipe))))
-               #'invoice-festival-start-date)))
+  (list :data 
+        (sort (remove-if-not #'invoice-closed-p (find-invoices-by-fast-check-in-swipe
+                                                 (string-trim " " (field :swipe))))
+              #'< :key #'invoice-festival-start-date)))
 
 
 
@@ -3312,3 +3454,324 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
     (force-output stream)))
 
 
+(defgeneric person= (person1 person2))
+
+(defun cons-is-invoice-guest-p (person)
+  (and (plist-p person)
+       (every (curry #'getf person) '(:given-name :surname :invoice))))
+
+(defun plist-values= (key-list first-plist &rest plists)
+  (if plists 
+      (every (lambda (other)
+               (every (lambda (key)
+                        (equalp (getf first-plist key) (getf other key))) 
+                      key-list))
+             plists)
+      t))
+
+(defmethod person= ((person1 cons) (person2 cons))
+  (assert (and (cons-is-invoice-guest-p person1)
+               (cons-is-invoice-guest-p person2)))
+  (plist-values= '(:given-name :surname :invoice) person1 person2))
+
+(defgeneric person-maybe-same-p (person1 person2))
+
+(defmethod person-maybe-same-p ((person1 cons) (person2 cons))
+  (assert (and (cons-is-invoice-guest-p person1)
+               (cons-is-invoice-guest-p person2)))
+  (plist-values= '(:given-name :surname) person1 person2))
+
+(defmacro define-getf-accessors ((plist-class &key type-checker) &rest keys)
+  `(progn
+     ,@(loop for key in keys
+          collecting
+            (let ((plist-key (keyword* (remove #\‐ (string key))))
+                  (fn-key (substitute #\- #\‐ (string key))))
+              `(progn (defgeneric ,(format-symbol *package* "~:@(~a~)-~:@(~a~)" plist-class fn-key) (,plist-class)
+                        (:method ((,plist-class cons)) 
+                          ,(when type-checker `(assert (funcall ,type-checker ,plist-class)))
+                          (getf ,plist-class ,plist-key)))
+                      (defgeneric (setf ,(format-symbol *package* "~:@(~a~)-~:@(~a~)" plist-class fn-key)) (new-value ,plist-class)
+                        (:method (new-value (,plist-class cons)) 
+                          ,(when type-checker `(assert (funcall ,type-checker ,plist-class)))
+                          (setf (getf ,plist-class ,plist-key) new-value))))))))
+
+(define-getf-accessors (person :type-checker #'cons-is-invoice-guest-p)
+    added address cabin-request called-by city coffee‐p country coven days e-mail eat formal-name gender
+    given-name id-number id-state invoice ksa payment-due physical-limits postal-code presenter-bio
+    presenter-requests sleep social-network spiritual-path spouse staff-approve staff-department
+    staff-job-wanted staff-notes staff-rec staff-submit staff-tue-sun state surname t-shirt telephone
+    ticket-type tote‐p why-staff)
+
+(defmethod person-added :around ((person cons))
+  (local-time:unix-to-timestamp (call-next-method person)))
+
+(defun personal-address (guest)
+  (concatenate 'string (case (person-gender guest)
+                         (:m "Mr ")
+                         (:f "Ms ")
+                         (otherwise ""))
+               (or (person-called-by guest) (person-given-name guest))
+               " " (person-surname guest)))
+
+(defmethod person-spouse :around ((person cons))
+  (let ((marriage (call-next-method person)))
+    (when marriage
+      (first (remove-if-not (lambda (potential)
+                              (and (not (person= person potential))
+                                   (equal marriage (getf potential :spouse))))
+                            (invoice-guests (person-invoice person)))))))
+
+(defmethod person-dob :around ((person cons))
+  (local-time:unix-to-timestamp (call-next-method)))
+
+(defmethod person-age-years ((person cons))
+  (when-let ((birthdate (person-dob person)))
+    (local-time:timestamp-whole-year-difference (local-time:now) birthdate)))
+
+(defmethod person-adult-p ((person cons))
+  (or (and (person-age-years person)
+           (>= (person-age-years person) 18))
+      (eql :adult (person-ticket-type person))))
+
+(defmethod person-child-p (person)
+  (or (and (person-age-years person)
+           (>= 5 (person-age-years person) 17))
+      (eql :child (person-ticket-type person))))
+
+(defmethod person-baby-p (person)
+  (or (and (person-age-years person)
+           (> 5 (person-age-years person)))
+      (eql :baby (person-ticket-type person))))
+
+(defmethod person-bachelor-p ((person cons))
+  (and (person-adult-p person)
+       (not (person-spouse person))))
+
+(defmethod person-invoice-date ((person cons))
+  (if-let (invoice (read-general (person-invoice person)))
+    (if-let (closed (invoice-closed invoice))
+      closed
+      (local-time:now))
+    (local-time:now)))
+
+
+(defun bubbling-cauldron-price-list (&optional date)
+  (getf (read-prices date) :cauldron))
+(defun price-salad-bar (&optional date)
+  (getf (bubbling-cauldron-price-list date) :salad-bar))
+(defun price-cauldron-child (&optional date)
+  (getf (bubbling-cauldron-price-list date) :child))
+(defun price-cauldron-under5 (&optional date)
+  (getf (bubbling-cauldron-price-list date) :under5))
+(defun price-cauldron-fri-sun (&optional date)
+  (getf (bubbling-cauldron-price-list date) :fri-sun))
+(defun price-cauldron-adult (&optional date)
+  (getf (bubbling-cauldron-price-list date) :adult))
+(defun ticket-prices (&optional date)
+  (getf (read-prices date) :ticket))
+(defun price-adult (&optional date)
+  (getf (ticket-prices date) :adult))
+(defun price-child (&optional date)
+  (getf (ticket-prices date) :child))
+(defun price-baby (&optional date)
+  (getf (ticket-prices date) :baby))
+(defun price-staff (&optional date)
+  (getf (ticket-prices date) :staff))
+(defun price-lugal-so (&optional date)
+  (getf (ticket-prices date) :lugal-so))
+(defun price-day-pass (&optional date)
+  (getf (ticket-prices date) :day-pass))
+(defun price-week-end (&optional date)
+  (getf (ticket-prices date) :week-end))
+
+(defun price-t-shirt (&optional date)
+  (warn "FIXME")
+  15)
+(defun price-coffee-mug (&optional date)
+  (warn "FIXME")
+  7)
+(defun price-tote (&optional date)
+  (warn "FIXME")
+  10)
+(defun price-cabin-regular (&optional date)
+  (getf (getf (read-prices date) :cabin) :regular))
+(defun price-cabin-staff (&optional date)
+  (getf (getf (read-prices date) :cabin) :staff))
+(defun price-lodge-regular (&optional date)
+  (getf (getf (read-prices date) :lodge) :regular))
+(defun price-lodge-staff (&optional date)
+  (getf (getf (read-prices date) :lodge) :staff))
+
+(defun cauldron-price (guest)
+  (cond
+    ((eql :salad-bar (person-eat guest))
+     (price-salad-bar (person-invoice-date guest)))
+    
+    ((not (eql :cauldron (person-eat guest)))
+     0)
+    
+    ((person-child-p guest)
+     (price-cauldron-child (person-invoice-date guest)))
+    
+    ((person-baby-p guest)
+     (price-cauldron-under5 (person-invoice-date guest)))
+    
+    (:else                              ; adult
+     (case (person-days guest)
+       ((:thu :fri :sat :week-end) (price-cauldron-fri-sun (person-invoice-date guest)))
+       (otherwise (price-cauldron-adult (person-invoice-date guest)))))))
+
+(defmethod couple-icon (one spouse)
+  (let ((gender1 (or (person-gender one)
+                     (random-elt #(:m :f))))
+        (gender2 (and spouse 
+                      (or (person-gender spouse)
+                          (random-elt #(:m :f))))))
+    (cond ((not spouse) (person-icon one))
+          ((not (eql gender1 gender2)) #\man_and_woman_holding_hands)
+          ((eql :f gender2) #\two_women_holding_hands)
+          (t #\two_men_holding_hands))))
+
+(defun lugal+-spouse-p (person)
+  (when-let (spouse (person-spouse person))
+    (lugal+-p spouse)))
+
+(defun ticket-price (guest)
+  (cond
+    ((lugal+-p guest)
+     0)
+    
+    ((staffp guest)
+     (price-staff (person-invoice-date guest)))
+    
+    ((person-child-p guest)
+     (price-child  (person-invoice-date guest)))
+    
+    ((person-baby-p guest)
+     (price-baby  (person-invoice-date guest)))
+    
+    (:else                              ; adult
+     (case (person-days guest)
+       ((:thu :fri :sat) (price-day-pass (person-invoice-date guest)))
+       (:week-end (price-week-end (person-invoice-date guest)))
+       (otherwise (if (lugal+-spouse-p guest)
+                      (price-staff (person-invoice-date guest))
+                      (price-adult (person-invoice-date guest))))))))
+
+(defun staff-bunk-rate-p (guest)
+  (or (staffp guest)
+      (lugal+-spouse-p guest)
+      (and (not (person-adult-p guest))
+           (some #'lugal+-p (invoice-guests (person-invoice guest))))))
+
+(defun cabin-price (guest)
+  (funcall (if (staff-bunk-rate-p guest)
+               #'price-cabin-staff
+               #'price-cabin-regular)
+           (person-invoice-date guest)))
+
+(defun lodge-price (guest)
+  (funcall (if (staff-bunk-rate-p guest)
+               #'price-lodge-staff
+               #'price-lodge-regular)
+           (person-invoice-date guest)))
+
+(defun sleep-price (guest)
+  (case (person-sleep guest)
+    (:cabin (cabin-price guest))
+    (:lodge (lodge-price guest))
+    (otherwise 0)))
+
+(defmethod person-sleep :around ((person cons))
+  (keyword* (call-next-method person)))
+(defmethod person-gender :around ((person cons))
+  (keyword* (call-next-method person)))
+(defmethod person-t-shirt :around ((person cons))
+  (keyword* (remove #\: (call-next-method person))))
+(defmethod person-ticket-type :around ((person cons))
+  (keyword* (call-next-method person)))
+
+(defun person-price (guest)
+  (if guest
+      (+ (ticket-price guest)
+         (sleep-price guest)
+         (cauldron-price guest)
+         (if (person-t-shirt guest)
+             (price-t-shirt (person-invoice-date guest))
+             0)
+         (if (person-coffee-p guest)
+             (price-coffee-mug (person-invoice-date guest))
+             0)
+         (if (person-tote-p guest)
+             (price-tote (person-invoice-date guest))
+             0))
+      0))
+
+(defun unmarried-lugal-p (guest)
+  (and (person-adult-p guest)
+       (lugal+-p guest)
+       (person-bachelor-p guest)))
+
+(defun married-line (from to)
+  (if (and from to)
+      (concatenate 'string
+                   (couple-icon from to)
+                   " "
+                   (case (person-gender from)
+                     (:m "husband")
+                     (:f "wife")
+                     (otherwise "partner"))
+                   " of "
+                   (if (lugal+-p to)
+                       #(#\cuneiform_sign_lugal #\space)
+                       "")
+                   (personal-address to))
+      ""))
+
+(defun legal-name (guest)
+  (concatenate 'string (person-given-name guest) " " (person-surname guest)))
+
+(defun make-couple-symbol (one other)
+  (loop for try = (gensym (concatenate 'string
+                                       "marriage-" (person-surname one)
+                                       "+" (person-surname other)
+                                       "/" (36r (random (expt 36 3)))))
+     until (null (db-query "select * from `invoice-guests` where spouse=?"))
+     finally (return try)))
+
+(defmethod marry ((one cons) (other cons))
+  (assert (and (not (person= one other))
+               (or (person= one (person-spouse other))
+                   (and (person-bachelor-p one)
+                        (person-bachelor-p other)))))
+  (let ((married-symbol (make-couple-symbol one other)))
+    (setf (getf one :spouse) married-symbol)
+    (setf (getf other :spouse) married-symbol)))
+
+(defmethod divorce ((one cons) (other cons))
+  (assert (not (or (and (string-equal (person-given-name one) "bruce-robert")
+                        (string-equal (person-given-name other) "john"))
+                   (and (string-equal (person-given-name other) "bruce-robert")
+                        (string-equal (person-given-name one) "john"))))
+          (one other)
+          "No way.
+
+♥ You're stuck with me, Mr Fenn Pocock ☺ ♥")
+  (assert (person= one (person-spouse other)))
+  (assert (person= other (person-spouse one)))
+  (setf (getf one :spouse) nil)
+  (setf (getf other :spouse) nil))
+
+
+
+(defun ♄ ()
+  (with-sql (mapcar (lambda (row) 
+                      (apply #'db-query "insert into invoices (invoice, created, closed, `closed-by`, `old-system-p`,`festival-season`,`festival-year`,note, signature, memo, `fast-check-in-address`,`fast-check-in-postal-code`) values(?,?,?,?,?,?,?,?,?,?,?,?)"
+                             (mapcar (curry #'getf row)
+                                     '(:invoice :created :closed :closed-by :old-system-p :festival-season :festival-year :note :signature :memo :fast-check-in-address :fast-check-in-postal-code)))) 
+                    (with-archive-sql (archive-query "select invoices.id as invoice, date as created, date as closed, null as `closed-by`, true as `old-system-p`, (case when events.name like 'Bel%' then 'Beltane' else 'Samhain' end) as `festival-season`, year(events.deadline) as `festival-year`, note as note, null as signature, concat( '(:last-name \"' , last_name , '\" :first-name \"' , first_name , '\" :craft-name \"' , craft_name , '\" :address \"' , address_1 , '  ⊕ ' , address_2 , '\" :city \"' , city , '\" :state \"' , state , '\" :phone \"' , phone , '\" :email \"' , email , '\" )') as memo, null as `fast-check-in-address`, zip as `fast-check-in-postal-code` from invoices left join events on events.id=invoices.event_id ")))))
+
+
+
+
