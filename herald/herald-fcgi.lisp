@@ -256,15 +256,15 @@ will have a fill pointer set to its end.
 
 The macro also uses SETQ to store the new vector in VECTOR."
   `(setq ,vector
-           (loop with length = (length ,vector)
-              with new-vector = (make-array length
-                                            :element-type ,new-type
-                                            :fill-pointer length)
-              for i below length
-              do (setf (aref new-vector i)
-                       ,(if converter
-                            `(funcall ,converter (aref ,vector i))
-                            `(aref ,vector i)))
+         (loop with length = (length ,vector)
+            with new-vector = (make-array length
+                                          :element-type ,new-type
+                                          :fill-pointer length)
+            for i below length
+            do (setf (aref new-vector i)
+                     ,(if converter
+                          `(funcall ,converter (aref ,vector i))
+                          `(aref ,vector i)))
             finally (return new-vector))))
 
 ;;; this function is taken from Hunchentoot 1.1.0 without effective modification
@@ -1198,8 +1198,8 @@ Content-Type: text/plain; charset=utf-8
    (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-(defmethod initialize-instance :after ((object simple-record-table)
-                                       &key db-table 
+  (defmethod initialize-instance :after ((object simple-record-table)
+                                         &key db-table 
                                          (primary-key-columns (primary-key-columns-for-table db-table)) 
                                          (trailer-tables (tables-slaved-to-table db-table))
                                          (parent-table (tables-parented-to-table db-table))
@@ -1207,32 +1207,32 @@ Content-Type: text/plain; charset=utf-8
                                          end-column
                                          (volatility :session)
                                          logical-deletion-column)
-  (setf (slot-value object 'table-description) 
-        (mapcar (lambda (row) 
-                  (mapplist (key value) row
-                    (list (make-keyword (string-upcase key)) value)))
-                (db-query (format nil "describe `~a`" db-table))))
-  (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
-          (primary-key-columns)
-          "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
-          (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
-          db-table)
-  (loop for column in '(start-column end-column logical-deletion-column)
-     for column-name in (list start-column end-column logical-deletion-column)
-                  when column-name
-                  do (assert (simple-record-table-has-column object column-name)
-                             ()
-                             "The ~a given for ~a is ~a, which is not a column on that table"
-                             column db-table column-name))
-               (let ((missing (remove-if-not #'table-exists-p
-                                             (remove-if #'null
-                                                        (append (list parent-table) trailer-tables)))))
-                 (unless (null missing) 
-                   (warn
-                    "All parent and trailer tables for ~a must exist; ~r missing table~:p: ~{~a~^, ~}"
-                    db-table (length missing) missing)))
-  (assert (simple-record-volatility-p volatility) (volatility)
-          "The volatility of the table must be valid (~a is not)" volatility))
+             (setf (slot-value object 'table-description) 
+                   (mapcar (lambda (row) 
+                             (mapplist (key value) row
+                               (list (make-keyword (string-upcase key)) value)))
+                           (db-query (format nil "describe `~a`" db-table))))
+             (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
+                     (primary-key-columns)
+                     "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
+                     (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
+                     db-table)
+             (loop for column in '(start-column end-column logical-deletion-column)
+                for column-name in (list start-column end-column logical-deletion-column)
+                when column-name
+                do (assert (simple-record-table-has-column object column-name)
+                           ()
+                           "The ~a given for ~a is ~a, which is not a column on that table"
+                           column db-table column-name))
+             (let ((missing (remove-if-not #'table-exists-p
+                                           (remove-if #'null
+                                                      (append (list parent-table) trailer-tables)))))
+               (unless (null missing) 
+                 (warn
+                  "All parent and trailer tables for ~a must exist; ~r missing table~:p: ~{~a~^, ~}"
+                  db-table (length missing) missing)))
+             (assert (simple-record-volatility-p volatility) (volatility)
+                     "The volatility of the table must be valid (~a is not)" volatility)
              (let ((function-name (format-symbol :herald-db "FIND-~:@(~a~)" (singular db-table)))
                    (record-class (intern (string-upcase (singular db-table))))
                    (primary-keys (mapcar (compose #'intern #'string-upcase) (simple-record-primary-key-columns object))))
@@ -1304,7 +1304,7 @@ where constraint_schema=? and table_name=?"
   (mapcar #'second (db-query "show tables")))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-(with-sql
+  (with-sql
     (print
      (map 'vector (curry #'make-instance 'simple-record-table :db-table) (all-tables)))))
 
@@ -1689,7 +1689,7 @@ where (`starting` is null or `starting` <= date(?))
             (workshop-record-beautify invoice))
     (format s "~2% ★ Scholarship Funds ★~% ~:[No scholarship fund donations.~;~:*~{ • ~a: ~/json/~%~}~]"
             (scholarship-record-beautify invoice))
-      (format s "~2% ★ General Information ★
+    (format s "~2% ★ General Information ★
 ~:[No fast check-in.~;~
 
  💳 Fast check-in  enabled. 
