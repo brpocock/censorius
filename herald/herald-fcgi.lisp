@@ -51,7 +51,10 @@
    :plist-keys
    :plist-p
    :plist-values
+   :proper-roman-numeral
    :remove-commas
+   :roman-number-value
+   :roman-numeral-value
    :repeat
    :schemey-record
    :string-begins
@@ -76,7 +79,68 @@
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
 
+(defun proper-roman-numeral (char)
+  "Given an ASCII character, return the Unicode Roman numeral code-point
+that     it     resembles;     eg,      for     #\C     this     returns
+#\ROMAN_NUMERAL_ONE_HUNDRED."
+  (case (char-downcase char)
+    (#\i #\roman_numeral_one)
+    (#\v #\roman_numeral_five)
+    (#\g #\roman_numeral_six_late_form)
+    (#\x #\roman_numeral_ten)
+    (#\l #\roman_numeral_fifty)
+    (#\c #\roman_numeral_one_hundred)
+    (#\d #\roman_numeral_five_hundred)
+    (#\m #\roman_numeral_one_thousand)
+    (otherwise nil)))
 
+(defun roman-numeral-value (char)
+  "Return the numeric value of an Unicode Roman numeral."
+  (case char
+    (#\roman_numeral_one 1)
+    (#\roman_numeral_two 2)
+    (#\roman_numeral_three 3)
+    (#\roman_numeral_four 4)
+    (#\roman_numeral_five 5)
+    (#\roman_numeral_six 6)
+    (#\roman_numeral_six_late_form 6)
+    (#\roman_numeral_seven 7)
+    (#\roman_numeral_eight 8)
+    (#\roman_numeral_nine 9)
+    (#\roman_numeral_ten 10)
+    (#\roman_numeral_eleven 11)
+    (#\roman_numeral_twelve 12)
+    (#\roman_numeral_fifty 50)
+    (#\roman_numeral_fifty_early_form 50)
+    (#\roman_numeral_one_hundred 100)
+    (#\roman_numeral_reversed_one_hundred 100)
+    (#\roman_numeral_five_hundred 500)
+    (#\roman_numeral_one_thousand 1000)
+    (#\roman_numeral_one_thousand_c_d 1000)
+    (#\roman_numeral_five_thousand 5000)
+    (#\roman_numeral_ten_thousand 10000)
+    (#\roman_numeral_fifty_thousand 50000)
+    (#\roman_numeral_one_hundred_thousand 100000)
+    (nil nil)
+    (otherwise (roman-numeral-value (proper-roman-numeral char)))))
+
+(defun roman-number-value (string)
+  "Evaluate  a   string,  returning  its   value  as  a   Roman  number.
+Assumes that the string follows typical  rules, and may yield results of
+questionable value  on malformed  strings. Functions with  Unicode Roman
+numeral codepoints  like #\ROMAN_NUMERAL_FIVE  as well as  Latin letters
+that approximate them (as may be produced by `FORMAT' ~:@R)."
+  (loop for char across string
+     for position from 0
+     for value = (roman-numeral-value char)
+     for preceding = (when (plusp position)
+                       (roman-numeral-value (elt string (1- position))))
+     unless value do (error 'reader-error)
+     summing (+ (if (and preceding (< preceding value))
+                    (- (* 2 preceding))
+                    0)
+                value)))
+
 ;;; General utility functions
 
 (defun boolbool (generalized-boolean)
@@ -162,8 +226,6 @@ The default  TEST is `IDENTITY',  which causes key/value pairs  when the
 
 (defmacro interleave (&rest sets)
   "Interleave elements from each set: (a b c) (1 2 3) ⇒ (a 1 b 2 c 3)"
-  (assert (every #'consp sets) (sets)
-          "Every set must be a list")
   (let ((gensyms
          (loop for i below (length sets)
             collecting (gensym (or (and (consp (elt sets i))
@@ -194,15 +256,15 @@ will have a fill pointer set to its end.
 
 The macro also uses SETQ to store the new vector in VECTOR."
   `(setq ,vector
-         (loop with length = (length ,vector)
-            with new-vector = (make-array length
-                                          :element-type ,new-type
-                                          :fill-pointer length)
-            for i below length
-            do (setf (aref new-vector i)
-                     ,(if converter
-                          `(funcall ,converter (aref ,vector i))
-                          `(aref ,vector i)))
+           (loop with length = (length ,vector)
+              with new-vector = (make-array length
+                                            :element-type ,new-type
+                                            :fill-pointer length)
+              for i below length
+              do (setf (aref new-vector i)
+                       ,(if converter
+                            `(funcall ,converter (aref ,vector i))
+                            `(aref ,vector i)))
             finally (return new-vector))))
 
 ;;; this function is taken from Hunchentoot 1.1.0 without effective modification
@@ -606,15 +668,15 @@ quotes)"
   (:method ((object (eql t))) "true")
   (:method ((object null)) "null")
   (:method ((object symbol))
-  (format nil "\"~a\"" (if (string= (string-upcase object) (string object))
-                           (string-downcase object)
-                           object)))
+    (format nil "\"~a\"" (if (string= (string-upcase object) (string object))
+                             (string-downcase object)
+                             object)))
   (:method ((object string))
-  (format nil "\"~a\"" object))
+    (format nil "\"~a\"" object))
   (:method ((object integer))
-  (princ-to-string object))
+    (princ-to-string object))
   (:method ((object real))
-  (princ-to-string (* 1.0 object)))
+    (princ-to-string (* 1.0 object)))
   (:method ((object vector))
     (format nil (concatenate
                  'string 
@@ -626,8 +688,8 @@ quotes)"
         (format nil (concatenate 
                      'string
                      "{~{~<~%" *json-pretty-indent* "~1:;~/json/: ~/json/~>~^, ~}}") 
-              object)
-      (->json (coerce object 'vector))))
+                object)
+        (->json (coerce object 'vector))))
   (:method ((object t))
     (format nil "~a" object)))
 
@@ -681,7 +743,7 @@ with some crap being translated from MySQL crap."
 
 (defmacro with-archive-sql (&body body)
   `(dbi:with-connection (*arc* :mysql ,@(remove-from-plist herald-db-config:+params+ :database-name)
-                              :database-name "fpg_archive_tegadmin")
+                               :database-name "fpg_archive_tegadmin")
      (dbi:with-transaction *arc*
        ,@body)))
 
@@ -1101,7 +1163,7 @@ Content-Type: text/plain; charset=utf-8
    (logical-deletion-column :type 'string :reader simple-record-logical-deletion-column :initarg :logical-deletion-column)
    (table-description :type 'list :reader simple-record-table-description)))
 
-(defvar *simple-record-tables* (make-hash-table))
+(defvar *simple-record-tables* (make-hash-table :test #'equalp))
 
 (define-condition duplicate-table-definition (error)
   ((initargs :initarg :initargs :reader duplicate-table-definition-initargs)
@@ -1109,7 +1171,7 @@ Content-Type: text/plain; charset=utf-8
 
 (defmethod make-instance :before ((class (eql 'simple-record-table)) &rest initargs)
   (destructuring-bind (&key db-table &allow-other-keys) initargs
-    (multiple-value-bind (found foundp) (gethash (intern db-table) *simple-record-tables*)
+    (multiple-value-bind (found foundp) (gethash db-table *simple-record-tables*)
       (when foundp
         (error 'duplicate-table-definition :initargs initargs :existing-object found)))))
 
@@ -1136,23 +1198,27 @@ Content-Type: text/plain; charset=utf-8
    (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defmethod initialize-instance :after ((object simple-record-table)
-                                         &key db-table primary-key-columns trailer-tables
-                                         parent-table start-column end-column
-                                         volatility logical-deletion-column)
-             (let ((table-description (db-query (format nil "describe `~a`" db-table))))
-               (setf (slot-value object 'table-description) 
-                     (mapcar (lambda (row) 
-                               (mapplist (key value) row
-                                 (list (make-keyword (string-upcase key)) value)))
-                             table-description))
-               (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
-                       (primary-key-columns)
-                       "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
-                       (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
-                       db-table)
-               (loop for column in '(start-column end-column logical-deletion-column)
-                  for column-name in (list start-column end-column logical-deletion-column)
+(defmethod initialize-instance :after ((object simple-record-table)
+                                       &key db-table 
+                                         (primary-key-columns (primary-key-columns-for-table db-table)) 
+                                         (trailer-tables (tables-slaved-to-table db-table))
+                                         (parent-table (tables-parented-to-table db-table))
+                                         start-column
+                                         end-column
+                                         (volatility :session)
+                                         logical-deletion-column)
+  (setf (slot-value object 'table-description) 
+        (mapcar (lambda (row) 
+                  (mapplist (key value) row
+                    (list (make-keyword (string-upcase key)) value)))
+                (db-query (format nil "describe `~a`" db-table))))
+  (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
+          (primary-key-columns)
+          "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
+          (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
+          db-table)
+  (loop for column in '(start-column end-column logical-deletion-column)
+     for column-name in (list start-column end-column logical-deletion-column)
                   when column-name
                   do (assert (simple-record-table-has-column object column-name)
                              ()
@@ -1165,8 +1231,8 @@ Content-Type: text/plain; charset=utf-8
                    (warn
                     "All parent and trailer tables for ~a must exist; ~r missing table~:p: ~{~a~^, ~}"
                     db-table (length missing) missing)))
-               (assert (simple-record-volatility-p volatility) (volatility)
-                       "The volatility of the table must be valid (~a is not)" volatility))
+  (assert (simple-record-volatility-p volatility) (volatility)
+          "The volatility of the table must be valid (~a is not)" volatility))
              (let ((function-name (format-symbol :herald-db "FIND-~:@(~a~)" (singular db-table)))
                    (record-class (intern (string-upcase (singular db-table))))
                    (primary-keys (mapcar (compose #'intern #'string-upcase) (simple-record-primary-key-columns object))))
@@ -1199,25 +1265,57 @@ Content-Type: text/plain; charset=utf-8
                                   (setf (getf instance ,(keyword* column-name)) new-value)))))))))
              (setf (gethash db-table *simple-record-tables*) object)))
 
+(defun primary-key-columns-for-table (table)
+  (mapcar (rcurry #'getf :column_name)
+          (sort (remove-if-not (lambda (constraint)
+                                 (equal
+                                  (getf constraint :constraint_name)
+                                  "PRIMARY")) 
+                               (db-query "select * from information_schema.key_column_usage 
+where constraint_schema=? and table_name=?"
+                                         (getf herald-db-config:+params+ :database-name)
+                                         table))
+                #'< :key (rcurry #'getf :ordinal_position))))
+
+(defun tables-with-distinct-references (references)
+  (remove-if-not (lambda (ref-table)
+                   (let ((table-pri-keys (primary-key-columns-for-table ref-table)))
+                     (every (rcurry #'member table-pri-keys)
+                            (remove-if-not (compose (curry #'equal ref-table)
+                                                    (rcurry #'getf :table_name))
+                                           references))))
+                 (remove-duplicates (mapcar (rcurry #'getf :table_name)
+                                            references)
+                                    :test #'string-equal)))
+
+(defun tables-slaved-to-table (table)
+  (tables-with-distinct-references (db-query "select * from information_schema.referential_constraints 
+where constraint_schema=? and referenced_table_name=?"
+                                             (getf herald-db-config:+params+ :database-name)
+                                             table)))
+
+(defun tables-parented-to-table (table)
+  (tables-with-distinct-references (db-query "select * from information_schema.referential_constraints 
+where constraint_schema=? and table_name=?"
+                                             (getf herald-db-config:+params+ :database-name)
+                                             table)))
+
+(defun all-tables ()
+  (mapcar #'second (db-query "show tables")))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (with-sql
-    (make-instance 'simple-record-table :db-table "invoices" :primary-key-columns '("invoice")
-                   :trailer-tables '("invoice-guests" "invoice-merch" "invoice-scholarships" "invoice-vending")
-                   :volatility :session)
-    (make-instance 'simple-record-table :db-table "invoice-guests" :primary-key-columns '("invoice" "given-name" "surname")
-                   :parent-table "invoices"
-                   :volatility :session)
-    (make-instance 'simple-record-table :db-table "invoice-merch" :primary-key-columns '("invoice" "item-id" "style-id")
-                   :parent-table "invoices"
-                   :volatility :session)
-    (make-instance 'simple-record-table :db-table "invoice-scholarships" :primary-key-columns '("invoice")
-                   :parent-table "invoices"
-                   :volatility :session)
-    (make-instance 'simple-record-table :db-table "invoice-vending" :primary-key-columns '("invoice")
-                   :parent-table "invoices"
-                   :volatility :session)))
+(with-sql
+    (print
+     (map 'vector (curry #'make-instance 'simple-record-table :db-table) (all-tables)))))
 
+(defmethod print-object ((table simple-record-table) s)
+  (format s "#<SIMPLE-RECORD-TABLE for ~s>" 
+          (simple-record-db-table table)))
+
+(defclass simple-record ()
+  ((table :type simple-record-table :reader record-table :initarg :table)
+   (primary-keys :type 'list :reader primary-keys :initarg :primary-keys)
+   (plist :type 'list :reader record-plist)))
 
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -1591,7 +1689,7 @@ where (`starting` is null or `starting` <= date(?))
             (workshop-record-beautify invoice))
     (format s "~2% ★ Scholarship Funds ★~% ~:[No scholarship fund donations.~;~:*~{ • ~a: ~/json/~%~}~]"
             (scholarship-record-beautify invoice))
-    (format s "~2% ★ General Information ★
+      (format s "~2% ★ General Information ★
 ~:[No fast check-in.~;~
 
  💳 Fast check-in  enabled. 
@@ -2560,12 +2658,12 @@ Details: Invoice token ~s;
 (defun read-merch-ordered (invoice)
   (etypecase invoice
     (integer (let ((ordered (db-query
-                  "select * from `invoice-merch`  where invoice=?"
-                  invoice)))
-    (loop for item in (remove-duplicates (mapcar #'first ordered))
-       collecting (loop for (nil style qty)
-                     in (remove-if-not (lambda (row)
-                                         (equal (first row) item)) ordered)
+                             "select * from `invoice-merch`  where invoice=?"
+                             invoice)))
+               (loop for item in (remove-duplicates (mapcar #'first ordered))
+                  collecting (loop for (nil style qty)
+                                in (remove-if-not (lambda (row)
+                                                    (equal (first row) item)) ordered)
                                 appending (list style qty)))))))
 
 (defun guests->edn (invoice)
@@ -3638,6 +3736,10 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
 
 
 ;;; Pretty-print a plist as a spreadsheet-like table
+
+(defun hash-table->plist (hash-table)
+  (alist-plist (maphash (lambda (k v) (cons k v)) hash-table)))
+
 (defun print-plist->table (plist &optional (stream *standard-output*))
   "Pretty-print a spreadsheet-like table form from a plist to (fixed-width) text."
   (let* ((columns (plist-keys (first plist)))
@@ -3673,8 +3775,16 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
             (loop for row in plist collecting (mapcar (curry #'getf row) columns)))
     (force-output stream)))
 
+(defun print-hash-table (hash-table)
+  (print-plist->table (hash-table->plist hash-table)))
+
+
+(defgeneric person= (person1 person2))
 
 ;;; Plist-faking-OOP utilities
+(defun cons-is-invoice-guest-p (person)
+  (and (plist-p person)
+       (every (curry #'getf person) '(:given-name :surname :invoice))))
 
 (defun plist-values= (key-list first-plist &rest plists)
   (if plists 
@@ -3684,6 +3794,18 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
                       key-list))
              plists)
       t))
+
+(defmethod person= ((person1 cons) (person2 cons))
+  (assert (and (cons-is-invoice-guest-p person1)
+               (cons-is-invoice-guest-p person2)))
+  (plist-values= '(:given-name :surname :invoice) person1 person2))
+
+(defgeneric person-maybe-same-p (person1 person2))
+
+(defmethod person-maybe-same-p ((person1 cons) (person2 cons))
+  (assert (and (cons-is-invoice-guest-p person1)
+               (cons-is-invoice-guest-p person2)))
+  (plist-values= '(:given-name :surname) person1 person2))
 
 (defmacro define-getf-accessors ((plist-class &key type-checker) &rest keys)
   `(progn
@@ -4012,9 +4134,8 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
   (with-sql (mapcar (lambda (row) 
                       (apply #'db-query "insert into invoices (invoice, created, closed, `closed-by`, `old-system-p`,`festival-season`,`festival-year`,note, signature, memo, `fast-check-in-address`,`fast-check-in-postal-code`) values(?,?,?,?,?,?,?,?,?,?,?,?)"
                              (mapcar (curry #'getf row)
-                                     '(:invoice :created :closed :closed-by :old-system-p :festival-season :festival-year :note :signature :memo :fast-check-in-address :fast-check-in-postal-code)))) 
-                    (with-archive-sql (archive-query "select invoices.id as invoice, date as created, date as closed, null as `closed-by`, true as `old-system-p`, (case when events.name like 'Bel%' then 'Beltane' else 'Samhain' end) as `festival-season`, year(events.deadline) as `festival-year`, note as note, null as signature, concat( '(:last-name \"' , last_name , '\" :first-name \"' , first_name , '\" :craft-name \"' , craft_name , '\" :address \"' , address_1 , '  ⊕ ' , address_2 , '\" :city \"' , city , '\" :state \"' , state , '\" :phone \"' , phone , '\" :email \"' , email , '\" )') as memo, null as `fast-check-in-address`, zip as `fast-check-in-postal-code` from invoices left join events on events.id=invoices.event_id ")))))
-
+                                     '(:invoice :last_name :first_name :craft_name :address_1 :address_2 :city :state :phone :email :zip)))) 
+                    (with-archive-sql (archive-query "select invoices.id as invoice, last_name , first_name ,  craft_name , address_1 , address_2 , city ,state , phone , email  zip from invoices  ")))))
 
 
 
