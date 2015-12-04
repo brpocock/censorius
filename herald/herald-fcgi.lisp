@@ -48,7 +48,10 @@
    :parse-money
    :plist-keys
    :plist-p
+   :proper-roman-numeral
    :remove-commas
+   :roman-number-value
+   :roman-numeral-value
    :repeat
    :schemey-record
    :string-begins
@@ -73,8 +76,69 @@
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
 
-;;; General utility functions
+(defun proper-roman-numeral (char)
+  "Given an ASCII character, return the Unicode Roman numeral code-point
+that     it     resembles;     eg,      for     #\C     this     returns
+#\ROMAN_NUMERAL_ONE_HUNDRED."
+  (case (char-downcase char)
+    (#\i #\roman_numeral_one)
+    (#\v #\roman_numeral_five)
+    (#\g #\roman_numeral_six_late_form)
+    (#\x #\roman_numeral_ten)
+    (#\l #\roman_numeral_fifty)
+    (#\c #\roman_numeral_one_hundred)
+    (#\d #\roman_numeral_five_hundred)
+    (#\m #\roman_numeral_one_thousand)
+    (otherwise nil)))
 
+(defun roman-numeral-value (char)
+  "Return the numeric value of an Unicode Roman numeral."
+  (case char
+    (#\roman_numeral_one 1)
+    (#\roman_numeral_two 2)
+    (#\roman_numeral_three 3)
+    (#\roman_numeral_four 4)
+    (#\roman_numeral_five 5)
+    (#\roman_numeral_six 6)
+    (#\roman_numeral_six_late_form 6)
+    (#\roman_numeral_seven 7)
+    (#\roman_numeral_eight 8)
+    (#\roman_numeral_nine 9)
+    (#\roman_numeral_ten 10)
+    (#\roman_numeral_eleven 11)
+    (#\roman_numeral_twelve 12)
+    (#\roman_numeral_fifty 50)
+    (#\roman_numeral_fifty_early_form 50)
+    (#\roman_numeral_one_hundred 100)
+    (#\roman_numeral_reversed_one_hundred 100)
+    (#\roman_numeral_five_hundred 500)
+    (#\roman_numeral_one_thousand 1000)
+    (#\roman_numeral_one_thousand_c_d 1000)
+    (#\roman_numeral_five_thousand 5000)
+    (#\roman_numeral_ten_thousand 10000)
+    (#\roman_numeral_fifty_thousand 50000)
+    (#\roman_numeral_one_hundred_thousand 100000)
+    (nil nil)
+    (otherwise (roman-numeral-value (proper-roman-numeral char)))))
+
+(defun roman-number-value (string)
+  "Evaluate  a   string,  returning  its   value  as  a   Roman  number.
+Assumes that the string follows typical  rules, and may yield results of
+questionable value  on malformed  strings. Functions with  Unicode Roman
+numeral codepoints  like #\ROMAN_NUMERAL_FIVE  as well as  Latin letters
+that approximate them (as may be produced by `FORMAT' ~:@R)."
+  (loop for char across string
+     for position from 0
+     for value = (roman-numeral-value char)
+     for preceding = (when (plusp position)
+                       (roman-numeral-value (elt string (1- position))))
+     unless value do (error 'reader-error)
+     summing (+ (if (and preceding (< preceding value))
+                    (- (* 2 preceding))
+                    0)
+                value)))
+
+;;; General utility functions
 (defun boolbool (generalized-boolean)
   "Cast a generalized Boolean value to precisely T or NIL"
   (if generalized-boolean t nil))
@@ -135,8 +199,6 @@ The default  TEST is `IDENTITY',  which causes key/value pairs  when the
 
 (defmacro interleave (&rest sets)
   "Interleave elements from each set: (a b c) (1 2 3) ⇒ (a 1 b 2 c 3)"
-  (assert (every #'consp sets) (sets)
-          "Every set must be a list")
   (let ((gensyms
          (loop for i below (length sets)
             collecting (gensym (or (and (consp (elt sets i))
@@ -3769,9 +3831,8 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
   (with-sql (mapcar (lambda (row) 
                       (apply #'db-query "insert into invoices (invoice, created, closed, `closed-by`, `old-system-p`,`festival-season`,`festival-year`,note, signature, memo, `fast-check-in-address`,`fast-check-in-postal-code`) values(?,?,?,?,?,?,?,?,?,?,?,?)"
                              (mapcar (curry #'getf row)
-                                     '(:invoice :created :closed :closed-by :old-system-p :festival-season :festival-year :note :signature :memo :fast-check-in-address :fast-check-in-postal-code)))) 
-                    (with-archive-sql (archive-query "select invoices.id as invoice, date as created, date as closed, null as `closed-by`, true as `old-system-p`, (case when events.name like 'Bel%' then 'Beltane' else 'Samhain' end) as `festival-season`, year(events.deadline) as `festival-year`, note as note, null as signature, concat( '(:last-name \"' , last_name , '\" :first-name \"' , first_name , '\" :craft-name \"' , craft_name , '\" :address \"' , address_1 , '  ⊕ ' , address_2 , '\" :city \"' , city , '\" :state \"' , state , '\" :phone \"' , phone , '\" :email \"' , email , '\" )') as memo, null as `fast-check-in-address`, zip as `fast-check-in-postal-code` from invoices left join events on events.id=invoices.event_id ")))))
-
+                                     '(:invoice :last_name :first_name :craft_name :address_1 :address_2 :city :state :phone :email :zip)))) 
+                    (with-archive-sql (archive-query "select invoices.id as invoice, last_name , first_name ,  craft_name , address_1 , address_2 , city ,state , phone , email  zip from invoices  ")))))
 
 
 
