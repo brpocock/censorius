@@ -1,0 +1,16 @@
+(with-sql
+  (loop for (name abbrev rel) in '(("Alberta"	"AB"	"province")
+                                   ("British Columbia"	"BC"	"province")
+                                   ("Manitoba"	"MB"	"province")
+                                   ("New Brunswick"	"NB"	"province")
+                                   ("Newfoundland and Labrador"	"NL"	"province")
+                                   ("Nova Scotia"	"NS"	"province")
+                                   ("Ontario"	"ON"	"province")
+                                   ("Prince Edward Island"	"PE"	"province")
+                                   ("Quebec"	"QC"	"province")
+                                   ("Saskatchewan"	"SK"	"province")
+                                   ("Northwest Territories"	"NT"	"territory")
+                                   ("Nunavut"	"NU"	"territory")
+                                   ("Yukon Territory"	"YT"	"territory"))
+     do (db-query "insert into `ca-provinces` values (?,?,?,?,?,?)"
+                  abbrev name name name rel rel)))

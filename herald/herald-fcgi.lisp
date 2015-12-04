@@ -1137,7 +1137,7 @@ Content-Type: text/plain; charset=utf-8
    (logical-deletion-column :type 'string :reader simple-record-logical-deletion-column :initarg :logical-deletion-column)
    (table-description :type 'list :reader simple-record-table-description)))
 
-(defvar *simple-record-tables* (make-hash-table))
+(defvar *simple-record-tables* (make-hash-table :test #'equalp))
 
 (define-condition duplicate-table-definition (error)
   ((initargs :initarg :initargs :reader duplicate-table-definition-initargs)
@@ -1145,7 +1145,7 @@ Content-Type: text/plain; charset=utf-8
 
 (defmethod make-instance :before ((class (eql 'simple-record-table)) &rest initargs)
   (destructuring-bind (&key db-table &allow-other-keys) initargs
-    (multiple-value-bind (found foundp) (gethash (intern db-table) *simple-record-tables*)
+    (multiple-value-bind (found foundp) (gethash db-table *simple-record-tables*)
       (when foundp
         (error 'duplicate-table-definition :initargs initargs :existing-object found)))))
 
@@ -1156,9 +1156,14 @@ Content-Type: text/plain; charset=utf-8
   (member column (simple-record-table-columns object) :test #'string=))
 
 (defmethod initialize-instance :after ((object simple-record-table)
-                                       &key db-table primary-key-columns trailer-tables
-                                         parent-table start-column end-column
-                                         volatility logical-deletion-column)
+                                       &key db-table 
+                                         (primary-key-columns (primary-key-columns-for-table db-table)) 
+                                         (trailer-tables (tables-slaved-to-table db-table))
+                                         (parent-table (tables-parented-to-table db-table))
+                                         start-column
+                                         end-column
+                                         (volatility :session)
+                                         logical-deletion-column)
   (setf (slot-value object 'table-description) 
         (mapcar (lambda (row) 
                   (mapplist (key value) row
@@ -1171,10 +1176,11 @@ Content-Type: text/plain; charset=utf-8
           db-table)
   (loop for column in '(start-column end-column logical-deletion-column)
      for column-name in (list start-column end-column logical-deletion-column)
-     do (assert (simple-record-table-has-column object column-name)
-                ()
-                "The ~a given for ~a is ~a, which is not a column on that table"
-                column db-table column-name))
+     do (when column-name
+          (assert (simple-record-table-has-column object column-name)
+                  ()
+                  "The ~a given for ~a is ~a, which is not a column on that table"
+                  column db-table column-name)))
   (let ((missing (remove-if-not (lambda (table)
                                   (ignore-errors
                                     (length (db-query (format nil "describe `~a`" table)))))
@@ -1185,9 +1191,52 @@ Content-Type: text/plain; charset=utf-8
   (assert (simple-record-volatility-p volatility) (volatility)
           "The volatility of the table must be valid (~a is not)" volatility))
 
-(with-sql
-  (make-instance 'simple-record-table :db-table "invoices" :primary-key-columns '("invoice")
-                 :volatility :session))
+(defun primary-key-columns-for-table (table)
+  (mapcar (rcurry #'getf :column_name)
+          (sort (remove-if-not (lambda (constraint)
+                                 (equal
+                                  (getf constraint :constraint_name)
+                                  "PRIMARY")) 
+                               (db-query "select * from information_schema.key_column_usage 
+where constraint_schema=? and table_name=?"
+                                         (getf herald-db-config:+params+ :database-name)
+                                         table))
+                #'< :key (rcurry #'getf :ordinal_position))))
+
+(defun tables-with-distinct-references (references)
+  (remove-if-not (lambda (ref-table)
+                   (let ((table-pri-keys (primary-key-columns-for-table ref-table)))
+                     (every (rcurry #'member table-pri-keys)
+                            (remove-if-not (compose (curry #'equal ref-table)
+                                                    (rcurry #'getf :table_name))
+                                           references))))
+                 (remove-duplicates (mapcar (rcurry #'getf :table_name)
+                                            references)
+                                    :test #'string-equal)))
+
+(defun tables-slaved-to-table (table)
+  (tables-with-distinct-references (db-query "select * from information_schema.referential_constraints 
+where constraint_schema=? and referenced_table_name=?"
+                                             (getf herald-db-config:+params+ :database-name)
+                                             table)))
+
+(defun tables-parented-to-table (table)
+  (tables-with-distinct-references (db-query "select * from information_schema.referential_constraints 
+where constraint_schema=? and table_name=?"
+                                             (getf herald-db-config:+params+ :database-name)
+                                             table)))
+
+(defun all-tables ()
+  (mapcar #'second (db-query "show tables")))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (with-sql
+    (print
+     (map 'vector (curry #'make-instance 'simple-record-table :db-table) (all-tables)))))
+
+(defmethod print-object ((table simple-record-table) s)
+  (format s "#<SIMPLE-RECORD-TABLE for ~s>" 
+          (simple-record-db-table table)))
 
 (defclass simple-record ()
   ((table :type simple-record-table :reader record-table :initarg :table)
@@ -3491,6 +3540,9 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
 
 
 
+(defun hash-table->plist (hash-table)
+  (alist-plist (maphash (lambda (k v) (cons k v)) hash-table)))
+
 (defun print-plist->table (plist &optional (stream *standard-output*))
   (let* ((columns (plist-keys (first plist)))
          (column-widths (mapcar (lambda (column)
@@ -3514,6 +3566,9 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
          do (format stream "~va " width (getf row column))))
     (fresh-line stream)
     (force-output stream)))
+
+(defun print-hash-table (hash-table)
+  (print-plist->table (hash-table->plist hash-table)))
 
 
 (defgeneric person= (person1 person2))
