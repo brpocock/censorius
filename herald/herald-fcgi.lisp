@@ -1,815 +1,3 @@
-;;; Prepare external dependencies
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (mapcar #'ql:quickload '(:alexandria
-                           :cl-ppcre
-                           :cl-sendmail
-                           :com.informatimago.common-lisp.rfc2822
-                           :drakma
-                           :flexi-streams
-                           :memoize
-                           :split-sequence
-                           :dbd-mysql
-                           :st-json
-                           #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)))
-
-(require :alexandria)
-(require :cl-ppcre)
-(require :cl-sendmail)
-(require :com.informatimago.common-lisp.rfc2822)
-(require :drakma)
-(require :flexi-streams)
-(require :memoize)
-(require :split-sequence)
-(require :st-json)
-
-(require :dbd-mysql)
-(require #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
-
-
-;;; Package declarations and exported symbols
-(defpackage :herald-util
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence)
-  (:export 
-   :+utf-8+
-   :36r
-   :as-number
-   :boolbool
-   :clean-plist
-   :field-?-p
-   :groups-of
-   :group-by
-   :interleave
-   :interpret-field
-   :keyword*
-   :mail-only
-   :mapplist
-   :null-if
-   :numeric
-   :parse-decimal
-   :parse-money
-   :plist-keys
-   :plist-p
-   :plist-values
-   :proper-roman-numeral
-   :remove-commas
-   :roman-number-value
-   :roman-numeral-value
-   :repeat
-   :schemey-record
-   :string-begins
-   :take
-   :take-if
-   :upgrade-vector
-   :url-decode
-   :url-encode
-   ))
-
-(defpackage :herald-db
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :herald-util)
-  (:export :db-query :*db* :with-sql :*arc* :with-archive-sql :archive-query :record-plist))
-
-(defpackage :herald-fcgi
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :herald-db :herald-util)
-  (:export :herald-cgi :herald-fcgi :whine))
-
-(in-package :herald-util)
-
-(defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
-
-(defun proper-roman-numeral (char)
-  "Given an ASCII character, return the Unicode Roman numeral code-point
-that     it     resembles;     eg,      for     #\C     this     returns
-#\ROMAN_NUMERAL_ONE_HUNDRED."
-  (case (char-downcase char)
-    (#\i #\roman_numeral_one)
-    (#\v #\roman_numeral_five)
-    (#\g #\roman_numeral_six_late_form)
-    (#\x #\roman_numeral_ten)
-    (#\l #\roman_numeral_fifty)
-    (#\c #\roman_numeral_one_hundred)
-    (#\d #\roman_numeral_five_hundred)
-    (#\m #\roman_numeral_one_thousand)
-    (otherwise nil)))
-
-(defun roman-numeral-value (char)
-  "Return the numeric value of an Unicode Roman numeral."
-  (case char
-    (#\roman_numeral_one 1)
-    (#\roman_numeral_two 2)
-    (#\roman_numeral_three 3)
-    (#\roman_numeral_four 4)
-    (#\roman_numeral_five 5)
-    (#\roman_numeral_six 6)
-    (#\roman_numeral_six_late_form 6)
-    (#\roman_numeral_seven 7)
-    (#\roman_numeral_eight 8)
-    (#\roman_numeral_nine 9)
-    (#\roman_numeral_ten 10)
-    (#\roman_numeral_eleven 11)
-    (#\roman_numeral_twelve 12)
-    (#\roman_numeral_fifty 50)
-    (#\roman_numeral_fifty_early_form 50)
-    (#\roman_numeral_one_hundred 100)
-    (#\roman_numeral_reversed_one_hundred 100)
-    (#\roman_numeral_five_hundred 500)
-    (#\roman_numeral_one_thousand 1000)
-    (#\roman_numeral_one_thousand_c_d 1000)
-    (#\roman_numeral_five_thousand 5000)
-    (#\roman_numeral_ten_thousand 10000)
-    (#\roman_numeral_fifty_thousand 50000)
-    (#\roman_numeral_one_hundred_thousand 100000)
-    (nil nil)
-    (otherwise (roman-numeral-value (proper-roman-numeral char)))))
-
-(defun roman-number-value (string)
-  "Evaluate  a   string,  returning  its   value  as  a   Roman  number.
-Assumes that the string follows typical  rules, and may yield results of
-questionable value  on malformed  strings. Functions with  Unicode Roman
-numeral codepoints  like #\ROMAN_NUMERAL_FIVE  as well as  Latin letters
-that approximate them (as may be produced by `FORMAT' ~:@R)."
-  (loop for char across string
-     for position from 0
-     for value = (roman-numeral-value char)
-     for preceding = (when (plusp position)
-                       (roman-numeral-value (elt string (1- position))))
-     unless value do (error 'reader-error)
-     summing (+ (if (and preceding (< preceding value))
-                    (- (* 2 preceding))
-                    0)
-                value)))
-
-;;; General utility functions
-
-(defun boolbool (generalized-boolean)
-  "Cast a generalized Boolean value to precisely T or NIL"
-  (if generalized-boolean t nil))
-
-(deftype funcallable ()
-  '(or (and symbol (satisfies fboundp))
-    function))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun null-if (thing other &key (test #'eql))
-    "As  with SQL's  NULLIF,  returns THING  if THING  is  not equal  to
-OTHER (under TEST); but, if THING is OTHER, returns NIL.
-
-OTHER may be a  set, in which case, NIL is returned  for any THING which
-matches (under TEST) any member of that set.
-
-If it matters: TEST is always called with OTHER, then THING."
-    (check-type test funcallable)
-    (if (atom other)
-        (if (funcall test other thing)
-            nil
-            thing)
-        (if (some (curry test thing) other)
-            nil
-            thing))))
-
-(defmacro mapplist ((key value) plist &body body)
-  "Map  over the  key/value pairs  of  a plist,  appending the  results.
-Typically  used  to  rebuild  a   plist  by  returning  lists  with  new
-key/value pairs."
-  `(loop for (,key ,value) on ,plist by #'cddr
-      appending (progn ,@body)))
-
-(defun plist-keys (plist)
-  "Return the keys of a plist"
-  (mapplist (key _) plist
-    (list key)))
-
-(defun plist-p (object)
-  "Guesses whether OBJECT  is a plist. The heuristic tests  that this is
-a list of  an even number of  objects, and the positions  which would be
-the keys of a plist are all keywords. This isn't technically the precise
-definition of a plist, but it's an extremely useful approximation."
-  (and (consp object)
-       (evenp (length object))
-       (every #'keywordp (plist-keys object))))
-
-(defun plist-values (object)
-  (mapplist (_ value) object
-    (list value)))
-
-(defun clean-plist (plist &key (test #'identity))
-  "Clean a  plist by removing  key/value pairs  when the value  does not
-satisfy TEST.
-
-The default  TEST is `IDENTITY',  which causes key/value pairs  when the
- value is NIL."
-  (check-type test funcallable)
-  (mapplist (key value) plist
-    (when (funcall test value)
-      (list key value))))
-
-(defun groups-of (list n)
-  (do ((i 0 (1+ i))
-       (l list (cdr l))
-       group res)
-      ((null l)
-       (when group (push (nreverse group) res))
-       (nreverse res))
-    (push (first l) group)
-    (when (= (length group) n)
-      (push (nreverse group) res)
-      (setf group nil))))
-
-(defun group-by (list &key (test #'eql) (key #'identity))
-  (let ((hash (make-hash-table :test test)))
-    (dolist (el list)
-      (push el (gethash (funcall key el) hash)))
-    (loop for key being the hash-key of hash using (hash-value val)
-       collect (cons key val))))
-
-(defmacro interleave (&rest sets)
-  "Interleave elements from each set: (a b c) (1 2 3) ⇒ (a 1 b 2 c 3)"
-  (let ((gensyms
-         (loop for i below (length sets)
-            collecting (gensym (or (and (consp (elt sets i))
-                                        (princ-to-string (car (elt sets i))))
-                                   (princ-to-string (elt sets i)))))))
-    `(loop
-        ,@(loop for i below (length sets)
-             appending (list 'for (elt gensyms i) 'in (elt sets i)))
-        ,@(loop for i below (length sets)
-             appending (list 'collect (elt gensyms i))))))
-
-(defun 36r (figure)
-  "Simply format the  number as a base-36 figure  in upper-case, without
-a radix sigil.
-
-eg, 10 → \"A\""
-  (check-type figure (integer 0 *))
-  (format nil "~@:(~36r~)" figure))
-
-
-
-(defmacro upgrade-vector (vector new-type &key converter)
-  "Returns a vector with the same length and the same elements as VECTOR \(a
-variable holding a vector) but having element type NEW-TYPE. If CONVERTER is
-not NIL, it should designate a function which will be applied to each element
-of VECTOR before the result is stored in the new vector. The resulting vector
-will have a fill pointer set to its end.
-
-The macro also uses SETQ to store the new vector in VECTOR."
-  `(setq ,vector
-         (loop with length = (length ,vector)
-            with new-vector = (make-array length
-                                          :element-type ,new-type
-                                          :fill-pointer length)
-            for i below length
-            do (setf (aref new-vector i)
-                     ,(if converter
-                          `(funcall ,converter (aref ,vector i))
-                          `(aref ,vector i)))
-            finally (return new-vector))))
-
-;;; this function is taken from Hunchentoot 1.1.0 without effective modification
-(defun url-decode (string &optional (external-format +utf-8+))
-  "Decodes a URL-encoded STRING which is assumed to be encoded using
-the external format EXTERNAL-FORMAT."
-  (check-type string string)
-  (cond 
-    ((null string) nil)
-    ((zerop (length string))
-     (return-from url-decode ""))
-    (t
-     (let ((vector (make-array (length string)
-                               :element-type '(unsigned-byte 8)
-                               :fill-pointer 0))
-           (i 0)
-           unicodep)
-       (loop
-          (unless (< i (length string))
-            (return))
-          (let ((char (aref string i)))
-            (labels ((decode-hex (length)
-                       (prog1
-                           (parse-integer string
-                                          :start i :end (+ i length) :radix 16)
-                         (incf i length)))
-                     (push-integer (integer)
-                       (vector-push integer vector))
-                     (peek ()
-                       (aref string i))
-                     (advance ()
-                       (setq char (peek))
-                       (incf i)))
-              (cond
-                ((char= #\% char)
-                 (advance)
-                 (cond
-                   ((char= #\u (peek))
-                    (unless unicodep
-                      (setq unicodep t)
-                      (upgrade-vector vector '(integer 0 65535)))
-                    (advance)
-                    (push-integer (decode-hex 4)))
-                   (t
-                    (push-integer (decode-hex 2)))))
-                (t (push-integer (char-code (case char
-                                              ((#\+) #\Space)
-                                              (otherwise char))))
-                   (advance))))))
-       (cond (unicodep
-              (upgrade-vector vector 'character :converter #'code-char))
-             (t (flexi-streams:octets-to-string vector
-                                                :external-format external-format)))))))
-
-(defun url-encode (string)
-  "URL-encodes a string"
-  (check-type string string)
-  (with-output-to-string (s)
-    (loop for c across string
-       for index from 0
-       do (cond ((or (char<= #\0 c #\9)
-                     (char<= #\a c #\z)
-                     (char<= #\A c #\Z)
-                     ;; note that there's no comma in there - because of cookies
-                     (find c "$-_.!*'()" :test #'char=))
-                 (write-char c s))
-                (t (loop for octet across
-                        (flexi-streams:string-to-octets string
-                                                        :start index
-                                                        :end (1+ index))
-                      do (format s "%~2,'0x" octet)))))))
-
-
-;;; Core parse/deparse stuff
-
-(defun string-begins (string prefix &key (test #'string-equal))
-  "Returns  a generalized  Boolean indicating  whether the  given PREFIX
-matches the beginning of STRING.
-
-TEST  is called  with  STRING, PREFIX,  ':end1, and  the  length of  the
-PREFIX. This is the signature of (at least) `STRING-EQUAL' (the default)
-or `STRING='"
-  (check-type string string)
-  (check-type prefix string)
-  (check-type test funcallable)
-  (let ((prefix-length (length prefix)))
-    (and (>= (length string) prefix-length)
-         (funcall test string prefix
-                  :end1 prefix-length))))
-
-(defun repeat (count object)
-  (if (functionp object)
-      (loop repeat count collecting (funcall object))
-      (make-list count :initial-element object)))
-
-(defun take (count source)
-  "Take COUNT elements from SOURCE.
-
-If SOURCE  is a sequence,  returns a sequence  of a similar  type (list,
-string, or vector) with the first COUNT elements from SOURCE.
-
-If SOURCE  is a function or  a symbol, calls that  function COUNT times,
-collecting the results into a list."
-  (check-type count (integer 0 *))
-  (if (zerop count)
-      nil
-      (if (typep source 'sequence)
-          (progn
-            (assert (<= count (length source)) (count source)
-                    "Cannot take ~:d element~:p from a sequence with only ~:d element~:p"
-                    count (length source))
-            (subseq source 0 count))
-          (loop repeat count collect (funcall source)))))
-
-(defun base-type-of (sequence)
-  "Identifies the essential type of a sequence: list, string, or vector.
-Returns NIL for any other type of object."
-  (cond
-    ((consp sequence) 'list)
-    ((typep sequence 'string) 'string)
-    ((typep sequence 'vector) 'vector)))
-
-(defun take-if (count predicate source)
-  "As `TAKE', but discards elements which do not satisfy PREDICATE.
-
-eg: (take-if 5 #'digit-char-p \" a 1 b 2 c 3 d 4 e 5 f 6 g 7\") ⇒ \"12345\""
-  (check-type count (integer 0 *))
-  (check-type predicate funcallable)
-  (if (zerop count)
-      nil
-      (if (typep source 'sequence)
-          (coerce (let ((first (elt source 0))
-                        (rest (subseq source 1)))
-                    (if (funcall predicate first)
-                        (concatenate (base-type-of source) 
-                                     (vector first)
-                                     (take-if (1- count) predicate rest)) 
-                        (take-if count predicate rest)))
-                  (base-type-of source))
-          (let ((this (funcall source)))
-            (if (funcall predicate this)
-                (cons this (take-if (1- count) predicate source))
-                (take-if count predicate (cdr source)))))))
-
-(defun parse-decimal (string)
-  "Parses a simple  decimal number. Accepts optional - sign  (but not +)
-and  does not  attempt  to  understand such  things  as, eg,  scientific
-notation or the like."
-  (check-type string string)
-  (if (find #\. string)
-      (let* ((decimal (search "." string))
-             (units (subseq string 0 decimal))
-             (fractional (subseq string (1+ decimal)))
-             (negativep (eql #\- (elt string 0))))
-        (* 1.0
-           (+ (parse-integer units)
-              (if (plusp (length fractional))
-                  (* (parse-integer fractional)
-                     (if negativep -1 1)
-                     (expt 10 (- (length fractional))))
-                  0))))
-      (parse-integer string)))
-
-(defun remove-commas (string)
-  "Useful for parsing figures. Simply removes commas, and nothing more."
-  (check-type string string)
-  (remove-if (curry #'char= #\,) string))
-
-(defun parse-money (string)
-  "Parses  a  monetary  amount,  taking  into  account  $  or  ¢  signs.
-  Assumes dollars, unless the string contains a ¢ sign."
-  (check-type string string)
-  (if (find #\¢ string :test #'char=)
-      (* .01 (parse-decimal (remove-commas (string-trim " ¢" string))))
-      (parse-decimal (remove-commas (string-trim " $" string)))))
-
-(defun numeric (x)
-  "If  given  a number,  returns  it;  if  given a  string  representing
-a number, returns the result of calling `PARSE-DECIMAL' on it. "
-  (check-type x (or string number))
-  (etypecase x
-    (number x)
-    (string (parse-decimal x))))
-
-(defun as-number (n)
-  "Returns N as a  number; parses it as money if it were  a string, so ¢
-has the desired effect. Does not handle more complex forms."
-  (check-type n (or string number))
-  (etypecase n
-    (number n)
-    (string (parse-money n))))
-
-(defun keyword* (word)
-  "If WORD  is all  caps or  all lower-case, interns  it as  an all-caps
-keyword. Otherwise, preserve its (mixed) case."
-  (check-type word (or string symbol))
-  (if (or (string-equal word (string-upcase word))
-          (string-equal word (string-downcase word)))
-      (make-keyword (string-upcase word))
-      (make-keyword word)))
-
-
-;;; Converting between Clojure, EDN, JSON, and so forth.
-
-(defmethod st-json:read-json ((null null) &optional junk-allowed-p)
-  (declare (ignore junk-allowed-p))
-  nil)
-
-(defmethod st-json:read-json ((list cons) &optional junk-allowed-p)
-  (declare (ignore junk-allowed-p))
-  (mapcar #'st-json:read-json list))
-
-(defun field-?-p (token)
-  "Given a  string designator  TOKEN, if  that TOKEN ends  with a  P and
-seems likely to  indicate a Boolean predicate value, changes  the P to ?
-to be nice to Clojure. Tries to do the right thing with regards to words
-ending in P and -P endings."
-  (check-type token (or string symbol))
-  (let ((naïve (string-downcase token)))
-    (cond
-      ((member token '("sleep" "php")
-               :test #'string-equal) naïve)
-      ((and (char= #\p (last-elt naïve))
-            (not (find #\- naïve)))
-       (concatenate 'string (subseq naïve 0 (- (length naïve)
-                                               1
-                                               (if (char= #\- (elt naïve (- (length naïve) 2)))
-                                                   1
-                                                   0))) "?"))
-      (t naïve))))
-
-(defgeneric interpret-field (value)
-  (:documentation  "Interpret a  field's value  as it  arrives in  JSON;
-  particularly, translate keywords :true, :false, and :null into T, NIL,
-  and NIL resp.")
-  (:method ((value (eql :true))) t)
-  (:method((value (eql :false))) nil)
-  (:method ((value (eql :null))) nil)
-  (:method((value t)) value))
-
-
-(defun sql-escape (string)
-  "Simply replaces  ' with  '' in  strings (that's  paired/escape single
-quotes). This is the  right thing to do for standard  SQL, but MySQL and
-other servers might be naughtier than you'd like."
-  (check-type string string)
-  (regex-replace-all "\\'" string "''"))
-
-(defgeneric ->sql (object)
-  (:documentation "Convert an object into an SQL-escaped form.")
-  (:method ((object (eql :null))) "NULL")
-  (:method ((object (eql :true))) "TRUE")
-  (:method ((object (eql :false))) "FALSE")
-  (:method ((object (eql t))) "TRUE")
-  (:method ((object string)) (concatenate 'string "'" (sql-escape object) "'"))
-  (:method ((object integer)) (princ-to-string object))
-  (:method ((object real)) (princ-to-string (* 1.0 object)))
-  (:method ((object cons)) (format nil "(~{~/sql/~^, ~})" object))
-  (:method ((object null)) "NULL"))
-
-(defun cl-user::sql (stream object colonp atp &rest parameters)
-  "`FORMAT' ~/SQL/ printer. Handles  strings, integers, and floating-point
-real numbers."
-  (assert (not colonp) () "The colon modifier is not used for ~~/SQL/")
-  (assert (not atp) () "The @ modifier is not used for ~~/SQL/")
-  (assert (null parameters) () "~~/SQL/ does not accept parameters; saw ~s" parameters)
-  (princ (->sql object) stream))
-
-(defvar *tex-escape* '(("\\&" "\\\\&")
-                       ("\\$" "\\\\$")
-                       ("\\x92" "'")
-                       ("\\x93" " ``")
-                       ("\\x94" "'' ")
-                       ("\\223" " ``")
-                       ("\\224" "'' ")
-                       ("—" "---")
-                       ("_" "\\_")
-                       ("\\x96" "---")
-                       ("“" "``")
-                       ("”" "''")
-                       ("‘" "`")
-                       ("’" "'")
-                       ("í" "\\'i")
-                       ("#" "\\textnumero")
-                       ("№" "\\textnumero")
-                       ("1½" "$1\\\\frac{1}{2}$")
-                       ("\\bFPG\\b" "\\fpg")
-                       ("\\bFlorida Pagan Gathering\\b" "\\FPG")
-                       ("\\bTemple of Earth Gatherings?\\b" "\\TEG")
-                       ("\\bTEG\\b" "\\teg")
-                       ("\\bFPG\\b" "\\fpg")
-                       ("\\bSean\\b" "Seán")
-                       ("(https?://[^\\s]+)" "\\texttt{\\1}")
-                       ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
-                       ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
-                       ("(https?://[^\\s]+)/([^\\\\])" "\\1/\\hspace{0pt}\\2")
-                       ("\\s([a-zA-Z][^\\s]@[a-zA-Z0-9.-]+\\.[a-zA-Z0-9.-]+)"  " \\texttt{\\1}"))
-  "A set of things  that need to be specially marked-up  to look nice in
-  LaTeΧ output. Regex replacements.")
-
-(defun cl-user::tex (stream object colonp atp &rest parameters)
-  "`FORMAT' printer  for LaTeΧ  output. Convert  an Unicode  string into
-a LaTeΧ-friendly output sequence."
-  (assert (not colonp))
-  (assert (not atp))
-  (assert (null parameters))
-  (let ((string (princ-to-string object)))
-    (loop for (from to) in *tex-escape*
-       do (setf string (regex-replace-all from string to)))
-    (write string :stream stream)))
-
-
-(defun html-escape (string)
-  "Escapes  <  and &  from  strings  for  safe  printing as  HTML  (text
-node) content."
-  (regex-replace-all "\\<"
-                     (regex-replace-all "\\&"
-                                        (typecase string
-                                          (string string)
-                                          (t (princ-to-string string)))
-                                        "&amp;")
-                     "&lt;"))
-
-(defun condition->html (c)
-  "Formats a condition object as (relatively) pretty HTML."
-  (format nil "<section class=\"error\">
-<h2> A condition of type ~/html/ was signaled. </h2>
-<h3>~/html/</h3>
-<ol class=\"backtrace\">
-~/html/
-</ol>
-</section>"
-          (type-of c)
-          c
-          (with-output-to-string (s)
-            (uiop/image:print-backtrace :condition c :stream s))))
-
-(defun cl-user::html (stream object colonp atp &rest parameters)
-  "`FORMAT' ~/HTML/ formatter which escapes < and &."
-  (assert (not colonp))
-  (assert (not atp))
-  (assert (null parameters))
-  (etypecase object
-    (string (princ (html-escape object) stream))
-    (integer (princ (html-escape (format nil "~:d" object)) stream))
-    (condition (princ (condition->html object) stream))
-    (t (princ (html-escape (princ-to-string object)) stream))))
-
-
-(defvar *edn-pretty-indent* "  ")
-
-(defgeneric ->edn (object)
-  (:method ((object (eql t))) "true")
-  (:method ((object (eql :true))) "true")
-  (:method ((object (eql :false))) "false")
-  (:method ((object null)) "nil")
-  (:method ((object symbol)) (concatenate 'string #(#\:) 
-                                          (string-downcase (symbol-name object))))
-  (:method ((object string)) (concatenate 'string
-                                          #(#\")
-                                          (regex-replace-all "\\\"" object "\\\"")
-                                          #(#\")))
-  (:method ((object integer)) (princ-to-string object))
-  (:method ((object real)) (princ-to-string (* 1.0 object)))
-  (:method ((object vector))
-    (format nil
-            (concatenate 'string 
-                         "[~<~%" *edn-pretty-indent* "~1:;~{~/edn/~>~^, ~}]")
-            (coerce object 'list)))
-  (:method ((object list)) 
-    (if (plist-p object)
-        (format nil (concatenate 'string 
-                                 "{~<~%" *edn-pretty-indent* "~1:;~{~/edn/ ~/edn/~>~^, ~}}")
-                object)
-        (->edn (coerce object 'vector)))))
-
-(defun cl-user::edn (stream object colonp atp &rest parameters)
-  "`FORMAT' ~/EDN/  formatter which handles  sexp→EDN output with  a few
-optimizations.  One  “gotcha”  is  that most  lists  are  translated  to
-vectors,  but lists  that  appear to  be plists  with  keyword keys  are
-instead translated to Clojure maps."
-  (assert (not colonp))
-  (assert (not atp))
-  (assert (null parameters))
-  (let ((*edn-pretty-indent* (concatenate 'string *edn-pretty-indent* "     ")))
-    (princ (->edn object) stream)))
-
-(defun jso-escape (string)
-  "Simply replaces  ' with  '' in  strings (that's  paired/escape single
-quotes)"
-  (let* ((string (regex-replace-all "\\\\" string "\\\\"))
-         (string (regex-replace-all "\\\"" string "\\\""))
-         (string (regex-replace-all "\\n" string "\\n")))
-    string))
-
-(defvar *json-pretty-indent* "  ")
-
-(defgeneric ->json (object)
-  (:method ((object (eql :true))) "true")
-  (:method ((object (eql :false))) "false")
-  (:method ((object (eql t))) "true")
-  (:method ((object null)) "null")
-  (:method ((object symbol))
-    (format nil "\"~a\"" (if (string= (string-upcase object) (string object))
-                             (string-downcase object)
-                             object)))
-  (:method ((object string))
-    (format nil "\"~a\"" object))
-  (:method ((object integer))
-    (princ-to-string object))
-  (:method ((object real))
-    (princ-to-string (* 1.0 object)))
-  (:method ((object vector))
-    (format nil (concatenate
-                 'string 
-                 "[~{~<~%" *json-pretty-indent* "~1:;~/json/~>~^, ~}]") 
-            (coerce object 'list)))
-
-  (:method ((object cons))
-    (if (plist-p object)
-        (format nil (concatenate 
-                     'string
-                     "{~{~<~%" *json-pretty-indent* "~1:;~/json/: ~/json/~>~^, ~}}") 
-                object)
-        (->json (coerce object 'vector))))
-  (:method ((object t))
-    (format nil "~a" object)))
-
-(defun cl-user::json (stream object colonp atp &rest parameters)
-  (assert (not colonp))
-  (assert (not atp))
-  (assert (null parameters))
-  (let ((*json-pretty-indent* (concatenate 'string *json-pretty-indent* "     ")))
-    (princ (->json object) stream)))
-
-(defun schemey-record (record)
-  "Convert a plist into a  sort that Scheme/Clojure would like, probably
-with some crap being translated from MySQL crap."
-  (mapplist (key value) record
-    (list (make-keyword (field-?-p key))
-          (if (and (char= #\? (last-elt (string (field-?-p key))))
-                   (member value '(1 0 t nil)))
-              (case value
-                ((0 nil) :false)
-                ((1 t) :true))
-              value))))
-
-(defun mail-only (address)
-  "Given a nice e-mail address like \"Name\" <user@domain>, returns just
-  the user@domain bit."
-  (if (and (find #\< address :test #'char=)
-           (find #\< address :test #'char=)
-           (< (position #\< address :test #'char=)
-              (position #\< address :test #'char=)))
-      (first (split-sequence #\>
-                             (second (split-sequence #\<
-                                                     address))))
-      address))
-
-(in-package :herald-db)
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (load (make-pathname :name "herald-mysql"
-                       :defaults (user-homedir-pathname))))
-
-(defvar *db* :disconnected)
-
-(defvar *arc* :disconnected)
-
-(defvar *select-cache* (make-hash-table :test #'equal))
-
-(defmacro with-sql (&body body)
-  `(dbi:with-connection (*db* :mysql ,@herald-db-config:+params+)
-     (dbi:with-transaction *db*
-       ,@body)))
-
-(defmacro with-archive-sql (&body body)
-  `(dbi:with-connection (*arc* :mysql ,@(remove-from-plist herald-db-config:+params+ :database-name)
-                               :database-name "fpg_archive_tegadmin")
-     (dbi:with-transaction *arc*
-       ,@body)))
-
-(defun invalidate-db-cache ()
-  (clrhash *select-cache*))
-
-(defun db-filter-execution (query args)
-  (map 'list
-       (lambda (row) (mapplist (key value) row
-                       (list (keyword* key) value)))
-       (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *db* query) args))))
-
-(defun archive-filter-execution (query args)
-  (map 'list
-       (lambda (row) (mapplist (key value) row
-                       (list (keyword* key) value)))
-       (dbi:fetch-all (apply #'dbi:execute (dbi:prepare *arc* query) args))))
-
-(defun archive-query (query &rest raw-args)
-  (let ((args (mapcar (lambda (arg)
-                        (cond ((member arg '(:null :true :false)) arg)
-                              ((null arg) :null)
-                              ((eql arg t) :true)
-                              ((symbolp arg) (string-downcase arg))
-                              (t arg)))
-                      raw-args)))
-    (handler-case
-        (progn (format *error-output* "~& [ARC] ~s ~s" query args)
-               (archive-filter-execution query args))
-      (dbi.error:<dbi-database-error> (c)
-        (herald-fcgi::whine "~2%{{{ ERROR in SQL archive query }}}~%~a~%~s~%~s~2%~s ~a"
-                            query raw-args args c c)
-        (signal c)))))
-
-(defun db-query (query &rest raw-args)
-  (let ((args (mapcar (lambda (arg)
-                        (cond ((member arg '(:null :true :false)) arg)
-                              ((null arg) :null)
-                              ((eql arg t) :true)
-                              ((symbolp arg) (string-downcase arg))
-                              (t arg)))
-                      raw-args)))
-    (handler-case
-        (cond ((or (string-equal "select " query :end2 7)
-                   (string-equal "describe " query :end2 9)
-                   (string-equal "show " query :end2 5))
-               
-               (multiple-value-bind (cached foundp)
-                   (gethash (list query args) *select-cache*)
-                 (when foundp
-                   (format *error-output* "~& [SQL]* ~s ~s" query args)
-                   (return-from db-query cached)))
-               
-               (format *error-output* "~& [SQL] ~s ~s" query args)
-               (let ((found (db-filter-execution query args)))
-                 (setf (gethash (list query args) *select-cache*) found)
-                 found))
-              
-              (t (format *error-output* "~& [SQL] ~s ~s" query args)
-                 (invalidate-db-cache)
-                 (db-filter-execution query args)))
-      (dbi.error:<dbi-database-error> (c)
-        (herald-fcgi::whine "~2%{{{ ERROR in SQL engine }}}~%~a~%~s~%~s~2%~s ~a"
-                            query raw-args args c c)
-        (signal c)))))
-
 (in-package :herald-fcgi)
 
 ;;; control cards
@@ -859,7 +47,6 @@ with some crap being translated from MySQL crap."
 
 (defparameter *read-post-timeout* 10
   "The maximum number of seconds to wait while reading from a POST")
-
 
 ;;; compile-time constants
 (defconstant +compile-time-offset+ 3639900000)
@@ -868,11 +55,11 @@ with some crap being translated from MySQL crap."
   (defvar +compile-time+ (- (get-universal-time) +compile-time-offset+)))
 
 (setf drakma:*drakma-default-external-format* :utf-8)
-
 
 ;;; report on how we were built
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (format t "~&Compiling Herald with baked-in configuration:
+  (defun about-me ()
+    (format t "~&Compiling Herald with baked-in configuration:
  • User home directory: ~a
  • DB: ~:[Unknown/incorrect type~;MariaDB/MySQL~] database
     • host: ~a
@@ -886,7 +73,8 @@ with some crap being translated from MySQL crap."
  • Archive mail: ~a
  • Vendors mail: ~a 
  • Workshops mail: ~a
-• Compile-time version marker: ~36r
+ • Compile-time version marker: ~36r
+ • Herald-Util compiled: ~36r; Herald-DB compiled: ~36r
  • PayPal interface
     • ~:[Production (live) mode~;Sandbox (test) mode~]
     • PayPal App ID: ~a
@@ -894,29 +82,30 @@ with some crap being translated from MySQL crap."
     • PayPal client ID: ~a
     • PayPal secret: ~:[(missing)~;(set)~]
 ~2%"
-          (user-homedir-pathname)
-          herald-db-config:+mysql+
-          (getf herald-db-config:+params+ :host)
-          (getf herald-db-config:+params+ :database-name)
-          (getf herald-db-config:+params+ :username)
-          (getf herald-db-config:+params+ :password)
-          +host-name+
-          +sysop-mail+
-          +herald-mail+
-          +registrar-mail+
-          +archive-mail+
-          +vendors-mail+
-          +workshops-mail+
-          +compile-time+
-          *paypal-sandbox-p*
-          (paypal-app-id)
-          (paypal-account)
-          (paypal-client-id)
-          (paypal-secret)))
-
+            (user-homedir-pathname)
+            herald-db-config:+mysql+
+            (getf herald-db-config:+params+ :host)
+            (getf herald-db-config:+params+ :database-name)
+            (getf herald-db-config:+params+ :username)
+            (getf herald-db-config:+params+ :password)
+            +host-name+
+            +sysop-mail+
+            +herald-mail+
+            +registrar-mail+
+            +archive-mail+
+            +vendors-mail+
+            +workshops-mail+
+            +compile-time+
+            herald-util::+compile-time+ herald-db::+compile-time+
+            *paypal-sandbox-p*
+            (paypal-app-id)
+            (paypal-account)
+            (paypal-client-id)
+            (paypal-secret)))
+  
+  (about-me))
 
 ;;; Pretty-printing tools
-
 (defun simply$ (thing)
   "Create a short string-token with only alphanumeric bits"
   (coerce (remove-if (complement #'alphanumericp)
@@ -925,39 +114,44 @@ with some crap being translated from MySQL crap."
                          (princ-to-string thing)))
           'string))
 
-(defun yesno$ (bool)
-  "Cast a boolean as the string Yes or No"
-  (if bool "Yes" "No"))
-
 (defun gender$ (gender)
   "Interpret a gender string, typically a  keyword :m or :f, as a pretty
 string"
   (cond ((find #\F (string-upcase gender)) "♀ Female")
         ((find #\M (string-upcase gender)) "♂ Male")
         (t "⊕")))
-
 
 ;;; The  environment  surrounding  each  query is  stashed  into  these;
 ;;; they're unbound at the top-level SO THAT trying to access them will
 ;;; signal an error.
 
-(defvar *cgi* :cgi)
-(defvar *request* nil)
+(defvar *run-model* :cgi
+  "In  which type  of runtime  environment are  we embedded?  This should  be :CGI  for the  traditional Common  Gateway
+Interface, or :FAST for the FastCGI interface.
 
+Some functions could also be invoked from :BATCH or :TTY modes.")
+
+(defvar *request* nil
+  "Attributes of the current request (query) which we are dispatching.")
 
 ;;; CGI environment selections
 (defun accept-type-p (content-type)
   "Does the UA accept the named content-type?"
-  (let ((accepts (ecase *cgi*
+  (let ((accepts (ecase *run-model*
                    (:fast (fcgx-getparam "HTTP_ACCEPT" *request*))
-                   (:cgi (uiop/os:getenv "HTTP_ACCEPT")))))
+                   (:cgi (uiop/os:getenv "HTTP_ACCEPT"))
+                   (:batch "text/plain")
+                   (:tty "text/plain; text/x-ansi"))))
     (format *error-output* "~& User agent accepts: ~a" accepts)
     (or (search content-type accepts)
         (when (equal content-type "application/javascript")
           (search "text/javascript" accepts)))))
 
 (defun read-post-data ()
-  "Parse POST data from the user"
+  "Parse POST data from the user. This should only be called in CGI mode.
+
+Note, this currently does NOT handle multipart/form-data posts."
+  (assert (eql *run-model* :cgi))
   (let* ((the-end (min (or (ignore-errors
                              (parse-integer (uiop/os:getenv "CONTENT_LENGTH")))
                            0)
@@ -976,7 +170,8 @@ string"
 
 (defun all-submitted-params ()
   "Returns the sequence of path-info, query-string, and POST parameters.
-Note that I'm not handling multipart/form-data posts here."
+
+Note that I'm NOT handling multipart/form-data posts here."
   (apply #'concatenate 'string
          (list (if-let (path (uiop/os:getenv "PATH_INFO"))
                  (substitute #\& #\/ path)
@@ -992,24 +187,30 @@ Note that I'm not handling multipart/form-data posts here."
   "Obtain all of the dominant* parameters submitted for a request.
 
 This means that POST trumps GET (query-string) trumps path-info."
-  (if-let (query-params (getf *request* :query-params))
-    query-params
-    (setf (getf *request* :query-params)
-          (alist-plist
-           (mapcar (lambda (pair)
-                     (destructuring-bind  (key &optional value) (split-sequence #\= pair)
-                       (cons (keyword* key)
-                             (if (and (stringp value)
-                                      (plusp (length value)))
-                                 (url-decode value)
-                                 t))))
-                   (split-sequence #\&
-                                   (all-submitted-params)))))))
+  (or (getf *request* :query-params)
+      
+      (setf (getf *request* :query-params)
+            (alist-plist
+             (mapcar (lambda (pair)
+                       (destructuring-bind  (key &optional value) (split-sequence #\= pair)
+                         (cons (keyword* key)
+                               (if (and (stringp value)
+                                        (plusp (length value)))
+                                   (url-decode value)
+                                   t))))
+                     (split-sequence #\&
+                                     (all-submitted-params)))))))
 
 
 ;;; Memoize a function.
-
 (defmacro define-stable-function (name arg-list &body body)
+  "This is  meant to do what  it says on the  tin: it defines that  a function is “stable,”  ie, it should not  take any
+inputs (database reads, time, dynamic variables, …) that are not coming in from its argument-list, so its results can be
+cached. This is different  than what the Quicklisp package MEMOIZE can  do for me in some ways that  I happened to like,
+but, it's not actually useful for the thing for which I had designed it, which is unfortunate.
+
+Note that the  definition of “the same inputs”  is here defined under `EQUALP',  which may not always be  what one might
+wish for."
   (let ((cache (gensym (concatenate 'string (string name) "-CACHE-")))
         (key (gensym "KEY-"))
         (found (gensym "FOUND-"))
@@ -1032,48 +233,44 @@ This means that POST trumps GET (query-string) trumps path-info."
                  (let ((,new-value (progn ,@body)))
                    (setf (gethash ,key ,cache) ,new-value)
                    ,new-value))))))))
+
+;;; Read fields provided by CGI POSTs
+(defgeneric field-read (a b c)
+  (:documentation "Select a value that  may have been posted from the user. In particular, the  first item given will be
+the field name actually POSTed,  as converted by `KEYWORD*' into a keyword. The optional  second parameter may be either
+the identity of  a key in a JSON object,  or the element number of a  JSON list; the third can be  a further JSON object
+key. If absent, the B and C parameters must be NIL.
 
-(defgeneric field-read (a b c))
-
-(defmethod field-read ((a t) (b t) (c t))
-  (error "Invalid field selector: ~s ~s ~s" a b c))
-
-(defmethod field-read ((a symbol) (b null) (c null))
-  (ecase *cgi*
-    (:fast (fcgx-getparam a *request*))
-    (:cgi (getf (query-params) (keyword* a)))))
-
-(defmethod field-read ((a string) (b number) (c string))
-  (when-let (field-jso (field (make-keyword a)))
-    (when-let (st-jso (st-json:read-json field-jso))
-      (when-let (elt (elt st-jso b))
-        (st-json:getjso (field-?-p c) elt)))))
-
-(defmethod field-read ((a string) (b string) (c null))
-  (when-let (field-jso (field (keyword* a)))
-    (when-let (st-jso (st-json:read-json field-jso))
-      (st-json:getjso (field-?-p b) st-jso))))
-
-(defmethod field-read ((a symbol) (b number) (c symbol))
-  (field (string-downcase a) b (string-downcase c)))
-
-(defmethod field-read ((a string) (b number) (c symbol))
-  (field a b (string-downcase c)))
-
-(defmethod field-read ((a symbol) (b number) (c string))
-  (field (string-downcase a) b c))
-
-(defmethod field-read ((a symbol) (b symbol) (c null))
-  (field (string-downcase a) (string-downcase b)))
-
-(defmethod field-read ((a string) (b symbol) (c null))
-  (field a (string-downcase b) nil))
-
-(defmethod field-read ((a symbol) (b string) (c null))
-  (field (string-downcase a) b nil))
-
-(defmethod field-read ((a string) (b null) (c null))
-  (field (make-keyword a) nil nil))
+Normally called via convenience function `FIELD'")
+  (:method ((a t) (b t) (c t))
+    (error "Invalid field selector: ~s ~s ~s" a b c))
+  (:method ((a symbol) (b null) (c null))
+    (ecase *run-model*
+      (:fast (fcgx-getparam a *request*))
+      (:cgi (getf (query-params) (keyword* a)))))
+  (:method ((a string) (b number) (c string))
+    (when-let (field-jso (field (make-keyword a)))
+      (when-let (st-jso (st-json:read-json field-jso))
+        (when-let (elt (elt st-jso b))
+          (st-json:getjso (field-?-p c) elt)))))
+  (:method ((a string) (b string) (c null))
+    (when-let (field-jso (field (keyword* a)))
+      (when-let (st-jso (st-json:read-json field-jso))
+        (st-json:getjso (field-?-p b) st-jso))))
+  (:method ((a symbol) (b number) (c symbol))
+    (field (string-downcase a) b (string-downcase c)))
+  (:method ((a string) (b number) (c symbol))
+    (field a b (string-downcase c)))
+  (:method ((a symbol) (b number) (c string))
+    (field (string-downcase a) b c))
+  (:method ((a symbol) (b symbol) (c null))
+    (field (string-downcase a) (string-downcase b)))
+  (:method ((a string) (b symbol) (c null))
+    (field a (string-downcase b) nil))
+  (:method ((a symbol) (b string) (c null))
+    (field (string-downcase a) b nil))
+  (:method ((a string) (b null) (c null))
+    (field (make-keyword a) nil nil)))
 
 (define-stable-function field (field-name &optional f2 f3)
   "Get the  contents of  the named form-field.  (Accepted as  a keyword,
@@ -1104,6 +301,7 @@ Content-Type: text/plain; charset=utf-8
          *error-output*))
 
 (defun mail-reg (destination subject reference &rest message-fmt+args)
+  "Send mail to someone about a Registration-related topic."
   (cl-sendmail:with-email
       (mail-stream destination
                    :bcc +sysop-mail+
@@ -1144,296 +342,6 @@ Content-Type: text/plain; charset=utf-8
                    :attachments attachments)
     (apply (curry #'format mail-stream) message-fmt+args)))
 
-(in-package :herald-db)
-
-(defun simple-record-volatility-p (symbol)
-  (member symbol '(:session :query :volatile)))
-
-(deftype simple-record-volatility ()
-  '(and keyword (satisfies #'simple-record-volatility-p)))
-
-(defclass simple-record-table ()
-  ((db-table :type 'string :reader simple-record-db-table :initarg :db-table)
-   (primary-key-columns :type 'list :reader simple-record-primary-key-columns :initarg :primary-key-columns)
-   (trailer-tables :type 'list :reader simple-record-trailer-tables :initarg :trailer-tables)
-   (parent-table :type string :reader simple-record-parent-table :initarg :parent-table)
-   (start-column :type 'string :reader simple-record-effective-start-column :initarg :start-column)
-   (end-column :type 'string :reader simple-record-effective-end-column :initarg :end-column)
-   (volatility :type 'record-volatility :reader simple-record-volatility :initarg :volatility)
-   (logical-deletion-column :type 'string :reader simple-record-logical-deletion-column :initarg :logical-deletion-column)
-   (table-description :type 'list :reader simple-record-table-description)))
-
-(defvar *simple-record-tables* (make-hash-table :test #'equalp))
-
-(define-condition duplicate-table-definition (error)
-  ((initargs :initarg :initargs :reader duplicate-table-definition-initargs)
-   (existing-object :initarg :existing-object :reader duplicate-table-definition-existing-object)))
-
-(defmethod make-instance :before ((class (eql 'simple-record-table)) &rest initargs)
-  (destructuring-bind (&key db-table &allow-other-keys) initargs
-    (multiple-value-bind (found foundp) (gethash db-table *simple-record-tables*)
-      (when foundp
-        (error 'duplicate-table-definition :initargs initargs :existing-object found)))))
-
-(defmethod simple-record-table-columns ((table simple-record-table))
-  (mapcar (rcurry #'getf :field) (simple-record-table-description table)))
-
-(defun simple-record-table-has-column (object column)
-  (member column (simple-record-table-columns object) :test #'string=))
-
-(defun table-exists-p (table)
-  (ignore-errors
-    (plusp (length (db-query (format nil "describe `~a`" table))))))
-
-(defun singular (name)
-  (when (search "people" name)
-    (setf name (regex-replace-all "people" name "person")))
-  (when (char-equal #\s (last-elt (string name)))
-    (setf name (subseq name 0 (1- (length name)))))
-  name)
-
-(defclass simple-record ()
-  ((table :type 'simple-record-table :reader record-table :initarg :table)
-   (plist :type 'list :reader record-plist :initarg :plist)
-   (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defmethod initialize-instance :after ((object simple-record-table)
-                                         &key db-table 
-                                         (primary-key-columns (primary-key-columns-for-table db-table)) 
-                                         (trailer-tables (tables-slaved-to-table db-table))
-                                         (parent-table (tables-parented-to-table db-table))
-                                         start-column
-                                         end-column
-                                         (volatility :session)
-                                         logical-deletion-column)
-             (setf (slot-value object 'table-description) 
-                   (mapcar (lambda (row) 
-                             (mapplist (key value) row
-                               (list (make-keyword (string-upcase key)) value)))
-                           (db-query (format nil "describe `~a`" db-table))))
-             (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
-                     (primary-key-columns)
-                     "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
-                     (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
-                     db-table)
-             (loop for column in '(start-column end-column logical-deletion-column)
-                for column-name in (list start-column end-column logical-deletion-column)
-                when column-name
-                do (assert (simple-record-table-has-column object column-name)
-                           ()
-                           "The ~a given for ~a is ~a, which is not a column on that table"
-                           column db-table column-name))
-             (let ((missing (remove-if-not #'table-exists-p
-                                           (remove-if #'null
-                                                      (append (list parent-table) trailer-tables)))))
-               (unless (null missing) 
-                 (warn
-                  "All parent and trailer tables for ~a must exist; ~r missing table~:p: ~{~a~^, ~}"
-                  db-table (length missing) missing)))
-             (assert (simple-record-volatility-p volatility) (volatility)
-                     "The volatility of the table must be valid (~a is not)" volatility)
-             (let ((function-name (format-symbol :herald-db "FIND-~:@(~a~)" (singular db-table)))
-                   (record-class (intern (string-upcase (singular db-table))))
-                   (primary-keys (mapcar (compose #'intern #'string-upcase) (simple-record-primary-key-columns object))))
-               (eval `(defclass ,record-class (simple-record) ()))
-               (export record-class)
-               (eval `(defmethod ,function-name ,primary-keys
-                        (find-simple-record ,object ,@primary-keys)))
-               (export function-name)
-               (let ((columns (mapcar (rcurry #'getf :field) (db-query (format nil "describe `~a`" db-table)))))
-                 (dolist (column-name columns)
-                   (let ((accessor-name (format-symbol :herald-db "~:@(~a~)-~:@(~a~)" 
-                                                       (singular db-table) 
-                                                       (if (and (string-equal column-name (singular db-table))
-                                                                (not (member "id" columns :test #'string-equal)))
-                                                           "id"
-                                                           column-name))))
-                     (eval `(defmethod ,accessor-name ((instance ,record-class))
-                              (getf (instance) ,(keyword* column-name))))
-                     (export accessor-name)
-                     (unless (member column-name primary-key-columns :test #'string-equal)
-                       (let ((unkey-columns (remove-if (rcurry #'member primary-key-columns :test #'string-equal)
-                                                       columns)))
-                         (eval `(defmethod (setf ,accessor-name) (new-value (instance ,record-class))
-                                  (db-query ,(format nil "update `~a` set ~{`~a`=?~^, ~} where ~{`~a`=?~^ and ~}"
-                                                     db-table
-                                                     unkey-columns
-                                                     primary-key-columns)
-                                            (mapcar (curry #'getf instance) ,(mapcar #'keyword* unkey-columns))
-                                            (mapcar (curry #'getf instance) ,(mapcar #'keyword* primary-key-columns)))
-                                  (setf (getf instance ,(keyword* column-name)) new-value)))))))))
-             (setf (gethash db-table *simple-record-tables*) object)))
-
-(defun primary-key-columns-for-table (table)
-  (mapcar (rcurry #'getf :column_name)
-          (sort (remove-if-not (lambda (constraint)
-                                 (equal
-                                  (getf constraint :constraint_name)
-                                  "PRIMARY")) 
-                               (db-query "select * from information_schema.key_column_usage 
-where constraint_schema=? and table_name=?"
-                                         (getf herald-db-config:+params+ :database-name)
-                                         table))
-                #'< :key (rcurry #'getf :ordinal_position))))
-
-(defun tables-with-distinct-references (references)
-  (remove-if-not (lambda (ref-table)
-                   (let ((table-pri-keys (primary-key-columns-for-table ref-table)))
-                     (every (rcurry #'member table-pri-keys)
-                            (remove-if-not (compose (curry #'equal ref-table)
-                                                    (rcurry #'getf :table_name))
-                                           references))))
-                 (remove-duplicates (mapcar (rcurry #'getf :table_name)
-                                            references)
-                                    :test #'string-equal)))
-
-(defun tables-slaved-to-table (table)
-  (tables-with-distinct-references (db-query "select * from information_schema.referential_constraints 
-where constraint_schema=? and referenced_table_name=?"
-                                             (getf herald-db-config:+params+ :database-name)
-                                             table)))
-
-(defun tables-parented-to-table (table)
-  (tables-with-distinct-references (db-query "select * from information_schema.referential_constraints 
-where constraint_schema=? and table_name=?"
-                                             (getf herald-db-config:+params+ :database-name)
-                                             table)))
-
-(defun all-tables ()
-  (mapcar #'second (db-query "show tables")))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (with-sql
-    (print
-     (map 'vector (curry #'make-instance 'simple-record-table :db-table) (all-tables)))))
-
-(defmethod print-object ((table simple-record-table) s)
-  (format s "#<SIMPLE-RECORD-TABLE for ~s>" 
-          (simple-record-db-table table)))
-
-(defclass simple-record ()
-  ((table :type simple-record-table :reader record-table :initarg :table)
-   (primary-keys :type 'list :reader primary-keys :initarg :primary-keys)
-   (plist :type 'list :reader record-plist)))
-
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (with-sql
-    (let ((schema (getf herald-db-config::+params+ :database-name)))
-      (dolist (constraint 
-                (group-by 
-                 (sort (db-query "select * from information_schema.key_column_usage where constraint_schema=? and referenced_table_schema=?" 
-                                 schema schema)
-                       #'< :key (rcurry #'getf :ordinal_position))
-                 :key (lambda (row) 
-                        (list (getf row :table_name)
-                              (getf row :constraint_name))) 
-                 :test #'equalp))
-        (destructuring-bind (name &rest parts) constraint
-          #+ swank  (format t "~2% constraint=~s (~r part~:p)" name (length parts))
-          (let ((keys (mapcar
-                       (lambda (part)
-                         (destructuring-bind (&key table_name column_name  
-                                                   referenced_table_name referenced_column_name 
-                                                   &allow-other-keys) part
-                           (cons (cons table_name column_name)  
-                                 (cons referenced_table_name referenced_column_name)))) 
-                       parts)))
-            #+swank (format t "~%~5t ~s" keys)
-            (let ((source-table (caar (first keys)))
-                  (dest-table (cadr (first keys)))
-                  (dest-columns (mapcar #'cddr keys)))
-              (if (every (lambda (key) 
-                           (and (equal source-table (caar key))
-                                (equal dest-table (cadr key)))) keys)
-                  (let ((link-name (format-symbol *package* "~@:(~a->~{~a~@[-~a~]~}~)" 
-                                                  (singular source-table) 
-                                                  (take 2 (if (= 1 (length keys))
-                                                              (remove-duplicates (list (first dest-columns) (singular dest-table) nil)
-                                                                                 :test #'equal)
-                                                              (list (singular dest-table) nil))))))
-                    (if-let (unbound (remove-if-not (rcurry #'gethash *simple-record-tables*) (list source-table dest-table)))
-                      (warn "Cannot create link method ~a without a simple-record-table instance for ~{~a~^ and ~a~}"
-                            link-name unbound)
-                      (destructuring-bind (&key num-key-columns key-name) 
-                          (first (db-query (format nil "select count(1) as `num-key-columns`, constraint_name as `key-name`
- from information_schema.key_column_usage 
-where constraint_schema=? and referenced_table_schema is null and table_name=? and column_name in ~/sql/
-group by 2" dest-columns) 
-                                           schema dest-table))
-                        (let ((singularp (= (length dest-columns) 
-                                            num-key-columns)))
-                          (eval `(defmethod ,link-name ((,(intern (string-upcase (singular source-table))) 
-                                                          ,(intern (string-upcase (singular source-table)))))
-                                   ,(if (equal key-name "PRIMARY")
-                                        (cons (format-symbol *package* "FIND-~@:(~a~)" (singular dest-table))
-                                              (mapcar (lambda (key)
-                                                        (list (format-symbol *package* "~:@(~a-~a~)" (singular source-table) (cdar key))
-                                                              source-table))
-                                                      keys))
-                                        (progn
-                                          (warn "key is not primary? ~a" key-name)
-                                          (cons
-                                           (format-symbol *package* "FIND-~@:(~a~)-BY" dest-table)
-                                           (mapcar (lambda (key)
-                                                     (list 
-                                                      (make-keyword (cddr key))
-                                                      (list (format-symbol *package* "~:@(~a-~a~)" (singular source-table) (cdar key))
-                                                            source-table)))
-                                                   keys))))
-                                   ))))))
-                  (warn "~% Complex keys, skipping ~s" keys)))))))))
-
-
-
-(defmethod print-object ((object simple-record) stream)
-  (let ((table (record-table object))
-        (plist (record-plist object)))
-    (format stream "#.(FIND-~@:(~a~) ~{~s~^ ~})"
-            (singular (simple-record-db-table table)) 
-            (mapcar (compose (curry #'getf plist) #'make-keyword #'string-upcase) (simple-record-primary-key-columns table)))))
-
-(defvar *simple-record-query-cache* (make-hash-table :test #'equalp))
-
-(defun find-cached-records (table-class column-plist)
-  (let ((sorted-plist (alist-plist (sort (plist-alist column-plist)
-                                         #'string< :key #'car))))
-    (ecase (simple-record-volatility table-class)
-      ((:session :query) (gethash (list table-class sorted-plist) *simple-record-query-cache*))
-      (:volatile (values nil nil)))))
-
-(defun cache-found-records (set table-class column-plist)
-  (let ((sorted-plist (alist-plist (sort (plist-alist column-plist)
-                                         #'string< :key #'car))))
-    (ecase (simple-record-volatility table-class)
-      ((:session :query) (setf (gethash (list table-class sorted-plist) *simple-record-query-cache*) set)
-       (values set t))
-      (:volatile (values nil nil)))))
-
-(defun find-simple-records (table-class column-plist)
-  (multiple-value-bind (found foundp)
-      (find-cached-records table-class column-plist)
-    (if foundp
-        found
-        (let ((found (mapcar (curry #'make-instance 'simple-record :table table-class :dirtyp nil :plist)
-                             (db-query (format nil "select * from `~a` where ~{`~a`=?~}" 
-                                               (simple-record-db-table table-class) (plist-keys column-plist))
-                                       (plist-values column-plist)))))
-          (cache-found-records found table-class column-plist) 
-          found))))
-
-(defun find-simple-record (table-class &rest primary-key-values)
-  (let ((results (find-simple-records table-class
-                                      (loop 
-                                         for key in (simple-record-primary-key-columns table-class)
-                                         for value in primary-key-values
-                                         appending (list key value)))))
-    (assert (member (length results) '(0 1)) (table-class)
-            "The supposed primary key set of table ~a (~{~a~^, ~}) yielded ~r result~:p when confronted by the values (~{~a~^, ~})"
-            (simple-record-db-table table-class) (simple-record-primary-key-columns table-class) primary-key-values)
-    (first results)))
-
 
 (in-package :herald-fcgi)
 
@@ -1780,7 +688,7 @@ be reached at: ~a </p>
 </body></html>~%"
             status
             conditions
-            *cgi*
+            *run-model*
             +compile-time+
             (mail-only +sysop-mail+))))
 
@@ -1800,7 +708,7 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
                                          (map nil (rcurry #'uiop/image:print-condition-backtrace :stream s)
                                               (remove-if-not (rcurry #'typep 'condition)
                                                              conditions)))
-                            :service *cgi*
+                            :service *run-model*
                             :herald-version (36r +compile-time+)
                             :you-said *request*)) *error-output*))))
 
@@ -1830,7 +738,7 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
               (reply (list :raw (format nil "Content-Type: application/javascript; charset=utf-8~2%~/json/~%" (second structure)))))
              (t
               (reply (list :raw (format nil "Content-Type: text/plain; charset=utf-8~2%~s~%" (second structure)))))))
-    (:raw (ecase *cgi*
+    (:raw (ecase *run-model*
             (:fast (cl-fastcgi:fcgx-puts *request* (second structure)))
             (:cgi (princ (second structure))
                   (princ (second structure) *error-output*))))))
@@ -2300,19 +1208,18 @@ cookie says “~36r.”
           (when adminp
             (url-encode (admin-key invoice)))))
 
-(defun invoice-guest-given-name (guest)
+(defmethod invoice-guest-given-name (guest)
   (person-given-name guest))
 
-(defun invoice-guest-called-by (guest)
+(defmethod invoice-guest-called-by (guest )
   (person-called-by guest))
 
-(defun invoice-guest-surname (guest)
+(defmethod invoice-guest-surname (guest)
   (person-surname guest))
 
-(defun invoice-guests (invoice)
-  (etypecase invoice
-    (integer (read-guests invoice))))
-
+(defmethod invoice-guests ((invoice integer))
+  (read-guests invoice))
+
 (defmethod handle-verb ((verb (eql :recall)))
   (let* ((invoice (parse-integer (disquote (field :invoice)) :radix 36 :junk-allowed t))
          (admin-key (disquote (field :admin-key)))
@@ -2480,7 +1387,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
   (handle-verb (keyword* (field :verb))))
 
 (defun herald-fcgi (req)
-  (let ((*cgi* :fast)
+  (let ((*run-model* :fast)
         (*request* req)
         (*trace-output* *error-output*))
     (block fastcgi
@@ -2526,7 +1433,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
   (throw 'cgi-bye (list :error 500 c)))
 
 (defun cgi-call (fun)
-  (let ((*cgi* :cgi)
+  (let ((*run-model* :cgi)
         (*request* (cgi-environment))
         (*trace-output* *error-output*)
         (*print-right-margin* 120))
@@ -3659,23 +2566,23 @@ values (?,?,'Adjustment',?,?,?,now())"
 
 
 ;;; OO accessors for invoices and festivals
-(defun invoice-closed-p (invoice)
+(defmethod invoice-closed-p ((invoice cons))
   (boolbool (getf (read-general invoice) :closed)))
 
-(defun invoice-closed (invoice)
+(defmethod invoice-closed ((invoice cons))
   (getf (read-general invoice) :closed))
 
-(defun invoice-festival-season (invoice)
+(defmethod invoice-festival-season ((invoice cons))
   (getf (read-general invoice) :festival-season))
 
-(defun invoice-festival-year (invoice)
+(defmethod invoice-festival-year ((invoice cons))
   (getf (read-general invoice) :festival-year))
 
-(defun festival-start-date (season year)
+(defmethod festival-start-date ((season string) (year number))
   (cadar (db-query "select `starting` from festivals where season=? and year=?"
                    season year)))
 
-(defun invoice-festival-start-date (invoice)
+(defmethod invoice-festival-start-date (invoice)
   (festival-start-date (invoice-festival-season invoice)
                        (invoice-festival-year invoice)))
 
@@ -3783,6 +2690,7 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
 
 ;;; Plist-faking-OOP utilities
 (defun cons-is-invoice-guest-p (person)
+  "The “legacy” plist form of an invoice guest"
   (and (plist-p person)
        (every (curry #'getf person) '(:given-name :surname :invoice))))
 
@@ -3831,10 +2739,6 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
 
 
 ;;; Attributes of a theoretical person, who might be of one of several different actual object classes.
-(defun cons-is-invoice-guest-p (person)
-  "The “legacy” plist form of an invoice guest"
-  (and (plist-p person)
-       (every (curry #'getf person) '(:given-name :surname :invoice))))
 
 (defgeneric person= (person1 person2))
 
@@ -3932,14 +2836,14 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
   (getf (ticket-prices date) :day-pass))
 (defun price-week-end (&optional date)
   (getf (ticket-prices date) :week-end))
-(defun merch-price (id &optional (date (local-time:now)))
+(defun merch-item-price (id &optional (date (local-time:now)))
   (getf (find id (read-merch nil date) :key (rcurry #'getf :id)) :price))
 (defun price-t-shirt (&optional date)
-  (merch-price :festival-shirt date))
+  (merch-item-price :festival-shirt date))
 (defun price-coffee-mug (&optional date)
-  (merch-price :coffee date))
+  (merch-item-price :coffee date))
 (defun price-tote (&optional date)
-  (merch-price :tote-bag date))
+  (merch-item-price :tote-bag date))
 (defun price-cabin-regular (&optional date)
   (getf (getf (read-prices date) :cabin) :regular))
 (defun price-cabin-staff (&optional date)
