@@ -1264,7 +1264,7 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
 
 (defun create-invoice ()
   (db-query "insert into invoices (created, `festival-season`, `festival-year`)
-values (date('now'),?,?)"
+values (now(),?,?)"
             (next-festival-season) (next-festival-year))
   (cadar (db-query "select last_insert_id()")))
 
@@ -1529,9 +1529,9 @@ cookie says “~36r.”
 
 (defun update-general (invoice)
   (sql-update-invoice-fields (nil general) ()
-                             (created closed closed-by old-system-p
-                                      festival-season festival-year
-                                      note signature memo fast-check-in-address fast-check-in-postal-code)))
+                             (closed closed-by old-system-p
+                                     festival-season festival-year
+                                     note signature memo fast-check-in-address fast-check-in-postal-code)))
 
 (defmacro accept+update-array ((table) key-fields fields)
   `(progn
@@ -1602,7 +1602,7 @@ cookie says “~36r.”
     (dbi.error:<dbi-database-error> (c)
       (throw 'cgi-bye
         (list :error 501
-              (format nil "The record cannot be  inserted into the database, because the proposed  changes would  create inconsistent or  impossible data. (~a)" c)
+              (format nil "The record cannot be  inserted into the database, because the new record would  create inconsistent or  impossible data. (~a)" c)
               c)))))
 
 (defun update-invoice-from-form (invoice)
