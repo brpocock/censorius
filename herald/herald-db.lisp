@@ -92,7 +92,6 @@
         (signal c)))))
 
 
-(in-package :herald-db)
 
 (defun simple-record-volatility-p (symbol)
   (member symbol '(:session :query :volatile)))
@@ -134,20 +133,7 @@
     (plusp (length (db-query (format nil "describe `~a`" table))))))
 
 (defun singular (name)
-  (when (search "people" name :test #'char-equal)
-    (setf name (regex-replace-pairs '(("PEOPLE" . "PERSON")
-                                      ("people" . "person")) name)))
-  (when (string-ends (string name) "IES" :test #'string=)
-    (setf name (concatenate 'string (subseq name 0 (- (length name) 3)) #(#\Y))))
-  (when (string-ends (string name) "ies" :test #'string=)
-    (setf name (concatenate 'string (subseq name 0 (- (length name) 3)) #(#\y))))
-  (when (char-equal #\s (last-elt (string name)))
-    (setf name (subseq name 0 (1- (length name)))))
-  name)
-
-(assert (equal (singular "people-in-places") "person-in-place"))
-(assert (equal (singular "countries") "country"))
-(assert (equal (singular "monkeys") "monkey"))
+  (brfp::make-english-singular name))
 
 (defclass simple-record ()
   ((table :type 'simple-record-table :reader record-table :initarg :table)

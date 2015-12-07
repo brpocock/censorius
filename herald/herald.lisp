@@ -470,8 +470,8 @@
           (interpret-age (getf event :ages))
           (interpret-time (getf event :duration))
           (interpret-sex (getf event :♂p) (getf event :♀p))
-          (string-begins (car event) "sweat")
-          (string-begins (car event) "celts")))
+          (string-begins "sweat" (car event))
+          (string-begins "celts" (car event))))
 
 (defun print-event-details (event)
   (format t "~2%\\subsubsection{~A}
@@ -487,8 +487,8 @@
           (@ (interpret-age (getf event :ages)))
           (@ (interpret-time (getf event :duration)))
           (@ (interpret-sex (getf event :♂p) (getf event :♀p)))
-          (string-begins (car event) "sweat")
-          (string-begins (car event) "celts")))
+          (string-begins "sweat" (car event))
+          (string-begins "celts" (car event))))
 
 (defun day-name (day)
   (ecase day

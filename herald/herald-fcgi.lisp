@@ -2590,7 +2590,7 @@ values (?,?,'Adjustment',?,?,?,now())"
 ;;; Support for fast-check-in Florida ID swipes
 (defun decode-fl-id-swipe (swipe)
   (check-type swipe string)
-  (assert (string-begins swipe "%FL"))
+  (assert (string-begins "%FL" swipe))
   ;; The city→surname ^ is omitted when the city name is truncated at position 16 (13 chars of city name)
   (let* ((city-end (let ((first^ (position #\^ swipe :test #'char=)))
                      (if (< 16 first^) 16 first^)))

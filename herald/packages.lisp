@@ -2,7 +2,7 @@
 
 (defpackage :herald-util
   (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence)
+        :cl-ppcre :split-sequence :brfp)
   (:export 
    :+utf-8+
    :36r
