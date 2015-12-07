@@ -16,3 +16,4 @@ censorius/www/js
 *.orig
 *.bak
 *~
+herald/herald-fcgi.fasl herald/herald-util.fasl herald/packages.fasl herald/setup.fasl
