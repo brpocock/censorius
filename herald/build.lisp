@@ -1,5 +1,5 @@
 (load "~/quicklisp/setup")
-(when *load-truename* (compile-file *load-truename*))
+
 (let ((*default-pathname-defaults* (or (and *load-truename*
                                             (make-pathname :directory (pathname-directory *load-truename*)))
                                        (and *compile-file-truename* 
@@ -11,9 +11,15 @@
                                                            "herald.asd"))
   (ql:quickload :brfputils)
   (dolist (file '("setup" "packages"
-                  "herald-util" "herald-db" "herald-db-orm"
+                  "herald-util"
+                  "herald-load-config"
+                  "herald-db" "herald-db-orm"
                   "herald-fcgi" "google-apis"
                   "login/login" "login/google-login" "login/facebook-login"))
+    (format t "~& File ~a — compiling …" file)
+    (force-output)
     (compile-file file)
+    (format t " … loading …")
+    (force-output)
     (load file)))
 

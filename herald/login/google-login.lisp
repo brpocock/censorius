@@ -4,32 +4,34 @@
 
 ;;; https://developers.google.com/identity/toolkit/web/configure-service
 
-(defmethod logged-in-p :and ())
+(pushnew :google *known-ident-services*)
 
-(defmethod request-login ((suggest-service (eql :google)) person))
+(defmethod logged-in-p ((service (eql :google))))
 
-(defclass google-identity (identity) ())
+(defmethod request-login ((service (eql :google)) person))
 
-(defmethod find-person-with-identity ((identity google-identity)))
+(defclass google-ident (ident) ())
 
-(defmethod identity->string ((identity google-identity)))
+(defmethod find-person-with-ident ((ident google-ident)))
 
-(defmethod string->identity (string))
+(defmethod ident->string ((ident google-ident)))
 
-(defmethod identity=person ((identity google-identity) person))
+(defmethod string->ident (string))
 
-(defmethod identity= ((identity google-identity)))
+(defmethod ident=person ((ident google-ident) person))
 
-(defmethod identity-about-me-link ((identity google-identity)))
+(defmethod ident= ((ident google-ident)))
 
-(defmethod identity-change-password-link ((identity google-identity)))
+(defmethod ident-about-me-link ((ident google-ident)))
 
-(defmethod identity-forgot-password-link ((identity google-identity)))
+(defmethod ident-change-password-link ((ident google-ident)))
 
-(defmethod identity-profile-link ((identity google-identity)))
+(defmethod ident-forgot-password-link ((ident google-ident)))
 
-(defmethod identity-profile-photo ((identity google-identity)))
+(defmethod ident-profile-link ((ident google-ident)))
 
-(defmethod identity-personal-info ((identity google-identity)))
+(defmethod ident-profile-photo ((ident google-ident)))
+
+(defmethod ident-personal-info ((ident google-ident)))
 
 

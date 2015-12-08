@@ -1,111 +1,5 @@
 (in-package :herald-fcgi)
 
-;;; control cards
-
-(define-constant +host-name+ "http://flapagan.org"
-  :test #'equal)
-
-(define-constant +url-prefix+ "/reg/herald.cgi"
-  :test #'equal)
-
-(define-constant +sysop-mail+
-    "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>"
-  :test #'equal)
-
-(define-constant +herald-mail+
-    "\"Censorius Herald for TEG FPG\" <herald@flapagan.org>"
-  :test #'equal)
-
-(define-constant +herald-mail-base+
-    "herald@flapagan.org"
-  :test #'equal)
-
-(define-constant +registrar-mail+
-    "\"TEG FPG Registration Team\" <register@flapagan.org>"
-  :test #'equal)
-
-(define-constant +vendors-mail+
-    "\"TEG FPG Vendors Team\" <vendors@flapagan.org>"
-  :test #'equal)
-
-(define-constant +workshops-mail+
-    "\"TEG FPG Workshops Team\" <workshops@flapagan.org>"
-  :test #'equal)
-
-(define-constant +archive-mail+
-    "\"Registration Archive\" <reg-archive@flapagan.org>"
-  :test #'equal)
-
-(defvar +accepted-currency+ "USD")
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (load (make-pathname :name "herald-secrets"
-                       :defaults (user-homedir-pathname))))
-
-(defparameter *read-post-max* (* 4 1024 1024)
-  "The maximum number of characters to allow to be read from a POST")
-
-(defparameter *read-post-timeout* 10
-  "The maximum number of seconds to wait while reading from a POST")
-
-;;; compile-time constants
-(defconstant +compile-time-offset+ 3639900000)
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar +compile-time+ (- (get-universal-time) +compile-time-offset+)))
-
-(setf drakma:*drakma-default-external-format* :utf-8)
-
-;;; report on how we were built
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun about-me ()
-    (format t "~&Compiling Herald with baked-in configuration:
- • User home directory: ~a
- • DB: ~:[Unknown/incorrect type~;MariaDB/MySQL~] database
-    • host: ~a
-    • database name: ~a
-    • user name: ~a
-    • password: ~:[(missing)~;(set)~]
- • Host name: ~a
- • Sysop mail: ~a
- • Herald mail: ~a
- • Registrar mail: ~a
- • Archive mail: ~a
- • Vendors mail: ~a 
- • Workshops mail: ~a
- • Compile-time version marker: ~36r
- • Herald-Util compiled: ~36r; Herald-DB compiled: ~36r
- • PayPal interface
-    • ~:[Production (live) mode~;Sandbox (test) mode~]
-    • PayPal App ID: ~a
-    • PayPal account: ~a
-    • PayPal client ID: ~a
-    • PayPal secret: ~:[(missing)~;(set)~]
-~2%"
-            (user-homedir-pathname)
-            herald-db-config:+mysql+
-            (getf herald-db-config:+params+ :host)
-            (getf herald-db-config:+params+ :database-name)
-            (getf herald-db-config:+params+ :username)
-            (getf herald-db-config:+params+ :password)
-            +host-name+
-            +sysop-mail+
-            +herald-mail+
-            +registrar-mail+
-            +archive-mail+
-            +vendors-mail+
-            +workshops-mail+
-            +compile-time+
-            herald-util::+compile-time+
-            herald-db::+compile-time+
-            herald-secret-config::*paypal-sandbox-p*
-            (herald-secret-config::paypal-app-id)
-            (herald-secret-config::paypal-account)
-            (herald-secret-config::paypal-client-id)
-            (herald-secret-config::paypal-secret)))
-  
-  (about-me))
-
 ;;; Pretty-printing tools
 
 (defun simply$ (thing)
@@ -800,7 +694,7 @@ values ('now',?,?)"
 (defun recall-link (invoice &optional adminp)
   (format nil "~a~a?verb=recall&invoice=~36r~@[&admin-key=~a~]&verify=~a"
           +host-name+
-          +url-prefix+
+          +uri-prefix+
           invoice
           (when adminp
             (admin-key invoice))
@@ -1449,7 +1343,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
 (defun make-self-url (verb &rest more)
   (format nil "~a~a?verb=~a~@[?~{~a=~a~^&~}~]"
           +host-name+
-          +url-prefix+
+          +uri-prefix+
           (url-encode verb)
           (mapcar #'url-encode more)))
 
@@ -1657,13 +1551,13 @@ Details: Invoice token ~s;
 (defun paypal-get-new-oauth2-token ()
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config::paypal-url "oauth2/token")
+       (herald-secret-config:paypal-url "oauth2/token")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers '(("Accept" ."application/json")
                              ("Accept-Language". "en_US"))
-       :basic-authorization (list (herald-secret-config::paypal-client-id) (herald-secret-config::paypal-secret))
+       :basic-authorization (list (herald-secret-config:paypal-client-id) (herald-secret-config:paypal-secret))
        :parameters '(("grant_type". "client_credentials")))
     (declare (ignore response-headers stream happiness))
     (format *error-output* "~& $$$$ PayPal OAuth2 token acquired: status=~a (from ~a)" http-status-string uri)
@@ -1677,9 +1571,9 @@ Details: Invoice token ~s;
       (let ((jso (st-json:read-json body)))
         (assert (string-equal "Bearer" (st-json:getjso "token_type" jso)) ()
                 "I require a Bearer token to access PayPal, but got ~a" (st-json:getjso "token_type" jso))
-        (unless (string-equal (herald-secret-config::paypal-app-id) (st-json:getjso "app_id" jso)) ()
+        (unless (string-equal (herald-secret-config:paypal-app-id) (st-json:getjso "app_id" jso)) ()
                 (warn "PayPal gave me a token for some other application. Huh?~%Expected: ~a~%Got: ~a"
-                      (herald-secret-config::paypal-app-id) (st-json:getjso "app_id" jso)))
+                      (herald-secret-config:paypal-app-id) (st-json:getjso "app_id" jso)))
         (let ((token (st-json:getjso "access_token" jso))
               (expiry (+ (get-universal-time) (as-number (st-json:getjso "expires_in" jso)))))
           (setf *paypal-oauth2-cache* (cons token expiry))
@@ -1725,12 +1619,12 @@ Details: Invoice token ~s;
 (defun paypal-demand-payment (invoice amount)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config::paypal-url "payments/payment")
+       (herald-secret-config:paypal-url "payments/payment")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers `(("Content-Type" . "application/json")
-                             ("Authorization" . ,(concatenate 'string "Bearer " (herald-secret-config::paypal-oauth2-token))))
+                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-oauth2-token))))
        :content (make-paypal-payment-demand-string invoice amount))
     (declare (ignore response-headers stream happiness))
     (let ((body (flexi-streams:octets-to-string response-body)))
@@ -1757,12 +1651,12 @@ Details: Invoice token ~s;
 (defun paypal-get-payment-status (payment-id)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config::paypal-url "payments/payment/" payment-id)
+       (herald-secret-config:paypal-url "payments/payment/" payment-id)
        :method :get
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers `(("Content-Type" . "application/json")
-                             ("Authorization" . ,(concatenate 'string "Bearer " (herald-secret-config::paypal-oauth2-token)))))
+                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-oauth2-token)))))
     (declare (ignore response-headers stream happiness))
     (let ((body (flexi-streams:octets-to-string response-body)))
       (format *error-output* "~& $$$$ PayPal at ~a reports HTTP/~d (~a) reading payment status with ID ~a~2%~a"
@@ -1869,12 +1763,12 @@ values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   (declare (ignore token))
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config::paypal-url "payments/payment/" payment-id "/execute")
+       (herald-secret-config:paypal-url "payments/payment/" payment-id "/execute")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers `(("Content-Type" . "application/json")
-                             ("Authorization" . ,(concatenate 'string "Bearer " (herald-secret-config::paypal-oauth2-token))))
+                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-oauth2-token))))
        :content (format nil "~/json/" `(:payer_id payer-id)))
     (declare (ignore response-headers stream happiness))
     (let ((body (flexi-streams:octets-to-string response-body)))
@@ -2879,16 +2773,15 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
   (:documentation "Returns a generalized Boolean indicating whether the person appears to have a Gravatar. TODO")
   (:method ((person t)) nil))
 
-(defgeneric person-gravatar (person &optional (size 256) (rating :pg) 
-                                      (if-does-not-exist :monster))
+(defgeneric person-gravatar (person &key size rating if-does-not-exist)
   (:documentation "Returns a person's Gravatar URL, if possible. TODO")
-  (:method ((person t)) nil))
+  (:method ((person t) &key (size 256) (rating :pg) (if-does-not-exist :monster)) nil))
 
-;;; For  integration  with  Wordpress,   detect  whether  a  person  has
-;;; registered  with the  Wordpress system  as  a whole,  or within  the
-;;; confines of the /news/ site.
+;;; Wordpress integration
 (defgeneric person-known-to-wordpress-p (person); TODO
-  nil)
+  (:documentation "For integration with  Wordpress, detect whether a person has registered with  the Wordpress system as
+a whole, or within the confines of the /news/ site.")
+  (:method ((person t)) nil))
 
 (defmethod person-icon (person &key (text-only-p t))
   (if (and (not text-only-p)
@@ -2902,8 +2795,13 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
 
 (defmethod couple-icon (one spouse &key (text-only-p t))
   (if (and (not text-only-p)
-           (person-gravatar-p )
-           ()))
+           (person-gravatar-p ))
+      (concatenate 'string
+                   "<div class=\"couple-icons\"><img src=\""
+                   (person-gravatar one)
+                   "\"><img src=\""
+                   (person-gravatar spouse)
+                   "\"></div>"))
   (let ((gender1 (or (person-gender one)
                      (random-elt #(:m :f))))
         (gender2 (and spouse 

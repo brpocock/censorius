@@ -1,36 +1,50 @@
 (defpackage :herald-login
   (:use :cl :herald-util :split-sequence)
-  (:export :logged-in-p :request-login :find-person-with-identity
-           :identity :identity->string :string->identity)) 
+  (:export :logged-in-p :request-login :find-person-with-ident
+           :ident :ident->string :string->ident)) 
 (in-package :herald-login)
 
 (require :drakma)
-(defgeneric logged-in-p :and ())
 
-(defgeneric request-login (suggest-service person))
+(defvar *known-ident-services* ()
+  "Enumerates the identity service symbols available. These should be symbols (probably keywords) which are suitable for
+  passing to eg `IDENT-SERVICE-NAME' and friends to explore the features of each service.")
 
-(defgeneric find-person-with-identity (identity))
+(defgeneric logged-in-p (service)
+  (:documentation "Returns true if a person is (known or though to be) logged-in through a service currently."))
 
-(defclass identity () ())
+(defgeneric ident-service-name (service))
 
-(defgeneric identity->string (identity))
+(defgeneric ident-service-register-link (service))
 
-(defgeneric string->identity (string))
+(defgeneric ident-service-log-out-link (service))
 
-(defgeneric identity=person (identity person))
+(defgeneric ident-service-icon-url (service))
 
-(defgeneric identity= (identity))
+(defgeneric request-login (service person))
 
-(defgeneric identity-about-me-link (identity))
+(defgeneric find-person-with-ident (ident))
 
-(defgeneric identity-change-password-link (identity))
+(defclass ident () ())
 
-(defgeneric identity-forgot-password-link (identity))
+(defgeneric ident->string (ident))
 
-(defgeneric identity-profile-link (identity))
+(defgeneric string->ident (string))
 
-(defgeneric identity-profile-photo (identity))
+(defgeneric ident=person (ident person))
 
-(defgeneric identity-personal-info (identity))
+(defgeneric ident= (ident))
+
+(defgeneric ident-about-me-link (ident))
+
+(defgeneric ident-change-password-link (ident))
+
+(defgeneric ident-forgot-password-link (ident))
+
+(defgeneric ident-profile-link (ident))
+
+(defgeneric ident-profile-photo (ident))
+
+(defgeneric ident-personal-info (ident))
 
 
