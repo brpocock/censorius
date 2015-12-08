@@ -28,9 +28,11 @@
                
                :brfputils
                :herald-util)
+  :serial t
   :components ((:file "setup")
-               (:file "packages" :depends-on ("setup"))
-               (:file "herald-db" :depends-on ("packages"))))
+               (:file "packages")
+               (:file "herald-db")
+               (:file "herald-db-orm")))
 (asdf:defsystem "HERALD-FCGI"
   :description "Censorius Herald, a registration-management system"
   :version "0.0.1"
