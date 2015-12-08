@@ -1,6 +1,6 @@
 #!/bin/sh
 PATH=~/bin:$PATH
-cd ~/herald || cd ~/Project/censorius/herald || exit -2
+cd ~/herald || cd ~/Projects/censorius/herald || exit -2
 mv --backup=numbered herald herald.backup
 buildapp --output herald \
 	--logfile herald.buildapp.log \
