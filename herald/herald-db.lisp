@@ -128,33 +128,37 @@
 
 (defun simple-record-table-has-column (object column)
   (member column (simple-record-table-columns object) :test #'string=))
-
-(defun table-exists-p (table)
-  (ignore-errors
-    (plusp (length (db-query (format nil "describe `~a`" table))))))
-
-(defun singular (name)
-  (when (search "people" name :test #'char-equal)
-    (setf name (regex-replace-pairs '(("PEOPLE" . "PERSON")
-                                      ("people" . "person")) name)))
-  (when (string-ends (string name) "IES" :test #'string=)
-    (setf name (concatenate 'string (subseq name 0 (- (length name) 3)) #(#\Y))))
-  (when (string-ends (string name) "ies" :test #'string=)
-    (setf name (concatenate 'string (subseq name 0 (- (length name) 3)) #(#\y))))
-  (when (char-equal #\s (last-elt (string name)))
-    (setf name (subseq name 0 (1- (length name)))))
-  name)
-
-(assert (equal (singular "people-in-places") "person-in-place"))
-(assert (equal (singular "countries") "country"))
-(assert (equal (singular "monkeys") "monkey"))
-
-(defclass simple-record ()
-  ((table :type 'simple-record-table :reader record-table :initarg :table)
-   (plist :type 'list :reader record-plist :initarg :plist)
-   (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defclass simple-record ()
+    ((table :type 'simple-record-table :reader record-table :initarg :table)
+     (plist :type 'list :reader record-plist :initarg :plist)
+     (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
+  
+  (defun table-exists-p (table)
+    (ignore-errors
+      (plusp (length (db-query (format nil "describe `~a`" table))))))
+  
+  (defun singular (name )
+    (when (search "people" name :test #'char-equal)
+      (setf name (regex-replace-pairs '(("PEOPLE" . "PERSON")
+                                        ("people" . "person")) name)))
+    (when (string-ends (string name) "SSES" :test #'string=)
+      (setf name (concatenate 'string (subseq name 0 (- (length name) 4)) "SS")))
+    (when (string-ends (string name) "sses" :test #'string=)
+      (setf name (concatenate 'string (subseq name 0 (- (length name) 4)) "ss")))
+    (when (string-ends (string name) "IES" :test #'string=)
+      (setf name (concatenate 'string (subseq name 0 (- (length name) 3)) #(#\Y))))
+    (when (string-ends (string name) "ies" :test #'string=)
+      (setf name (concatenate 'string (subseq name 0 (- (length name) 3)) #(#\y))))
+    (when (char-equal #\s (last-elt (string name)))
+      (setf name (subseq name 0 (1- (length name)))))
+    name)
+  
+  (assert (equal (singular "people-in-places") "person-in-place"))
+  (assert (equal (singular "countries") "country"))
+  (assert (equal (singular "monkeys") "monkey"))
+  (assert (equal (singular "addresses") "address"))
   
   (defun primary-key-columns-for-table (table)
     (mapcar (rcurry #'getf :column_name)
@@ -323,7 +327,7 @@ order by table_name, constraint_name, ordinal_position"
            (write-find-dest-by-primary-keys (dest-table keys)
              (format t "~&finding dest ~a record by primary keys from ~%~s" (singular dest-table) keys)
              (cons (format-symbol *package* "FIND-~@:(~a~)" (singular dest-table))
-                   (mapcar (lambda (&key source-table source-column &allow-other-keys)
+                   (mapcar (lambda&keys (&key source-table source-column &allow-other-keys)
                              (list (accessor-function-symbol source-table source-column)
                                    (table->class source-table)))
                            keys)))
@@ -331,7 +335,7 @@ order by table_name, constraint_name, ordinal_position"
            (write-find-record-by-keywords (dest-table keys)
              (cons
               (format-symbol *package* "FIND-~@:(~a~)-BY" dest-table)
-              (mapcar (lambda (&key source-table source-column dest-column &allow-other-keys)
+              (mapcar (lambda&keys (&key source-table source-column dest-column &allow-other-keys)
                         `(,(make-keyword (string-upcase dest-column))
                            (,(format-symbol *package* "~:@(~a-~a~)" (singular source-table) source-column)
                              ,(table->class source-table))))

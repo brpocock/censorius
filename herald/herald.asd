@@ -1,4 +1,4 @@
-(in-package :cl-user)
+(cl:in-package :cl-user)
 (require :asdf)
 (asdf:defsystem "HERALD-UTIL"
   :description "Numerous generic utility functions"
@@ -12,9 +12,9 @@
                :split-sequence
                
                :herald-util)
-  :components ((:file "setup")*
-               (:file "packages" :depends-on "setup")
-               (:file "herald-util" :depends-on "packages")))
+  :components ((:file "setup")
+               (:file "packages" :depends-on ("setup"))
+               (:file "herald-util" :depends-on ("packages"))))
 (asdf:defsystem "HERALD-DB"
   :description "MySQL-based database system for “ORM” type access"
   :version "0.0.1"
@@ -28,8 +28,8 @@
                
                :herald-util)
   :components ((:file "setup")
-               (:file "packages" :depends-on "setup")
-               (:file "herald-db" :depends-on "packages")))
+               (:file "packages" :depends-on ("setup"))
+               (:file "herald-db" :depends-on ("packages"))))
 (asdf:defsystem "HERALD-FCGI"
   :description "Censorius Herald, a registration-management system"
   :version "0.0.1"
@@ -43,8 +43,9 @@
                :herald-util
                :herald-db)
   :components ((:file "setup")
-               (:file "packages" :depends-on "setup")
-               (:file "herald-fcgi" :depends-on "packages")))
-
-
+               (:file "packages" :depends-on ("setup"))
+               (:file "herald-fcgi" :depends-on ("packages"))))
+(when (or *load-pathname* *compile-file-pathname*)
+  (pushnew (make-pathname :directory (pathname-directory (or *load-pathname* *compile-file-pathname*)))
+           asdf:*central-registry* :test #'equalp))
 

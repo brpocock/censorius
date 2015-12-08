@@ -31,5 +31,7 @@
 (require :dbd-mysql)
 (require #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
 
-(load "./herald.asd")
-
+(load (make-pathname :directory (pathname-directory (or *load-truename*
+                                                        *compile-file-truename*))
+                     :name "herald"
+                     :type "asd"))

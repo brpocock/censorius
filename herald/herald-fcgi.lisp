@@ -552,7 +552,7 @@ where (`starting` is null or `starting` <= date(?))
 (defun workshop-record-beautify (invoice)
   (clean-plist (schemey-record (read-workshops invoice))))
 
-(defun payment-amount (payment)
+(defmethod payment-amount (payment)
   (getf payment :amount))
 
 (defun invoice-payments-with-amounts (invoice)
@@ -2871,13 +2871,23 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
      (case (person-days guest)
        ((:thu :fri :sat :week-end) (price-cauldron-fri-sun (person-invoice-date guest)))
        (otherwise (price-cauldron-adult (person-invoice-date guest)))))))
-
+
+;;; Obtaining a person's Gravatar URL for presentation on the Web
 (defgeneric person-gravatar-p (person)
+  "Returns a generalized Boolean indicating whether the person appears to have a Gravatar. TODO"
   (:method ((person t)) nil))
 
-(defgeneric person-gravatar (person)
+(defgeneric person-gravatar (person &optional (size 256) (rating :pg) 
+                                      (if-does-not-exist :monster))
+  "Returns a person's Gravatar URL, if possible. TODO"
   (:method ((person t)) nil))
-
+
+;;; For  integration  with  Wordpress,   detect  whether  a  person  has
+;;; registered  with the  Wordpress system  as  a whole,  or within  the
+;;; confines of the /news/ site.
+(defgeneric person-known-to-wordpress-p (person); TODO
+  nil)
+
 (defmethod person-icon (person &key (text-only-p t))
   (if (and (not text-only-p)
            (person-gravatar-p person))
@@ -2888,7 +2898,10 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
           (:m #.(coerce #(#\boy) 'string))
           (:f #.(coerce #(#\girl) 'string))))))
 
-(defmethod couple-icon (one spouse)
+(defmethod couple-icon (one spouse &key (text-only-p t))
+  (if (and (not text-only-p)
+           (person-gravatar-p )
+           ()))
   (let ((gender1 (or (person-gender one)
                      (random-elt #(:m :f))))
         (gender2 (and spouse 

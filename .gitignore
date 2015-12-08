@@ -16,3 +16,16 @@ censorius/www/js
 *.orig
 *.bak
 *~
+
+doc/censorius.aux
+doc/censorius.cp
+doc/censorius.fn
+doc/censorius.ky
+doc/censorius.log
+doc/censorius.pdf
+doc/censorius.pg
+doc/censorius.toc
+doc/censorius.tp
+doc/censorius.vr
+herald/*.fasl
+
