@@ -29,3 +29,6 @@ doc/censorius.tp
 doc/censorius.vr
 herald/*.fasl
 
+**/*.fasl
+secrets/
+arc/
