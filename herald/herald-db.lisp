@@ -127,6 +127,12 @@
 
 (defun simple-record-table-has-column (object column)
   (member column (simple-record-table-columns object) :test #'string=))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defclass simple-record ()
+    ((table :type 'simple-record-table :reader record-table :initarg :table)
+     (plist :type 'list :reader record-plist :initarg :plist)
+     (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
 
 (defun table-exists-p (table)
   (ignore-errors
@@ -135,12 +141,10 @@
 (defun singular (name)
   (brfp::make-english-singular name))
 
-(defclass simple-record ()
-  ((table :type 'simple-record-table :reader record-table :initarg :table)
-   (plist :type 'list :reader record-plist :initarg :plist)
-   (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
+  (assert (equal (singular "people-in-places") "person-in-place"))
+  (assert (equal (singular "countries") "country"))
+  (assert (equal (singular "monkeys") "monkey"))
+  (assert (equal (singular "addresses") "address"))
   
   (defun primary-key-columns-for-table (table)
     (mapcar (rcurry #'getf :column_name)
@@ -309,7 +313,7 @@ order by table_name, constraint_name, ordinal_position"
            (write-find-dest-by-primary-keys (dest-table keys)
              (format t "~&finding dest ~a record by primary keys from ~%~s" (singular dest-table) keys)
              (cons (format-symbol *package* "FIND-~@:(~a~)" (singular dest-table))
-                   (mapcar (lambda (&key source-table source-column &allow-other-keys)
+                   (mapcar (lambda&keys (&key source-table source-column &allow-other-keys)
                              (list (accessor-function-symbol source-table source-column)
                                    (table->class source-table)))
                            keys)))
@@ -317,7 +321,7 @@ order by table_name, constraint_name, ordinal_position"
            (write-find-record-by-keywords (dest-table keys)
              (cons
               (format-symbol *package* "FIND-~@:(~a~)-BY" dest-table)
-              (mapcar (lambda (&key source-table source-column dest-column &allow-other-keys)
+              (mapcar (lambda&keys (&key source-table source-column dest-column &allow-other-keys)
                         `(,(make-keyword (string-upcase dest-column))
                            (,(format-symbol *package* "~:@(~a-~a~)" (singular source-table) source-column)
                              ,(table->class source-table))))

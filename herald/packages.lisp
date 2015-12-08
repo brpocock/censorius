@@ -49,4 +49,16 @@
 (defpackage :herald-fcgi
   (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
         :cl-ppcre :split-sequence :herald-db :herald-util)
-  (:export :herald-cgi :herald-fcgi :whine))
+  (:export :herald-cgi :herald-fcgi
+           :herald-user-agent :whine
+           :+host-name+
+           :+url-prefix+))
+
+(defpackage :google-apis
+  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
+        :cl-ppcre :split-sequence :herald-util)
+  (:export 
+   :detect-language
+   :supported-languages
+   :translate))
+
