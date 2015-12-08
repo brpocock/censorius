@@ -1,19 +1,19 @@
 #!/bin/sh
 PATH=~/bin:$PATH
-cd ~/herald
+cd ~/herald || cd ~/Project/censorius/herald || exit -2
 mv --backup=numbered herald herald.backup
 buildapp --output herald \
 	--logfile herald.buildapp.log \
 	--load ~/quicklisp/setup.lisp \
-	--asdf-path $(pwd) \
+	--asdf-path $(pwd):$(pwd)/brfputils \
 	--eval '(mapcar (quote ql:quickload) (quote (:alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi :cl-ppcre :trivial-backtrace #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite :cl-paypal :split-sequence :flexi-streams :cl-sendmail :memoize)))' \
-	--load herald-fcgi \
+	--load build \
 	--dispatched-entry herald.cgi/herald-fcgi::exec-cgi \
 	--dispatched-entry herald.fcgi/herald-fcgi::exec-fcgi \
 	--dispatched-entry /herald-fcgi::exec-cgi \
 	--dispatched-entry herald.repl/herald-fcgi::exec-repl \
-&& ln -f ./herald ../fpgrocks.org/reg/herald.cgi \
 && ln -f ./herald ../bin/herald.repl \
+&& ln -f ./herald ../fpgrocks.org/reg/herald.cgi \
 && echo '  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  Victory is mine.'
 
 tail -n 20 herald.buildapp.log

@@ -39,7 +39,7 @@
 (defvar +accepted-currency+ "USD")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (load (make-pathname :name "paypal-secrets"
+  (load (make-pathname :name "herald-secrets"
                        :defaults (user-homedir-pathname))))
 
 (defparameter *read-post-max* (* 4 1024 1024)
@@ -96,12 +96,13 @@
             +vendors-mail+
             +workshops-mail+
             +compile-time+
-            herald-util::+compile-time+ herald-db::+compile-time+
-            *paypal-sandbox-p*
-            (paypal-app-id)
-            (paypal-account)
-            (paypal-client-id)
-            (paypal-secret)))
+            herald-util::+compile-time+
+            herald-db::+compile-time+
+            herald-secret-config::*paypal-sandbox-p*
+            (herald-secret-config::paypal-app-id)
+            (herald-secret-config::paypal-account)
+            (herald-secret-config::paypal-client-id)
+            (herald-secret-config::paypal-secret)))
   
   (about-me))
 
@@ -1656,13 +1657,13 @@ Details: Invoice token ~s;
 (defun paypal-get-new-oauth2-token ()
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "oauth2/token")
+       (herald-secret-config::paypal-url "oauth2/token")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers '(("Accept" ."application/json")
                              ("Accept-Language". "en_US"))
-       :basic-authorization (list (paypal-client-id) (paypal-secret))
+       :basic-authorization (list (herald-secret-config::paypal-client-id) (herald-secret-config::paypal-secret))
        :parameters '(("grant_type". "client_credentials")))
     (declare (ignore response-headers stream happiness))
     (format *error-output* "~& $$$$ PayPal OAuth2 token acquired: status=~a (from ~a)" http-status-string uri)
@@ -1676,9 +1677,9 @@ Details: Invoice token ~s;
       (let ((jso (st-json:read-json body)))
         (assert (string-equal "Bearer" (st-json:getjso "token_type" jso)) ()
                 "I require a Bearer token to access PayPal, but got ~a" (st-json:getjso "token_type" jso))
-        (unless (string-equal (paypal-app-id) (st-json:getjso "app_id" jso)) ()
+        (unless (string-equal (herald-secret-config::paypal-app-id) (st-json:getjso "app_id" jso)) ()
                 (warn "PayPal gave me a token for some other application. Huh?~%Expected: ~a~%Got: ~a"
-                      (paypal-app-id) (st-json:getjso "app_id" jso)))
+                      (herald-secret-config::paypal-app-id) (st-json:getjso "app_id" jso)))
         (let ((token (st-json:getjso "access_token" jso))
               (expiry (+ (get-universal-time) (as-number (st-json:getjso "expires_in" jso)))))
           (setf *paypal-oauth2-cache* (cons token expiry))
@@ -1724,12 +1725,12 @@ Details: Invoice token ~s;
 (defun paypal-demand-payment (invoice amount)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "payments/payment")
+       (herald-secret-config::paypal-url "payments/payment")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers `(("Content-Type" . "application/json")
-                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-oauth2-token))))
+                             ("Authorization" . ,(concatenate 'string "Bearer " (herald-secret-config::paypal-oauth2-token))))
        :content (make-paypal-payment-demand-string invoice amount))
     (declare (ignore response-headers stream happiness))
     (let ((body (flexi-streams:octets-to-string response-body)))
@@ -1756,12 +1757,12 @@ Details: Invoice token ~s;
 (defun paypal-get-payment-status (payment-id)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "payments/payment/" payment-id)
+       (herald-secret-config::paypal-url "payments/payment/" payment-id)
        :method :get
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers `(("Content-Type" . "application/json")
-                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-oauth2-token)))))
+                             ("Authorization" . ,(concatenate 'string "Bearer " (herald-secret-config::paypal-oauth2-token)))))
     (declare (ignore response-headers stream happiness))
     (let ((body (flexi-streams:octets-to-string response-body)))
       (format *error-output* "~& $$$$ PayPal at ~a reports HTTP/~d (~a) reading payment status with ID ~a~2%~a"
@@ -1868,12 +1869,12 @@ values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   (declare (ignore token))
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "payments/payment/" payment-id "/execute")
+       (herald-secret-config::paypal-url "payments/payment/" payment-id "/execute")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
        :additional-headers `(("Content-Type" . "application/json")
-                             ("Authorization" . ,(concatenate 'string "Bearer " (paypal-oauth2-token))))
+                             ("Authorization" . ,(concatenate 'string "Bearer " (herald-secret-config::paypal-oauth2-token))))
        :content (format nil "~/json/" `(:payer_id payer-id)))
     (declare (ignore response-headers stream happiness))
     (let ((body (flexi-streams:octets-to-string response-body)))
@@ -2591,7 +2592,7 @@ values (?,?,'Adjustment',?,?,?,now())"
 ;;; Support for fast-check-in Florida ID swipes
 (defun decode-fl-id-swipe (swipe)
   (check-type swipe string)
-  (assert (string-begins swipe "%FL"))
+  (assert (string-begins "%FL" swipe))
   ;; The city→surname ^ is omitted when the city name is truncated at position 16 (13 chars of city name)
   (let* ((city-end (let ((first^ (position #\^ swipe :test #'char=)))
                      (if (< 16 first^) 16 first^)))
@@ -2766,7 +2767,7 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
                (or (person-called-by guest) (person-given-name guest))
                " " (person-surname guest)))
 
-(defmethod person-spouse :around ((person cons))
+(defmethod person-spouse :around (person)
   (let ((marriage (call-next-method person)))
     (when marriage
       (first (remove-if-not (lambda (potential)
@@ -2774,14 +2775,14 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
                                    (equal marriage (getf potential :spouse))))
                             (invoice-guests (person-invoice person)))))))
 
-(defmethod person-dob :around ((person cons))
+(defmethod person-dob :around (person)
   (local-time:unix-to-timestamp (call-next-method)))
 
-(defmethod person-age-years ((person cons))
+(defmethod person-age-years (person)
   (when-let ((birthdate (person-dob person)))
     (local-time:timestamp-whole-year-difference (local-time:now) birthdate)))
 
-(defmethod person-adult-p ((person cons))
+(defmethod person-adult-p (person)
   (or (and (person-age-years person)
            (>= (person-age-years person) 18))
       (eql :adult (person-ticket-type person))))
@@ -2796,11 +2797,11 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
            (> 5 (person-age-years person)))
       (eql :baby (person-ticket-type person))))
 
-(defmethod person-bachelor-p ((person cons))
+(defmethod person-bachelor-p (person)
   (and (person-adult-p person)
        (not (person-spouse person))))
 
-(defmethod person-invoice-date ((person cons))
+(defmethod person-invoice-date (person)
   (if-let (invoice (read-general (person-invoice person)))
     (if-let (closed (invoice-closed invoice))
       closed
@@ -2875,12 +2876,12 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
 
 ;;; Obtaining a person's Gravatar URL for presentation on the Web
 (defgeneric person-gravatar-p (person)
-  "Returns a generalized Boolean indicating whether the person appears to have a Gravatar. TODO"
+  (:documentation "Returns a generalized Boolean indicating whether the person appears to have a Gravatar. TODO")
   (:method ((person t)) nil))
 
 (defgeneric person-gravatar (person &optional (size 256) (rating :pg) 
                                       (if-does-not-exist :monster))
-  "Returns a person's Gravatar URL, if possible. TODO"
+  (:documentation "Returns a person's Gravatar URL, if possible. TODO")
   (:method ((person t)) nil))
 
 ;;; For  integration  with  Wordpress,   detect  whether  a  person  has
@@ -2920,7 +2921,8 @@ and invoices.`fast-check-in-address`=? and invoices.`fast-check-in-zip-code`=?"
   (when-let (spouse (person-spouse person))
     (lugal+-p spouse)))
 
-(defun ticket-price (guest)
+(defun ticket-price (guest) 
+  "Returns the price for a person's admission (only)"
   (cond
     ((lugal+-p guest)
      0)

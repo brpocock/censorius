@@ -62,6 +62,7 @@ package (or similar). Perhaps it's even named the same? Try (APROPOS
    #:maybe-numeric
    #:modincf
    #:membership
+   #:parse-roman-numeral
    #:plural
    #:repeat
    #:split-and-collect-file

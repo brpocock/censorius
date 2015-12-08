@@ -1,8 +1,7 @@
 ;;; Package declarations and exported symbols
 
 (defpackage :herald-util
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :brfp)
+  (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi :brfp)
   (:export 
    :+utf-8+
    :36r
@@ -14,6 +13,7 @@
    :group-by
    :interleave
    :interpret-field
+   :lambda&keys
    :keyword*
    :mail-only
    :mapplist
@@ -42,21 +42,21 @@
    ))
 
 (defpackage :herald-db
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :herald-util)
+  (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
+        :brfp :herald-util)
   (:export :db-query :*db* :with-sql :*arc* :with-archive-sql :archive-query :record-plist))
 
 (defpackage :herald-fcgi
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :herald-db :herald-util)
+  (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
+        :brfp :herald-db :herald-util)
   (:export :herald-cgi :herald-fcgi
            :herald-user-agent :whine
            :+host-name+
            :+url-prefix+))
 
 (defpackage :google-apis
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :herald-util)
+  (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
+        :brfp :herald-util)
   (:export 
    :detect-language
    :supported-languages

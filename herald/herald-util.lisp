@@ -105,5 +105,12 @@ changes the P to ? to be nice to Clojure. Tries to do the right thing with regar
   (:method((value t)) value))
 
 
+(defmacro lambda&keys ((&rest destructuring-lambda-list) &body body)
+  (let ((args (gensym "ARGUMENTS-")))
+    `(lambda (&rest ,args)
+       (destructuring-bind (,destructuring-lambda-list) ,args
+         ,@body))))
+
+
 (provide :herald-util)
 

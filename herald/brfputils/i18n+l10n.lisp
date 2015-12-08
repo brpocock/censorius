@@ -189,13 +189,13 @@
            ((or (eql (last-elt noun) #\e)
                 (eql (last-elt noun) #\í)
                 (irish-vowel-p (last-elt noun))
-                (string-ends-with noun "ín")) 4)
+                (string-ends "ín" noun)) 4)
            ((or (member noun '("áil" "úil" "ail" "úint" "cht" "irt"
                                "éir" "eoir" "óir" "úir") 
-                        :test #'string-ends-with)) 3)
-           ((or (string-ends-with noun "eog")
-                (string-ends-with noun "óg")
-                (string-ends-with noun "lann")
+                        :test #'string-ending)) 3)
+           ((or (string-ends "eog" noun)
+                (string-ends "óg" noun)
+                (string-ends "lann" noun)
                 (not (irish-broad-ending-p noun))) 2)
            ((irish-broad-ending-p noun) 1)
            (t (warn "Can't guess declension () of “~a”" noun))))))
@@ -668,18 +668,31 @@ Note that LEATHNÚ applies this to the final consonant, instead."
   (:es (loop 
           with counter = 0
           with last-i-p = nil
-
+            
           for char across (string-downcase string)
           for vowelp = (member char '(#\a #\o #\e #\u #\i))
-
+            
           when (or (and vowelp
                         (not last-i-p))
                    (member char '(#\á #\ó #\é #\ú #\í)))
           do (incf counter)
-
+            
           do (setf last-i-p (eql char #\i))
-
+            
           finally (return (max 1 counter))))
+  
+  (:la (loop 
+          with counter = 0
+            
+          for char across (latin-normalize string)
+          when (member char '(#\a #\o #\e #\u #\i))
+          do (incf counter)
+            
+          when (member char '(#\ā #\ē #\ī #\ō #\ū))
+          do (incf counter 2)
+            
+          finally (return (max 1 counter))))
+  
   (:ga (loop 
           with counter = 0
           with last-vowel-p = nil
@@ -697,15 +710,22 @@ Note that LEATHNÚ applies this to the final consonant, instead."
 
 (defun-lang diphthongp (letters)
   (:en (member (string-downcase letters) 
-               (@$ ow ou ie igh oi oo ea ee ai) :test 'string-starts-with))
+               (@$ ow ou ie igh oi oo ea ee ai) :test #'string-beginning))
+  (:la (member (string-downcase letters)
+               (@$ ae au ai ou ei) :test #'string-beginning))
   (:ga (member (string-downcase letters)
-               '("ae" "eo" "ao" "abh" "amh" "agh" "adh")
+               (@$ ae eo ao abh amh agh adh)
                :test #'string-beginning)))
 
 (defun vowelp (letter)
   (find letter "aoeuiáóéúíýàòèùìỳäöëüïÿāōēūīãõẽũĩỹąęųįøæœåŭ"))
 
 (defun-lang long-vowel-p (syllable)
+  (:la (let* ((first-vowel-pos (position-if #'vowelp syllable))
+              (first-vowel (elt syllable first-vowel-pos)))
+         (and first-vowel-pos
+              (or (find first-vowel "āōēūī" :test #'char=)
+                  (diphthongp% :la (subseq syllable first-vowel-pos))))))
   (:en (if (and (= 2 (length syllable))
                 (not (vowelp (elt syllable 0)))
                 (alpha-char-p (elt syllable 0))
@@ -715,18 +735,17 @@ Note that LEATHNÚ applies this to the final consonant, instead."
            (let* ((first-vowel-pos (position-if #'vowelp syllable))
                   (first-vowel (elt syllable first-vowel-pos)))
              (and first-vowel-pos
-                  (or 
-                   (find first-vowel "āōēūī")
-                   (and (find first-vowel "aoeui")
-                        (or (and (< (1+ first-vowel-pos) (length syllable)) 
-                                 (find (elt syllable (1+ first-vowel-pos))
-                                       "aoeuiy"))
-                            (and (< (+ 2 first-vowel-pos) (length syllable)) 
-                                 (find (elt syllable (+ 2 first-vowel-pos))
-                                       "aoeuiy")
-                                 (not (eql #\w (elt syllable (1+ first-vowel-pos))))
-                                 (not (eql #\x (elt syllable
-                                                    (1+ first-vowel-pos))))))))))))
+                  (or (find first-vowel "āōēūī" :test #'char=)
+                      (and (find first-vowel "aoeui")
+                           (or (and (< (1+ first-vowel-pos) (length syllable)) 
+                                    (find (elt syllable (1+ first-vowel-pos))
+                                          "aoeuiy"))
+                               (and (< (+ 2 first-vowel-pos) (length syllable)) 
+                                    (find (elt syllable (+ 2 first-vowel-pos))
+                                          "aoeuiy")
+                                    (not (eql #\w (elt syllable (1+ first-vowel-pos))))
+                                    (not (eql #\x (elt syllable
+                                                       (1+ first-vowel-pos))))))))))))
   (:ga (etypecase syllable
          (character
           (find syllable "áóéúí"))
@@ -818,37 +837,37 @@ Note that LEATHNÚ applies this to the final consonant, instead."
             )
            ((or (and (= 2 declension)	; 2♀ -oeg &c; 1♀ -ach; 3/4*
                      (eq :f gender)
-                     (or (string-ends-with string "eog")
-                         (string-ends-with string "óg")
-                         (string-ends-with string "lann")
+                     (or (string-ends "eog" string)
+                         (string-ends "óg" string)
+                         (string-ends "lann" string)
                          (and multi-syllabic
-                              (string-ends-with string "each"))
+                              (string-ends "each" string))
                          (equal string "binn")
                          (equal string "deoir")))
                 (and (= 1 declension)
                      (eq :f gender)
-                     (string-ends-with string "ach"))
+                     (string-ends "ach" string))
                 (= 3 declension)
                 (= 4 declension))
             (leathnú string))
            ((and multi-syllabic ; 1♂,2♀ -ach, 3* -éir &c, 4* -ín,-a,-e (mult.)
                  (or ;; (and (eq :m gender)
                   ;;      (= 1 declension)
-                  ;;      (or (string-ends-with string "adh")
-                  ;;          (string-ends-with string "ach")))
+                  ;;      (or (string-ends "adh" string)
+                  ;;          (string-ends "ach" string)))
                   (and (eq :f gender)
                        (= 2 declension)
                        (or (not (irish-broad-ending-p string))
-                           (string-ends-with string "ach")))
+                           (string-ends "ach" string)))
                   (and (= 3 declension)
                        (member string 
                                '("éir" "eoir" "óir" "úir" 
                                  "cht" "áint" "úint" "irt")
-                               :test #'string-ends-with))
+                               :test #'string-ending))
                   (and (= 4 declension)
-                       (or (string-ends-with string "ín")
-                           (string-ends-with string "a")
-                           (string-ends-with string "e")))))
+                       (or (string-ends "ín" string)
+                           (string-ends "a" string)
+                           (string-ends "e" string)))))
             (strcat string "í")
             ;; rules read:
             ;; • add -(a)í
@@ -886,9 +905,9 @@ Note that LEATHNÚ applies this to the final consonant, instead."
                 (and (= 2 declension)
                      (eq :f gender))
                 (and (= 3 declension)
-                     (or (string-ends-with string "il")
-                         (string-ends-with string "in")
-                         (string-ends-with string "ir")))
+                     (or (string-ends "il" string)
+                         (string-ends "in" string)
+                         (string-ends "ir" string)))
                 (= 4 declension))
 
             (strcat string "acha")	; or -eacha
@@ -1129,53 +1148,55 @@ well enough for many (most) English words. At least, an improvement upon
 
 
 (define-constant spanish-numbers 
-    (@$ 1 uno
-        2 dos
-        3 tres
-        4 cuatro
-        5 cinco
-        6 seis
-        7 siete
-        8 ocho
-        9 nueve
-        10 diez
-        11 once
-        12 doce
-        13 trece
-        14 catorce
-        15 quince
-        16 dieciséis
-        17 diecisiete
-        18 dieciocho
-        19 diecinueve
-        20 veinte
-        21 veintiuno
-        22 veintidós
-        23 veintitrés
-        24 veinticuatro
-        25 veinticinco
-        26 veintiséis
-        27 veintisiete
-        28 veintiocho
-        29 veintinueve
-        30 treinta 
-        40 cuarenta
-        50 cincuenta
-        60 sesenta
-        70 setenta
-        80 ochenta
-        90 noventa
-        100 cien ;; ciento +
-        200 doscientos
-        300 trescientos
-        400 cuatrocientos
-        500 quinientos
-        600 seiscientos
-        700 setecientos
-        800 ochocientos
-        900 novecientos
-        1000 mil)
-  :test 'equalp)
+    (mapplist (key value)
+        (@$ 1 uno
+            2 dos
+            3 tres
+            4 cuatro
+            5 cinco
+            6 seis
+            7 siete
+            8 ocho
+            9 nueve
+            10 diez
+            11 once
+            12 doce
+            13 trece
+            14 catorce
+            15 quince
+            16 dieciséis
+            17 diecisiete
+            18 dieciocho
+            19 diecinueve
+            20 veinte
+            21 veintiuno
+            22 veintidós
+            23 veintitrés
+            24 veinticuatro
+            25 veinticinco
+            26 veintiséis
+            27 veintisiete
+            28 veintiocho
+            29 veintinueve
+            30 treinta 
+            40 cuarenta
+            50 cincuenta
+            60 sesenta
+            70 setenta
+            80 ochenta
+            90 noventa
+            100 cien ;; ciento +
+            200 doscientos
+            300 trescientos
+            400 cuatrocientos
+            500 quinientos
+            600 seiscientos
+            700 setecientos
+            800 ochocientos
+            900 novecientos
+            1000 mil)
+      (list (parse-integer key) value))
+  :test 'equal)
 
 (defun-lang counting (count string)
   (:en (cond
@@ -1190,11 +1211,35 @@ well enough for many (most) English words. At least, an improvement upon
                                (strcat (ecase (gender-of% :es string)
                                          (:m "un ")
                                          (:f "una "))
-                                       (plural% :es  count string))))
+                                       string)))
          ((< count 31) (funcall (letter-case string)
                                 (strcat (getf spanish-numbers count)
                                         " " 
                                         (plural% :es count string))))
+         (t (format nil "~,,'.:D ~A" count (plural% :es count string)))))
+  (:la (cond 
+         ((zerop count) (a/an/some 0 string))
+         ((= 1 count) (funcall (letter-case string)
+                               (strcat (ecase (gender-of% :la string)
+                                         (:m "unus ")
+                                         (:f "una ")
+                                         (:n "unum "))
+                                       string)))
+         ((< count 11) (funcall (letter-case string)
+                                (strcat (getf '(1 nil
+                                                2 "duō"
+                                                3 "trēs"
+                                                4 "quatuor"
+                                                5 "quinque"
+                                                6 "sex"
+                                                7 "septem"
+                                                8 "octem"
+                                                9 "novem"
+                                                10 "decem"
+                                                ) count)
+                                        " " 
+                                        (plural% :la count string))))
+         ((< count 5000) (presentation-roman-numeral (format nil "~:@r ~A" count (plural% :es count string))))
          (t (format nil "~,,'.:D ~A" count (plural% :es count string))))))
 
 (assert (equal (counting% :es 2 "gato") "dos gatos"))

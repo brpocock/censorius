@@ -316,108 +316,77 @@ to find out about TEG's refund policy, enter a note in the "
     
     [:h3 "Release, Waiver, and Indemnity Agreement"]
     
-    "I am an adult  over 18 years of age and wish  to participate in the
-    Florida Pagan Gathering (“EVENT”). In  addition, I give my children,
-    if any,  permission to participate  in the  EVENT and I  assume full
-    responsibility for the conduct and safety of my children."
+    [:p "I am an adult over  18 years of age and wish to participate in the  Florida Pagan Gathering (“EVENT”). In addition,
+    I give my children, if any, permission to participate in  the EVENT and I assume full responsibility for the conduct
+    and safety of my children."]
     
-    [:p "This  “Release, Waiver, and Indemnity  Agreement” (“AGREEMENT”)
-    is for the purpose of promoting a safe and happy religious event and
-    to  assure   that  continued  religious   events  may  be   held  in
-    the future."]
+    [:p "This “Release, Waiver, and Indemnity Agreement” (“AGREEMENT”) is  for the purpose of promoting a safe and happy
+    religious event and to assure that continued religious events may be held in the future."]
 
-    [:p "In  consideration for  my participation  and attendance  at the
-    EVENT, I do hereby understand and hereby agree to the following:"]
+    [:p "In consideration for my  participation and attendance at the EVENT, I do hereby  understand and hereby agree to
+    the following:"]
 
     [:ol
-     [:li  "I become  a member  of the  Temple of  Earth Gathering,  Inc.
-    by registering and paying an entrance fee to attend the EVENT;"]
+     [:li "I become a participant of the Florida Pagan Gathering by registering and paying an entrance fee to attend the
+    EVENT;"]
 
-     [:li "I agree to RELEASE, WAIVE,  DISCHARGE AND COVENANT NOT TO SUE
-           the  promoter(s); the  participant(s);  the  Temple of  Earth
-           Gathering, Inc.,  its members,  its officers,  its employees,
-           its volunteers; any of the  Temple of Earth Gathering, Inc.’s
-           affiliates;    and,    owners     and    lessees    of    the
-           premises (hereinafter the “RELEASEES”); "]
+     [:li "I agree to RELEASE, WAIVE, DISCHARGE AND COVENANT  NOT TO SUE the promoter(s); the participant(s); the Temple
+           of Earth  Gathering, Inc., its  members, its officers,  its employees, its volunteers;  any of the  Temple of
+           Earth Gathering, Inc.’s affiliates; and, owners and lessees of the premises (hereinafter the “RELEASEES”); "]
 
-     [:li "I agree not to hold the RELEASEES liable to me; members of my
-           family or  my guests;  my personal  representatives, assigns,
-           heirs; and, next  of kin for any and all  loss or damage, and
-           any claims  or demands therefore  on account of injury  to my
-           person or my  property or resulting in my  death, arising out
-           my attendance  and participation at the  EVENT whether caused
-           by the negligence or otherwise of the RELEASEES;"]
+     [:li  "I  agree not  to  hold  the  RELEASEES liable  to  me;  members of  my  family  or  my guests;  my  personal
+           representatives, assigns, heirs; and, next  of kin for any and all loss or damage,  and any claims or demands
+           therefore  on account  of injury  to my  person or  my  property or  resulting in  my death,  arising out  my
+           attendance and participation at the EVENT whether caused by the negligence or otherwise of the RELEASEES;"]
      
-     [:li "I understand  that there are dangerous  animals, insects, and
-           plants  located   on  the  campgrounds,  including   a  lake.
-           Attendance  at the  EVENT involves  a risk  of injury  and/or
-           death and/or property damage. As such, I VOLUNTARILY AGREE TO
-           ACCEPT ALL RISKS reasonably associated with my attendance and
-           participation in activities at the EVENT;"]
+     [:li "I  understand that there  are dangerous animals,  insects, and plants  located on the  campgrounds, including
+           a lake.  Attendance at the  EVENT involves a  risk of  injury and/or death  and/or property damage.  As such,
+           I  VOLUNTARILY AGREE  TO ACCEPT  ALL RISKS  reasonably  associated with  my attendance  and participation  in
+           activities at the EVENT;"]
      
-     [:li "I accept full responsibility for minor children who accompany
-           me. I  understand that there are  dangerous animals, insects,
-           and  plants located  on  the campgrounds,  including a  lake.
-           Attendance  at the  EVENT involves  a risk  of injury  and/or
-           death and/or property damage. As such, I VOLUNTARILY AGREE TO
-           ACCEPT ALL RISKS reasonably associated with my attendance and
-           participation in activities at the EVENT; "]
+     [:li "I  accept full  responsibility for minor  children who accompany  me. I  understand that there  are dangerous
+           animals, insects, and plants  located on the campgrounds, including a lake. Attendance  at the EVENT involves
+           a risk  of injury  and/or death and/or  property damage.  As such,  I VOLUNTARILY AGREE  TO ACCEPT  ALL RISKS
+           reasonably associated with my attendance and participation in activities at the EVENT; "]
 
-     [:li  "I  AGREE  TO  HOLD  THE  RELEASEES  harmless  and  indemnify
-           RELEASEES for any claim judgment  or expense of the RELEASEES
-           that  they may  incur  arising  out of  my  activities or  my
-           presence at the EVENT; "]
+     [:li "I  AGREE TO HOLD  THE RELEASEES harmless  and indemnify RELEASEES  for any claim  judgment or expense  of the
+           RELEASEES that they may incur arising out of my activities or my presence at the EVENT; "]
 
-     [:li "I understand further that the foregoing AGREEMENT is intended
-           to be as broad and inclusive  as is permitted by the state of
-           Florida and that  if any portion thereof is  held invalid, it
-           is agreed  that the balance shall,  notwithstanding, continue
-           in full legal force and effect;"]
+     [:li "I understand further that the foregoing AGREEMENT is intended to be as broad and inclusive as is permitted by
+           the state of Florida  and that if any portion thereof  is held invalid, it is agreed  that the balance shall,
+           notwithstanding, continue in full legal force and effect;"]
 
-     [:li  "Notwithstanding the  express provisions  of this  AGREEMENT,
-           I  agree that  if I  elect to  file suit  against any  of the
-           aforementioned  RELEASEES  on  the  basis  of  negligence  or
-           otherwise,  I  agree  to  be liable  for  attorney  fees  and
-           costs. "]
+     [:li "Notwithstanding the express provisions of this AGREEMENT, I agree that if I elect to file suit against any of
+           the aforementioned RELEASEES on the basis of negligence or  otherwise, I agree to be liable for attorney fees
+           and costs. "]
 
-     [:li "I HAVE READ AND HAVE VOLUNTARILY SIGNED THIS “RELEASE, WAIVER
-           AND  INDEMNITY  AGREEMENT” and  further  agree  that no  oral
-           representations,  statements or  inducements  apart from  the
-           foregoing written agreement have been made. "]]
+     [:li "I HAVE READ AND HAVE VOLUNTARILY SIGNED THIS “RELEASE, WAIVER AND INDEMNITY AGREEMENT” and further agree that
+           no oral  representations, statements  or inducements  apart from  the foregoing  written agreement  have been
+           made. "]]
     
     [:h3 "Camera Use Policy"]
     
     [:ol
      
-     [:li "Only guests and staff who  have signed this Camera Use Policy
-            may  take   pictures  while  attending  the   Florida  Pagan
-            Gathering and then only of  people who have given permission
-            for you to photograph them.  This includes Camera Phones and
-            other recording devices."]
+     [:li "Only guests  and staff who have signed this  Camera Use Policy may take pictures  while attending the Florida
+            Pagan Gathering and then only of people who have  given permission for you to photograph them. This includes
+            Camera Phones and other recording devices."]
      
-     [:li "You must ask permission of  a child’s parent or legal guardian
-            in  order  to  photograph  any  child.  AT  NO  TIME  is  it
-            acceptable  to photograph  any nude  children, photographing
-            nude children is against Federal law."]
+     [:li "You must ask permission of a child’s parent or legal guardian in order to photograph any child. AT NO TIME is
+            it acceptable to photograph any nude children, photographing nude children is against Federal law."]
      
-     [:li  "Cameras, Camera  Phones or  other recording  devices are  NOT
-            allowed in  the fire circle area  unless you are one  of the
-            official FPG Staff  Photographers. ABSOLUTELY NO photography
-            in the fire circle area after sundown."]
+     [:li "Cameras, Camera Phones or other recording devices are NOT  allowed in the fire circle area unless you are one
+            of the official FPG Staff Photographers. ABSOLUTELY NO photography in the fire circle area after sundown."]
      
-     [:li "Be polite and ask vendors for permission before photographing
-            anything in their vending tent."]
+     [:li "Be polite and ask vendors for permission before photographing anything in their vending tent."]
      
-     [:li "Those  who fail  to comply  with these  rules are  subject to
-            having  their film  and/or camera  (including camera  phone)
-            confiscated and including, but not limited to, being removed
-            from the event site without a refund."]]
+     [:li "Those who  fail to comply with these rules  are subject to having their film  and/or camera (including camera
+            phone) confiscated and including, but not limited to, being removed from the event site without a refund."]]
     
     [:hr]
     
-    [:p "To signal your agreement, enter your legal name below.
-(Florida Statute 668.004 provides that your electronic signature is
-legally binding.)"]]
+    [:p "To signal your  agreement, enter your legal name below. (Florida Statute  668.004 provides that your electronic
+    signature is legally binding.)"]]
    
    [:div {:id "waiver-signature"
           :style {:display (if (some guest/adult? @guest-list/guests)
@@ -445,25 +414,21 @@ legally binding.)"]]
   [:p {:class "warning"
        :style {:display (if (guest-list/need-adult-email?)
                           "block" "none")}}
-   "At  least  one  adult  eMail  address  is  needed,  before  you  can
-   check out."
+   "At least one adult eMail address is needed, before you can check out."
    
    [:span {:class "hint"} "Click on the box under " [:q "eMail"] 
-    "next  to any  adult member  of the  party (probably  yourself!) and
-             enter a  valid address. The  first one (from the  top) that
-             you    provide   is    who   will    receive   registration
-             correspondence, like your confirmation.  If you're a Lugal,
-             Division Coördinator, or  Board member, be sure  to use the
-             same eMail  address you use  for other FPG business,  so we
-             can apply any discounts."]])
+    "next to any adult member of the party (probably yourself!)  and enter a valid address. The first one (from the top)
+             that  you provide  is who  will  receive registration  correspondence,  like your  confirmation. If  you're
+             a Lugal, Division Coördinator, or Board member, be sure to use the same eMail address you use for other FPG
+             business, so we can apply any discounts."]])
 
 (defn need-adults-warning []
   [:p {:class "warning"
        :style {:display (if (let [[adults-needed adults & _] (guest-list/adults-needed)]
                               (> adults-needed adults))
                           "block" "none")}}
-   "There  are   not  enough  adults   registered  for  the   number  of
-            children. (Check the " [:strong [:q "Ticket"]] " column.)"])
+   "There     are     not     enough     adults     registered    for     the     number     of     children.     (Check
+            the " [:strong [:q "Ticket"]] " column.)"])
 
 
 

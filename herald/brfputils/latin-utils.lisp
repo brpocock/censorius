@@ -17,6 +17,19 @@ that     it     resembles;     eg,      for     #\C     this     returns
     (#\m #\roman_numeral_one_thousand)
     (otherwise nil)))
 
+(defun presentation-roman-numeral (string)
+  (regex-replace-pairs '#.(mapcar (lambda (pair)
+                                    (cons (coerce (car pair) 'string) (coerce (cdr pair) 'string)))
+                                  '((#(#\roman_numeral_one #\roman_numeral_one #\roman_numeral_one #\roman_numeral_one) 
+                                     . #(#\roman_numeral_four))
+                                    (#(#\roman_numeral_one #\roman_numeral_one #\roman_numeral_one) 
+                                     . #(#\roman_numeral_three))
+                                    (#(#\roman_numeral_one #\roman_numeral_one) 
+                                     . #(#\roman_numeral_two))
+                                    (#(#\roman_numeral_ten #\roman_numeral_ten #\roman_numeral_ten #\roman_numeral_ten) 
+                                     . #(#\roman_numeral_ten #\roman_numeral_fifty))))
+                       (map 'string #'proper-roman-numeral string)))
+
 (defun roman-numeral-value (char)
   "Return the numeric value of an Unicode Roman numeral."
   (case char
@@ -47,7 +60,7 @@ that     it     resembles;     eg,      for     #\C     this     returns
     (nil nil)
     (otherwise (roman-numeral-value (proper-roman-numeral char)))))
 
-(defun roman-number-value (string)
+(defun parse-roman-numeral (string)
   "Evaluate  a   string,  returning  its   value  as  a   Roman  number.
 Assumes that the string follows typical  rules, and may yield results of
 questionable value  on malformed  strings. Functions with  Unicode Roman

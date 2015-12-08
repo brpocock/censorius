@@ -128,11 +128,10 @@
 (defun simple-record-table-has-column (object column)
   (member column (simple-record-table-columns object) :test #'string=))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defclass simple-record ()
-    ((table :type 'simple-record-table :reader record-table :initarg :table)
-     (plist :type 'list :reader record-plist :initarg :plist)
-     (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
+(defclass simple-record ()
+  ((table :type 'simple-record-table :reader record-table :initarg :table)
+   (plist :type 'list :reader record-plist :initarg :plist)
+   (dirtyp :type 'boolean :reader record-dirty-p :initform t :initarg :dirtyp)))
 
 (defun table-exists-p (table)
   (ignore-errors
@@ -141,45 +140,45 @@
 (defun singular (name)
   (brfp::make-english-singular name))
 
-  (assert (equal (singular "people-in-places") "person-in-place"))
-  (assert (equal (singular "countries") "country"))
-  (assert (equal (singular "monkeys") "monkey"))
-  (assert (equal (singular "addresses") "address"))
-  
-  (defun primary-key-columns-for-table (table)
-    (mapcar (rcurry #'getf :column_name)
-            (db-query "select * from information_schema.key_column_usage 
+(assert (equal (singular "people-in-places") "person-in-place"))
+(assert (equal (singular "countries") "country"))
+(assert (equal (singular "monkeys") "monkey"))
+(assert (equal (singular "addresses") "address"))
+
+(defun primary-key-columns-for-table (table)
+  (mapcar (rcurry #'getf :column_name)
+          (db-query "select * from information_schema.key_column_usage 
 where constraint_schema=? and table_name=? and constraint_name='PRIMARY' order by ordinal_position"
-                      (getf herald-db-config:+params+ :database-name)
-                      table)))
-  
-  (defun tables-with-distinct-references (references)
-    (remove-if-not (lambda (ref-table)
-                     (let ((table-pri-keys (primary-key-columns-for-table ref-table)))
-                       (every (rcurry #'member table-pri-keys)
-                              (remove-if-not (compose (curry #'equal ref-table)
-                                                      (rcurry #'getf :table_name))
-                                             references))))
-                   (remove-duplicates (mapcar (rcurry #'getf :table_name)
-                                              references)
-                                      :test #'string-equal)))
-  
-  (defun tables-slaved-to-table (table)
-    (tables-with-distinct-references 
-     (db-query "select * from information_schema.referential_constraints 
+                    (getf herald-db-config:+params+ :database-name)
+                    table)))
+
+(defun tables-with-distinct-references (references)
+  (remove-if-not (lambda (ref-table)
+                   (let ((table-pri-keys (primary-key-columns-for-table ref-table)))
+                     (every (rcurry #'member table-pri-keys)
+                            (remove-if-not (compose (curry #'equal ref-table)
+                                                    (rcurry #'getf :table_name))
+                                           references))))
+                 (remove-duplicates (mapcar (rcurry #'getf :table_name)
+                                            references)
+                                    :test #'string-equal)))
+
+(defun tables-slaved-to-table (table)
+  (tables-with-distinct-references 
+   (db-query "select * from information_schema.referential_constraints 
 where constraint_schema=? and referenced_table_name=?"
-               (getf herald-db-config:+params+ :database-name)
-               table)))
-  
-  (defun tables-parented-to-table (table)
-    (tables-with-distinct-references 
-     (db-query "select * from information_schema.referential_constraints 
+             (getf herald-db-config:+params+ :database-name)
+             table)))
+
+(defun tables-parented-to-table (table)
+  (tables-with-distinct-references 
+   (db-query "select * from information_schema.referential_constraints 
 where constraint_schema=? and table_name=?"
-               (getf herald-db-config:+params+ :database-name)
-               table)))
-  
-  (defmethod initialize-instance :after ((object simple-record-table)
-                                         &key db-table 
+             (getf herald-db-config:+params+ :database-name)
+             table)))
+
+(defmethod initialize-instance :after ((object simple-record-table)
+                                       &key db-table 
                                          (primary-key-columns (primary-key-columns-for-table db-table)) 
                                          (trailer-tables (tables-slaved-to-table db-table))
                                          (parent-table (tables-parented-to-table db-table))
@@ -187,73 +186,72 @@ where constraint_schema=? and table_name=?"
                                          end-column
                                          (volatility :session)
                                          logical-deletion-column)
-             (setf (slot-value object 'table-description) 
-                   (mapcar (lambda (row) 
-                             (mapplist (key value) row
-                               (list (make-keyword (string-upcase key)) value)))
-                           (db-query (format nil "describe `~a`" db-table))))
-             (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
-                     (primary-key-columns)
-                     "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
-                     (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
-                     db-table)
-             (loop for column in '(start-column end-column logical-deletion-column)
-                for column-name in (list start-column end-column logical-deletion-column)
-                when column-name
-                do (assert (simple-record-table-has-column object column-name)
-                           ()
-                           "The ~a given for ~a is ~a, which is not a column on that table"
-                           column db-table column-name))
-             (let ((missing (remove-if-not #'table-exists-p
-                                           (remove-if #'null
-                                                      (append (list parent-table) trailer-tables)))))
-               (unless (null missing) 
-                 (warn
-                  "All parent and trailer tables for ~a must exist; ~r missing table~:p: ~{~a~^, ~}"
-                  db-table (length missing) missing)))
-             (assert (simple-record-volatility-p volatility) (volatility)
-                     "The volatility of the table must be valid (~a is not)" volatility)
-             (let ((function-name (format-symbol :herald-db "FIND-~:@(~a~)" (singular db-table)))
-                   (record-class (intern (string-upcase (singular db-table))))
-                   (primary-keys (mapcar (compose #'intern #'string-upcase) primary-key-columns)))
-               (eval `(defclass ,record-class (simple-record) ()))
-               (export record-class)
-               (eval `(defmethod ,function-name ,primary-keys
-                        (find-simple-record ,object ,@primary-keys)))
-               (export function-name)
-               (let ((columns (mapcar (rcurry #'getf :field) (db-query (format nil "describe `~a`" db-table)))))
-                 (dolist (column-name columns)
-                   (let ((accessor-name (format-symbol :herald-db "~:@(~a~)-~:@(~a~)" 
-                                                       (singular db-table) 
-                                                       (if (and (string-equal column-name (singular db-table))
-                                                                (not (member "id" columns :test #'string-equal)))
-                                                           "id"
-                                                           column-name))))
-                     (eval `(defmethod ,accessor-name ((instance ,record-class))
-                              (getf (instance) ,(keyword* column-name))))
-                     (export accessor-name)
-                     (unless (member column-name primary-key-columns :test #'string-equal)
-                       (let ((unkey-columns (remove-if (rcurry #'member primary-key-columns :test #'string-equal)
-                                                       columns)))
-                         (eval `(defmethod (setf ,accessor-name) (new-value (instance ,record-class))
-                                  (db-query ,(format nil "update `~a` set ~{`~a`=?~^, ~} where ~{`~a`=?~^ and ~}"
-                                                     db-table
-                                                     unkey-columns
-                                                     primary-key-columns)
-                                            (mapcar (curry #'getf instance) ,(mapcar #'keyword* unkey-columns))
-                                            (mapcar (curry #'getf instance) ,(mapcar #'keyword* primary-key-columns)))
-                                  (setf (getf instance ,(keyword* column-name)) new-value)))))))))
-             (setf (gethash db-table *simple-record-tables*) object)))
+  (setf (slot-value object 'table-description) 
+        (mapcar (lambda (row) 
+                  (mapplist (key value) row
+                    (list (make-keyword (string-upcase key)) value)))
+                (db-query (format nil "describe `~a`" db-table))))
+  (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
+          (primary-key-columns)
+          "~@(~r~) of primary key columns defined for ~a ~0@*~:[~;does~:;do~] not exist."
+          (count-if-not (curry #'simple-record-table-has-column object) primary-key-columns)
+          db-table)
+  (loop for column in '(start-column end-column logical-deletion-column)
+     for column-name in (list start-column end-column logical-deletion-column)
+     when column-name
+     do (assert (simple-record-table-has-column object column-name)
+                ()
+                "The ~a given for ~a is ~a, which is not a column on that table"
+                column db-table column-name))
+  (let ((missing (remove-if-not #'table-exists-p
+                                (remove-if #'null
+                                           (append (list parent-table) trailer-tables)))))
+    (unless (null missing) 
+      (warn
+       "All parent and trailer tables for ~a must exist; ~r missing table~:p: ~{~a~^, ~}"
+       db-table (length missing) missing)))
+  (assert (simple-record-volatility-p volatility) (volatility)
+          "The volatility of the table must be valid (~a is not)" volatility)
+  (let ((function-name (format-symbol :herald-db "FIND-~:@(~a~)" (singular db-table)))
+        (record-class (intern (string-upcase (singular db-table))))
+        (primary-keys (mapcar (compose #'intern #'string-upcase) primary-key-columns)))
+    (eval `(defclass ,record-class (simple-record) ()))
+    (export record-class)
+    (eval `(defmethod ,function-name ,primary-keys
+               (find-simple-record ,object ,@primary-keys)))
+    (export function-name)
+    (let ((columns (mapcar (rcurry #'getf :field) (db-query (format nil "describe `~a`" db-table)))))
+      (dolist (column-name columns)
+        (let ((accessor-name (format-symbol :herald-db "~:@(~a~)-~:@(~a~)" 
+                                            (singular db-table) 
+                                            (if (and (string-equal column-name (singular db-table))
+                                                     (not (member "id" columns :test #'string-equal)))
+                                                "id"
+                                                column-name))))
+          (eval `(defmethod ,accessor-name ((instance ,record-class))
+                     (getf (instance) ,(keyword* column-name))))
+          (export accessor-name)
+          (unless (member column-name primary-key-columns :test #'string-equal)
+            (let ((unkey-columns (remove-if (rcurry #'member primary-key-columns :test #'string-equal)
+                                            columns)))
+              (eval `(defmethod (setf ,accessor-name) (new-value (instance ,record-class))
+                         (db-query ,(format nil "update `~a` set ~{`~a`=?~^, ~} where ~{`~a`=?~^ and ~}"
+                                            db-table
+                                            unkey-columns
+                                            primary-key-columns)
+                          (mapcar (curry #'getf instance) ,(mapcar #'keyword* unkey-columns))
+                          (mapcar (curry #'getf instance) ,(mapcar #'keyword* primary-key-columns)))
+                       (setf (getf instance ,(keyword* column-name)) new-value)))))))))
+  (setf (gethash db-table *simple-record-tables*) object))
 
 
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun all-tables ()
-    (mapcar #'second (db-query "show tables")))
-  
-  (with-sql
-    (dolist (table (all-tables))
-      (make-instance 'simple-record-table :db-table table))))
+(defun all-tables ()
+  (mapcar #'second (db-query "show tables")))
+
+(with-sql
+  (dolist (table (all-tables))
+    (make-instance 'simple-record-table :db-table table)))
 
 (defmethod print-object ((table simple-record-table) s)
   (format s "#<SIMPLE-RECORD-TABLE for ~s>" 
@@ -263,96 +261,7 @@ where constraint_schema=? and table_name=?"
   ((table :type simple-record-table :reader record-table :initarg :table)
    (primary-keys :type 'list :reader primary-keys :initarg :primary-keys)
    (plist :type 'list :reader record-plist)))
-
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (with-sql
-    (let ((schema (getf herald-db-config::+params+ :database-name)))
-      (labels
-          ((table->class (source-table)
-             (intern (string-upcase (singular source-table))))
-           
-           (key->plist (part)
-             (destructuring-bind (&key table_name column_name  
-                                       referenced_table_name referenced_column_name 
-                                       constraint_name
-                                       &allow-other-keys) part
-               (list :source-table table_name
-                     :source-column column_name  
-                     :dest-table referenced_table_name
-                     :dest-column referenced_column_name
-                     :constraint constraint_name)))
-           
-           (accessor-function-symbol (source-table source-column)
-             (format-symbol *package* "~:@(~a-~a~)" (singular source-table) source-column))
-           
-           (link-between-records-symbol (source-table dest-table source-column dest-columns keys)
-             (format-symbol *package* "~@:(~a->~{~a~@[-~{~a~^+~}~]~}~)" 
-                            (singular source-table) 
-                            (if (= 1 (length keys))
-                                (list (singular dest-table) nil)
-                                (remove-duplicates (list (first dest-columns)
-                                                         (if (rest dest-columns)
-                                                             (append (rest dest-columns) (list (singular dest-table)))
-                                                             (rest dest-columns)))
-                                                   :test #'equal))))
-           
-           (all-foreign-keys ()
-             (db-query "select * from information_schema.key_column_usage 
-where constraint_schema=? and referenced_table_schema=?
-order by table_name, constraint_name, ordinal_position"
-                       schema schema))
-           
-           (all-constraints-grouped ()
-             (group-by (all-foreign-keys)
-                       :key (lambda (row) 
-                              (list (getf row :table_name)
-                                    (getf row :constraint_name))) 
-                       :test #'equalp))
-           
-           (write-find-dest-by-primary-keys (dest-table keys)
-             (format t "~&finding dest ~a record by primary keys from ~%~s" (singular dest-table) keys)
-             (cons (format-symbol *package* "FIND-~@:(~a~)" (singular dest-table))
-                   (mapcar (lambda&keys (&key source-table source-column &allow-other-keys)
-                             (list (accessor-function-symbol source-table source-column)
-                                   (table->class source-table)))
-                           keys)))
-           
-           (write-find-record-by-keywords (dest-table keys)
-             (cons
-              (format-symbol *package* "FIND-~@:(~a~)-BY" dest-table)
-              (mapcar (lambda&keys (&key source-table source-column dest-column &allow-other-keys)
-                        `(,(make-keyword (string-upcase dest-column))
-                           (,(format-symbol *package* "~:@(~a-~a~)" (singular source-table) source-column)
-                             ,(table->class source-table))))
-                      keys)))
-           
-           (constraint-joins-two-tables-p (source-table dest-table keys)
-             (every (lambda (key) 
-                      (and (equal source-table (getf key :source-table))
-                           (equal dest-table (getf key :dest-table)))) 
-                    keys)))
-        
-        (dolist (constraint (all-constraints-grouped))
-          (destructuring-bind (name &rest parts) constraint
-            #+ swank  (format t "~2% constraint=~s (~r part~:p)" name (length parts))
-            (let ((keys (mapcar #'key->plist parts)))
-              #+swank (format t "~%keys: ~{~%~5t ~s~}" keys)
-              (destructuring-bind (&key source-table source-column dest-table &allow-other-keys) (first keys)
-                (let ((dest-columns (mapcar (rcurry #'getf :dest-column) keys)))
-                  (if (constraint-joins-two-tables-p source-table dest-table keys)
-                      (let ((link-name (link-between-records-symbol source-table dest-table source-column dest-columns keys)))
-                        #+swank (format t "~& Link ~a from ~a to ~a using ~r key~:p (dest column~:p: ~{~a~^, ~})" 
-                                        link-name source-table dest-table (length keys) dest-columns)
-                        (eval `(defmethod ,link-name ((,(table->class source-table) 
-                                                        ,(table->class source-table)))
-                                 ,(cond ((equalp dest-columns (primary-key-columns-for-table dest-table))
-                                         #+swank (format t " — using primary keys on ~a, so FIND-~:@(~a~)" dest-table (singular dest-table))
-                                         (write-find-dest-by-primary-keys dest-table keys))
-                                        (t (warn "key is not primary? ~a" key-name)
-                                           #+swank (format t " — using non-primary keys on ~a, so FIND…BY is used" dest-table)
-                                           (write-find-record-by-keywords dest-table keys))))))
-                      (warn "~% Complex keys, skipping ~s" keys)))))))))))
 
 
 
@@ -405,3 +314,4 @@ order by table_name, constraint_name, ordinal_position"
 
 
 (provide :herald-db)
+
