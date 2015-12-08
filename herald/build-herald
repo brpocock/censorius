@@ -5,9 +5,9 @@ mv --backup=numbered herald herald.backup
 buildapp --output herald \
 	--logfile herald.buildapp.log \
 	--load ~/quicklisp/setup.lisp \
-	--asdf-path $(pwd):$(pwd)/brfputils \
-	--eval '(mapcar (quote ql:quickload) (quote (:alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi :cl-ppcre :trivial-backtrace #+sbcl :clsql-sqlite3 #-sbcl :clsql-sqlite :cl-paypal :split-sequence :flexi-streams :cl-sendmail :memoize)))' \
-	--load build \
+	--asdf-path $(pwd) \
+          --asdf-path $(pwd)/brfputils \
+	--load build.lisp \
 	--dispatched-entry herald.cgi/herald-fcgi::exec-cgi \
 	--dispatched-entry herald.fcgi/herald-fcgi::exec-fcgi \
 	--dispatched-entry /herald-fcgi::exec-cgi \

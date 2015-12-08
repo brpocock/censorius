@@ -1,3 +1,5 @@
+(in-package :brfp)
+
 (defvar *tex-escape* '(("\\&" . "\\\\&")
                        ("\\$" . "\\\\$")
                        ("\\x92" . "'")

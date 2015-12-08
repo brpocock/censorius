@@ -51,8 +51,8 @@
         :brfp :herald-db :herald-util)
   (:export :herald-cgi :herald-fcgi
            :herald-user-agent :whine
-           :+host-name+
-           :+url-prefix+))
+           :+host-name+ 
+           :+uri-prefix+))
 
 (defpackage :google-apis
   (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi

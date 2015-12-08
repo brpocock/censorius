@@ -17,7 +17,7 @@
                              :user-agent (herald-fcgi:herald-user-agent)
                              :additional-headers (list (cons "Referer" (concatenate 'string 
                                                                                     herald-fcgi:+host-name+
-                                                                                    herald-fcgi:+url-prefix+
+                                                                                    herald-fcgi:+uri-prefix+
                                                                                     "/google-api-hook"))))
       (declare (ignore reply-stream stream-close-p))
       (assert (< status 400) ()
