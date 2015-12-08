@@ -1,0 +1,32 @@
+#!/bin/sh
+
+F="Beltane 2014"
+d=~/work/$F/$(date +%Y%m%d)
+p=/home/brpocock/Projects/Herald
+
+mkdir -p $p/Sent
+
+for f in "$F Grids.pdf" "$F Handbook.pdf" ; do
+   if diff -q "$d/$f" "$p/Sent/$f" ; then
+   	( echo "Previously sent file:" 
+   	  echo -n " Size: "; ls -sh "$p/Sent/$f"
+     	  echo -n " Rendered: "; ls -l "$p/Sent/$f" | cut -c 40- 
+     	  echo ""
+     	  echo "New file:"
+   	  echo -n " Size: "; ls -sh "$d/$f"
+     	  echo -n " Rendered: "; ls -l "$d/$f" | cut -c 40- 
+     	  echo ""
+     	  echo "This is a draft file generated automatically from the database" ) > /tmp/$$.mail.txt
+	  echo "File changed, sending: "
+	  cat /tmp/$$.mail.txt
+	   mimesend -s "Draft $f as of $(date +%Y%m%d %H:%M)" \
+	        -f /tmp/$$.mail.txt -m text/plain \
+	   	-f "$d/$f" -m image/x-pdf \	
+		brpocock
+	   rm /tmp/$$.mail.txt
+	   cp "$f" "$p/Sent/$f"
+   else
+       echo "File $F not changed"
+   fi
+done
+

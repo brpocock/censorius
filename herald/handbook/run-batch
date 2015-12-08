@@ -1,0 +1,29 @@
+#!/bin/sh
+echo "Running off batch to mail"
+echo ""
+echo "Downloading current spreadsheets from Google Drive"
+echo ""
+~/Projects/Herald/fetchcurrent
+echo ""
+echo "Converting spreadsheets into LaTeX files"
+echo ""
+cd ~/work/Beltane\ 2015/$(date +%Y%m%d)/
+echo " (work folder: $(pwd))"
+echo ""
+sbcl --core ~brpocock/.cache/sbcl+swank.core --eval "(mapcar #'ql:quickload 
+                           '(:alexandria
+                             :cl-fad
+                             :csv-parser
+                             :dbi
+                             :hunchentoot
+                             :local-time
+                             :prepl
+                             :sb-fastcgi
+                             :split-sequence
+                             :trivial-backtrace))" \
+     --load ~/Projects/Herald/herald.lisp --eval '(herald::run)' < /dev/null
+echo ""
+echo "Rendering LaTeX into PDF's"
+echo ""
+~/Projects/Herald/renderall < /dev/null > /dev/null 2>&1
+

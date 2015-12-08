@@ -1,0 +1,152 @@
+\batchmode
+\documentclass[legalpaper,9pt,twoside,openright,final,article,landscape]{memoir}
+\usepackage[top=.5in,left=.5in,right=.5in,bottom=1in]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{multicol}
+\usepackage{pifont}
+\usepackage{newcent}
+\usepackage{rotating}
+\usepackage{needspace}
+\usepackage{fontspec}
+\usepackage{xunicode}
+%\defaultfontfeatures{Scale=MatchLowercase}
+%% \setromanfont[Numbers=Uppercase]{Hoefler Text}
+\newfontfamily\beltanefamily{Beltane}
+\newfontfamily\hminfamily{TEGScript}
+
+% \def\hminfamily{}
+
+\def\fpg{{\beltanefamily FPG\ }}
+\def\teg{{\hminfamily TEG\ }}
+\def\FPG{{\beltanefamily Florida Pagan Gathering\ }}
+\def\TEG{{\hminfamily Temple of Earth Gathering\/\ }}
+#include "festinfo.tex"
+
+\tolerance=1000
+\clubpenalty=10000
+\widowpenalty=10000
+
+\hyphenpenalty=7000 \exhyphenpenalty=1000 \pretolerance=1000
+
+\makeheadrule{headings}{\textwidth}{1pt}
+\makefootrule{headings}{\textwidth}{1pt}{4pt}
+
+\date{\today}
+\title{\festseason \festyear}
+\author{Temple of Earth Gatherings \\ Florida Pagan Gathering}
+\renewcommand{\pfbreakdisplay}{%
+  \needspace{24pt}%
+  \vspace{8pt}\\\ding{76}\quad\ding{77}\quad\ding{78}\\%
+  \vspace{11pt}}
+\setsecnumdepth{none}
+\makeevenhead{headings}{}{}{\FPG}
+\makeoddhead{headings}{\TEG}{}{}
+\makeoddfoot{headings}{Schedule}{}{\festseason \festyear}
+\makeevenfoot{headings}{\festseason \festyear}{}{Schedule}
+
+\setaftersubsubsecskip{-1em}
+
+\setsecheadstyle{\beltanefamily\Huge\raggedright}
+\setsubsecheadstyle{\large\raggedright}
+
+
+\let\oldsection=\section
+\renewcommand{\section}[1]{%
+  % \filbreak
+  \vspace{3pt}%
+  \needspace{1in}%
+  { \hrule } \nopagebreak %
+  \begin{center}\oldsection{#1}\end{center}\nopagebreak{}}
+\let\oldsubsection=\subsection
+\renewcommand{\subsection}[1]{%
+  \vspace{6pt}%
+  \needspace{1.25in}%
+  \begin{center}\textbf{\Large \beltanefamily #1}\end{center}
+
+  \nopagebreak}
+\let\oldsubsubsection=\subsubsection
+\renewcommand{\subsubsection}[1]{%
+  \vspace{1pt}\needspace{1.5in}
+  {\large ~~~\beltanefamily #1~~~\ }
+  \nopagebreak}
+
+\setlength{\droptitle}{2in}
+\setlength{\bottomsectionskip}{0pt}
+\setlength{\columnsep}{16pt}
+\normalbottomsection{}
+
+\begin{document}
+
+#include "Grid-THU.tex"
+
+\vfill 
+
+#include "Grid-FRI.tex"
+
+\newpage
+
+#include "Grid-SAT.tex"
+
+\small
+
+\begin{tabular}{lcr}
+
+\begin{minipage}{7in}
+
+\small
+
+#include "Grid-WED.tex"
+
+#include "Grid-SUN.tex"
+
+#include "insert-trolley-hours.tex"
+
+\subsection{Community Center hours}
+
+#include "insert-community-center-hours.tex"
+\end{minipage} & \begin{minipage}{3in}
+
+  #include "insert-pool-hours.tex"
+
+\subsection{Bubbling Cauldron Meal Plan}
+
+#include "insert-cauldron-meals.tex"
+
+\end{minipage} & \begin{minipage}
+
+\includegraphics[width=\columnwidth]{mini-map.png}
+
+\end{minipage}
+\end{tabular}
+
+\pagebreak
+
+This page intentionally left blank
+
+\vfill
+
+Or, well, it had been, but now it's ruined.
+
+\thispagestyle{headings}
+\newpage
+\pagestyle{empty}
+
+\thispagestyle{empty}
+\includepdf[pages={1},offset=-10mm 0mm,width=7in]{map.pdf}
+% \includegraphics[height=\textwidth,angle=270]{map-7.png}
+% \vfill
+\end{document}

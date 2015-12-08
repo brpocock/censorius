@@ -1,0 +1,1269 @@
+\batchmode
+\documentclass[9pt,twoside,openright,final,article]{memoir}
+%% ,letterpaper
+\setstocksize{8.5in}{7in}
+\settrimmedsize{\stockheight}{\dimexpr 7in-15mm}{*}
+% \settypeblocksize{542.024925pt}{415.5524425pt}{*}
+\usepackage[top=.5in,left=.25in,right=.25in,bottom=.5in]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{multicol}
+\usepackage{pdfpages}
+\usepackage{pifont}
+\usepackage{newcent}
+\usepackage{rotating}
+\usepackage{needspace}
+\usepackage{xltxtra}
+\usepackage{fontspec}
+\usepackage{xunicode}
+\defaultfontfeatures{Scale=MatchLowercase}
+%% \setromanfont[Numbers=Uppercase]{Hoefler Text}
+\newfontfamily\beltanefamily{Beltane}
+\newfontfamily\hminfamily{TEGScript}
+
+% \def\hminfamily{}
+
+\def\fpg{{\beltanefamily FPG\ }}
+\def\teg{{\hminfamily TEG\ }}
+\def\FPG{{\beltanefamily Florida Pagan Gathering\ }}
+\def\TEG{{\hminfamily Temple of Earth Gathering\/\ }}
+#include "festinfo.tex"
+
+\tolerance=1000
+\clubpenalty=70000
+\widowpenalty=30000
+
+\hyphenpenalty=7000 \exhyphenpenalty=1000 \pretolerance=1000
+
+\makeheadrule{headings}{\textwidth}{1pt}
+\makefootrule{headings}{\textwidth}{1pt}{4pt}
+
+\date{\today}
+\title{\festseason{} \festyear{}}
+\author{Temple of Earth Gathering \\ Florida Pagan Gathering}
+\renewcommand{\pfbreakdisplay}{%
+  \needspace{24pt}%
+  \vspace{8pt}\\\ding{76}\quad\ding{77}\quad\ding{78}\\%
+  \vspace{11pt}}
+\setsecnumdepth{none}
+\makeevenhead{headings}{\rightmark}{}{\FPG}
+\makeoddhead{headings}{\TEG}{}{\rightmark}
+\makeevenfoot{headings}{\thepage}{}{\festseason{} \festyear{}}
+\makeoddfoot{headings}{\festseason{} \festyear{}}{}{\thepage}
+
+\setaftersubsubsecskip{-1em}
+
+\setsecheadstyle{\beltanefamily\Huge\raggedright}
+\setsubsecheadstyle{\large\raggedright}
+
+\let\oldsection=\section
+\renewcommand{\section}[1]{%
+  % \filbreak
+  \vspace{3pt}%
+  \needspace{1in}%
+  { \hrule } \nopagebreak %
+  \begin{center}\oldsection{#1}\end{center}\nopagebreak{}}
+\let\oldsubsection=\subsection
+\renewcommand{\subsection}[1]{%
+  \vspace{6pt}%
+  \needspace{1.25in}%
+  \begin{center}\textbf{\Large \beltanefamily #1}\end{center}
+
+  \nopagebreak}
+\let\oldsubsubsection=\subsubsection
+\renewcommand{\subsubsection}[1]{%
+  \vspace{1pt}\needspace{1.5in}
+  {\large ~~~\beltanefamily #1~~~\ }
+  \nopagebreak}
+
+
+\setlength{\droptitle}{2in}
+\setlength{\bottomsectionskip}{0pt}
+\setlength{\columnsep}{16pt}
+\normalbottomsection{}
+
+\begin{document}
+
+\includegraphics[height=9.75in]{cover.png}
+
+\begin{center} {\beltanefamily \HUGE Florida Pagan Gathering }\texttrademark{} \end{center}
+
+\begin{center} {\beltanefamily \HUGE \festseason{} \festyear{} } \end{center}
+
+\vfill
+
+\vfill
+
+\begin{center} {\footnotesize
+    { \hminfamily presented by \TEG Inc}\texttrademark{} } \end{center}
+
+\begin{multicols}{3}
+
+  {\footnotesize \tableofcontents* }
+
+  \columnbreak
+
+  ~ \\
+  \vfill
+
+  \begin{center} {\includegraphics[width=.5\linewidth]{teg-fpg-logo.png}} \\
+    {\texttt{http://FlaPagan.org/} } \end{center}
+
+
+\end{multicols}
+
+\pagestyle{empty}
+\newpage
+\thispagestyle{headings}
+
+\begin{center} {\beltanefamily \HUGE Welcome to FPG \festseason{} \festyear{}} \end{center}
+\addcontentsline{toc}{section}{Welcome}
+
+
+\begin{multicols}{2}
+
+
+  Welcome to the \FPG\texttrademark{} for \festseason{}, \festyear{}.
+
+  Twenty years  ago, in 1995, the  Church of Iron Oak  began the Freedom
+  Fest; initially, to help defray  legal expenses from fighting the City
+  of Palm Bay for religious freedom.
+
+  That   Festival    continued   to   grow,   and    under   the   \TEG,
+  Inc\texttrademark{}\footnote{The \FPG,  \fpg, \teg, the  Blowing Palms
+    and  Temple  logos  are  all registered  trademarks  of  \TEG,  Inc.
+    All rights are  reserved and our trademarks may not  be used without
+    permission.}, became today's \FPG.
+
+
+  \section{Safety}
+
+
+  \begin{center}
+    {\large \textsc{In case of emergency or injury} \\
+      \textbf{contact the nearest Guardian \\
+        or Staff Member}}
+  \end{center}
+
+
+  The well-trained team of volunteer Guardians of the Community, led
+  by the fearless Sqrl, patrol the Festival and help ensure our
+  safety.  They are able to administer basic first aid, and do have
+  some basic medical supplies.
+
+  \textsc{Pay attention} to any instructions (or sternly-worded advice)
+  from the Guardians!
+
+  Your medical health and safety are your responsibility.  Bring
+  any medications or supplies you may need. Wear sunblock, and drink
+  plenty of water.  Sunburn and dehydration happen even in cool
+  weather.
+
+  Check for ticks daily. Ticks like warm places, such as behind knees,
+  under arms, and in elbows, but can be found anywhere on the body.
+
+  Keep an eye out for the Guardians' fund-raising booth as
+  well. Remember, \emph{Guardians are sexy}!
+
+  \subsubsection{``File of Life''} If you have any medical condi-
+  tions that the Guardians or other emergency personnel might need to
+  know about in case of an emergency, please pick up a ``File of
+  Life'' form from Registration. This is a great tool for you to keep
+  pertinent medical history on hand in case you become unconscious or
+  unable to speak. Keep this form on you in an easy-to-find
+  location. It is also be a good idea to let someone close to you know
+  where it is, so they can help.
+
+  \subsubsection{In case of Hazardous Weather} such as strong winds or
+  a tornado: If you are camping, in an RV, or staying in Cabins A-D,
+  come to the Blue Room with a snack and drink, and a book or
+  something to do (you may be there for several hours). If you are
+  staying in Cabins E-J or a Lodge, stay there until you hear an
+  announcement.
+
+
+  \subsection{Pool Rules}
+
+  \begin{itemize}
+  \item \textsc{No Swimming} without a Camp Lifeguard present.
+    Treat the Lifeguard
+    with respect at all times. Swim at your own risk.
+  \item Follow all \fpg and campground rules. See the signs posted
+    near the pool.
+  \item No one is allowed on the pool deck after dark.
+  \item Wear a bathing suit --- no cut-offs or regular clothing.
+  \item Adults must accompany children. All non-potty-trained children
+    must wear a swim diaper, or cloth diaper with tight-fitting rubber
+    pants.
+  \end{itemize}
+
+  \subsubsection{Pool Hours}
+
+  #include "insert-pool-hours.tex"
+
+  % \end{multicols}
+
+  \pagestyle{headings}
+  \thispagestyle{headings}
+  % \newpage
+
+  % \hline
+
+  \section{Getting Around}
+
+  % \fancybreak{\pfbreakdisplay}
+
+  \subsubsection{Taxi/Trolley Hours}
+
+  #include "insert-trolley-hours.tex"
+
+  % \begin{multicols}{2}
+
+  \subsection{Taxi Service}
+
+  If you need personal door-to-door service, then call for a
+  Taxi. Just ask any Staff Member to radio a Taxi to pick you up. You
+  can also schedule a Taxi pick-up ahead of time.
+
+  \subsection{Trolley}
+
+  The \fpg Trolley runs along a continuous circuit. Wait at any
+  Trolley Stop and the Trolley will pick you up and drop you off at
+  any other Trolley Stop. Trolley Stop signs are distinctive vertical
+  signs that are bright green on the side facing the approaching
+  trolley and bright pink on the back. (Check the map for the route.)
+
+  Minors may \emph{not} ride the Trolley without a parent present.
+
+  No food, beverages ({\small unless in a closed container}), nor
+  smoking are permitted on the Taxi or Trolley (or any other \teg
+  carts).
+
+  % \fancybreak{\pfbreakdisplay}
+
+
+  % \columnbreak
+
+  \subsection{Personal Vehicles}
+
+
+  Driving personal vehicles through camp is not permitted after
+  arrival.  Electric personal mobility devices are allowed.
+
+  Watch for Campground and \teg service vehicles and golf carts, or
+  emergency vehicles.
+
+  The road is one-way, clockwise, through the camp. From the Main
+  Gate, turn left.
+
+  \subsubsection{Parking} After check-in, all guests will have 45
+  minutes to locate their cabin or campsite and unload. After this,
+  all vehicles must go to the parking lot. Park in neat rows, and do
+  not block anyone else's vehicle.  Leave your \fpg vehicle card in
+  your windshield, in case wo need to
+
+  If you leave during Festival, stop at the front gate on your way
+  back in, and ask a staff member to call a Taxi to meet you at the
+  parking lot; or, catch the Trolley at the Trolley Stop near the Main
+  Gate to convey you back to your campsite or cabin.
+
+  Avoid the parking lot after dark. If you must go, have someone join
+  you. Bring a flashlight or lantern, and be aware of wildlife
+  hazards.
+
+  \subsubsection{Forest} Our new site has an amazing wooded area for
+  camping. Campers are not allowed to bring their vehicles into the
+  camping area after dusk. Campers may be asked to unload their
+  vehicles at the edge of the Forest and carry items to their sites.
+
+  \subsubsection{Handicap Parking} Each vehicle must have a
+  State-issued Handicap Placard or License Plate or a \fpg issued
+  Parking Tag\footnote{If you require handicap parking, but do not
+    have a state-issued plate, see Registration at the Main Gate.} to
+  park in the Handicapped Parking area.
+
+
+  \subsubsection{RV Camping Area} No tents are permitted in the RV
+  Camping area. Once your RV, pop-up camper, van, or travel trailer is
+  parked in the RV camping area it may not be moved until end of
+  Festival.
+
+  % \end{multicols}
+
+
+  \section{Communications \& Staff}
+
+  % \begin{multicols}{2}
+
+
+  %   \fancybreak{\pfbreakdisplay}
+
+  %   \fancybreak{\pfbreakdisplay}
+
+  \subsection{Ministry of Magic {\small $($Staff Office$)$}}
+
+  Our office for the Festival is located between the Blue Room and
+  Dining Hall.
+
+  Our Office staff are happy to assist you with finding information,
+  arranging Taxi service, or locating a staff member to assist you.
+
+  \subsubsection{Shirts, Totes, Mugs, Bottles} You may pick up
+  pre-ordered \fpg merchandise, or make a purchase, starting Thursday
+  morning. Unclaimed merchandise is placed in storage until the next
+  Festival.
+
+
+  \subsubsection{Community Service} For each volunteer shift that you
+  perform, you'll earn another entry into a raffle for prizes that
+  include half-off or a free admission to your next \fpg!
+
+  Sign up with Registration at the Main Gate.
+
+
+  \subsection{Emerald City  {\small $($Board of Directors$)$}}
+
+  Got a burning question, comment or suggestion?  Do you just want to
+  sit and have a good conversation about \fpg?  Then head on over to
+  Emerald City and walk right in.  Grab a chair and sit down in the
+  kitchen for a nice chat with any of our friendly Board Members.
+
+  Is there a problem?  Did something happen?  Do you need some advice?
+  Emerald City is the place to go for these issues as well...even at
+  4am!  Just come on in and knock on the inner door --- it's never too
+  late or too early to get some help!
+
+  {\footnotesize We ask that the hour before meal times and during meal times
+    are for emergencies only.  We need the time to set up for meals,
+    feed our guests and take a moment to eat as well.}
+
+  \subsection{Radios \& Walkie-Talkies}
+
+  Having personal radios on site to help keep track of your family,
+  especially your children, is an excellent idea! Set them to
+  \textbf{channels 11 and above}; channels 10 and below are in use by
+  the \fpg Staff.
+
+  % \fancybreak{\pfbreakdisplay}
+
+  \subsection{\fpg Community Center}
+
+  The Community Center is located on the lagoon side of the Blue Room
+  in a screened porch.  There are tables and chairs, where you can
+  gather, meet others, or just hang out. Some games will be set out,
+  and a Community Bulletin Board where you can post announcements
+  (including business and service advertisements).
+
+  Be respectful of others using the space, and clean up after
+  yourself.
+
+  A Charging Station for your electronic devices is in the Community
+  Center. {\small You're responsible for keeping an eye on your
+    devices while they charge.}
+
+  There is a self-serve coffee and tea station with a Karma Jar to
+  contribute funds for the purchase of supplies. (In addition to
+  coffee, there are teas, sugar and sweetener, and creamer.)  We
+  encourage anyone to contribute teas, cocoa, sweeteners, \&c. You
+  must bring your own cup!
+
+  % wasting space and looking pretty
+  %% {\centering  \includegraphics[width=.75\columnwidth]{fairy.jpeg}}
+
+  \section{Community Organizations}
+
+  % \begin{multicols}{2}
+
+  %   \subsection{Red Tent}
+
+  %   \begingroup
+  %   \setlength{\columnsep}{6pt}%
+  %   \begin{wrapfigure}{l}{.5\columnwidth}
+  %     \includegraphics[width=.5\columnwidth]{red-tent.png}
+  %   \end{wrapfigure}
+
+  %   Open all day for women and girls with their mothers; A great place
+  %   to relax, meet newcomers and renew friendships.
+
+  %   All who identify as girls or women are welcome to come share coffee,
+  %   cookies and conversations in a beautiful and comfortable space
+  %   filled with solidarity and great donated stuff for the benefit of
+  %   the RT. No need to buy anything- treats and workshop materials are
+  %   free. Just hang out, share advice, browse our library, read cards,
+  %   eat chocolate and laugh a lot. Bring a chair if you can.
+
+  %   \endgroup
+
+  %   {\small
+  %   #include "handbook-red-tent.tex"
+  % }
+
+  \subsection{Art Abandonment Project}
+
+  The faeries are at it again! Keep your eyes open for random gifts of
+  love just for us at \fpg!
+
+  If you find these little packages of fun marked ``\textsc{fae gift}
+  thanks to The Art Abandonment Project,'' they are yours to keep,
+  trade or give to a loved one or friend!  All gifts will be randomly
+  found around the campsite over the week --- except Vendors' Row
+  (which is off-limits) \ldots Happy \festseason{} from the Fae!
+
+
+  \subsection{Father Sky Lodge}
+
+  \begingroup
+  \setlength{\columnsep}{6pt}%
+  \begin{wrapfigure}{r}{.4\columnwidth}
+    \includegraphics[width=.4\columnwidth]{FSL.png}
+  \end{wrapfigure}
+
+  Father Sky Lodge (FSL) is a group effort of Pagan men to provide
+  support and resources to their community in order to encourage the
+  exploration of Male Spirituality, the Male Mysteries and to return The
+  Masculine Divine/God to a place of balance within Neopagan
+  spirituality. It allows Pagan men to come together in fellowship and
+  brotherhood.
+
+  Our goal is to create a place where anyone, man or woman, can come
+  with questions about masculine Pagan Spirituality, and know that
+  there will be answers; a place where any member of our Pagan
+  community can freely ask ``Can you help me?'' on matters related to
+  Pagan Men, and know that the answer will always be a resounding
+  ``\textsc{Yes}!''
+
+  We are a brother group with Sisterhood of the Shield and work with
+  them to support each other in our Spiritual journeys.
+
+  \endgroup
+
+
+  \subsection{Sisterhood of the Shield}
+
+  \begingroup
+  \setlength{\columnsep}{6pt}%
+  \begin{wrapfigure}{l}{.4\columnwidth}
+    \includegraphics[width=.4\columnwidth]{sts.png}
+  \end{wrapfigure}
+
+  Sisterhood of the Shield (StS) is a women's-only group. Though we
+  embrace the traditional aspects of womanhood, we also seek the more
+  primal and earthy energy; a place where the warrior women and other
+  such traditions are as welcome as the maiden, mother and crone.
+
+  We have an Equalist mentality: Men and Women are equal but there are
+  things that each experience that only someone of their own gender can
+  understand.
+
+  We are a sister group with Father Sky Lodge and work with them to
+  support each other in our Spiritual journeys.
+
+  \endgroup
+
+  \section{Children \& Minors}
+
+  \fpg welcomes families of all  kinds. Children and minors are welcome.
+  Adults who wish to bring children of friends and family may do so, but
+  must provide a  copy of a notarized  Letter of Guardianship\footnote{A
+    blank  form is  available  from \texttt{register@flapagan.org}.}  at
+  check-in.
+
+  Parents (or  guardians) are fully  responsible for the  supervision of
+  the  children and  minors  in  their charge,  and  their behavior  and
+  conduct  at all  times. Parents  must always  know the  whereabouts of
+  their minors. Do not leave Children under 12 unattended.
+
+  Children's and youth activities have a minimum of two adults.  Teen
+  Forge is for ages 13-17. It is not staffed by adults, but there is
+  an adult adviser.
+
+
+  \subsection{Kids' Realm}
+
+  Drop off your kids at the  Arts and Craft Room for supervised playtime
+  and workshops while  you set-up your campsite, go  shopping on Vendors
+  Row, attend your own workshops, or just relax with friends! Be assured
+  in the  knowledge that  your precious little  witches and  wizards are
+  safe, happily playing together, and  learning from some of our awesome
+  presenters. Pick up your children \emph{at 5pm promptly}.
+
+
+  #include "insert-kids-realm-hours.tex"
+
+  Kids'  Realm is  for  children  who are  potty-trained,  up  to age  12.
+  Advise Kids'  Realm staff  of any  allergies, etc.  that your  child may
+  have. Also  make sure to apply  sunscreen or bug spray  to your children
+  before dropping them off. \fpg does not supply them.
+
+  In case  of inclement  weather, Kids'  Realm will  move into  the Dining
+  Hall; pick them  up there. When dropping off your  child, tell the staff
+  where to reach you if you're needed.
+
+  If your  child attends Kids'  Realm, \emph{at least  one parent/guardian
+    must volunteer for 2 hours at  Kids' Realm.} We cannot do this without
+  you! Sign up for your shift the first time you drop off your child(ren).
+
+  \subsection{Tween Time}
+
+  'Tween-agers have their special place  to hang out and express themseves
+  at Festival, too.
+
+
+  \subsection{Teen Forge}
+
+  The Teen Forge is a place set aside for teens, 13-17. The tent is
+  yours to use. Come and go as you wish. Bring snacks and soft drinks
+  to share. Bring your ideas, your complaints, your sense of humor,
+  and your friendship. There are also workshops and activities for you
+  throughout the weekend. Are there activities you wish to have next
+  festival? See the Teen Leader or Sage to make suggestions.
+
+  \subsection{Rules of The Forge}
+
+  {\small
+    \begin{enumerate}
+    \item Do not disrespect each other. {\tiny (Joking is ok.)}
+    \item If you break it, fix it; if you can't fix it, pay for it.
+    \item If you borrow anything, tell the Teen Leader and give it
+      back the next day
+    \item If this becomes too much like work, it's time to do
+      something different.
+    \item Be excellent to each other.
+    \item  Don't  do  anything   Dumb\footnote{``Dumb''  is  defined  as
+        anything that requires more than \$20 or 20 minutes to fix.}.
+    \item All \fpg festival rules apply.
+    \end{enumerate}
+  }
+
+
+  \section{\fpg Traditions}
+
+  \subsection{Celtic Games} \label{celticgames}
+
+  Celtic Games is an event that remembers days long past when kingdoms
+  fought for control, power, riches, and territory; when kings and
+  queens chose their champions to limit loss of life upon the
+  battlefield. Will you be brave enough, strong enough, quick enough,
+  or witty enough to take the coveted crown for your own and become
+  King or Queen of \fpg Celtic Games.
+
+  Lay on --- and may the most skilled sword claim victory!
+
+  All ages are required to sign a consent \& liability form. Ages 5-12
+  require a parent present; ages 5-17 require parental consent.
+
+  Please bring a water gun with you on Friday for the Water Seige.
+
+  \subsection{Coming Of Age}
+
+  A Coming of Age ceremony is available for anyone who will be between
+  the ages of 18 and 24 at the beginning of \fpg Beltane. If you or
+  someone you know is interested in participating in (or helping with)
+  the Coming of Age ordeal, contact Sage when he's over near Lodge 7,
+  or at \texttt{Sage@star-hope.org} on or before March 15th.
+
+
+  \subsection{Fire Circle} \label{fire}
+
+  A parent (or adult guardian) must accompany any minors (17 and
+  under) at the drum circle. Parents must mind their children's
+  presence and safety. Children under 10 are allowed to stay after
+  midnight, but may not dance around the fire then, for their safety
+  and that of other dancers.
+
+  Hooping or Poi spinning may be done in the designated area only.
+
+  At fire circle, you may wear anything that you could wear on a
+  public, clothing-non-optional beach.
+
+  Neither smoking, nor glass containers, are permitted within the
+  circle of torches.
+
+
+  \subsubsection{Drum Circle Guidelines}
+  Never touch another person's drum without permission.
+
+  There is a very big fire. Falling-down drunkenness is inadvisable.
+
+  Drummers and musicians should be in the same area. When you play,
+  play with the rest of the drummers, not over them. Do not crowd out
+  the dancers in the circle.
+
+  Do not grope. whistle at, molest, or fondle the dancers. This goes
+  for both male and female dancers.  It is not normally polite to
+  ``plant'' yourself in front of a drummer and dance.
+
+  Warming your drum around the fire is allowed, as long as you're
+  walking around the circle clockwise -- with the flow of dancers --
+  while holding your drum.
+
+  There are fire tenders.  \emph{Leave the fire alone.}  This is
+  Sacred Fire. Do not toss \emph{anything} into the fire. There are
+  other fires at camp for you to play in.
+
+  \subsubsection{Fire Temple Drum Altar}
+
+  The Drum \& Dance Altar is a place for participants gain refreshment
+  and sustenance (both physically and spiritually). It is built for
+  the Community, and by the Community.
+
+  Bring donation items to the drum circle before 10pm each night.
+  Appreciated contributions include: blankets, rugs, tables, hay
+  bales, candles, flowers, fruits, drinks, granola bars, and other
+  midnight snacks.
+
+  If you have any questions, stop by the Shiny Happy People Drum Tribe
+  booth on Vendors' Row anytime during the festival.
+
+
+
+  \subsection{Inipi Sweat Lodge} \label{sweatlodge}
+
+  All should bring a blanket with which to cover the Lodge. The Lodge
+  is made up of a frame constructed out of willow branches. The Lodge
+  must be covered completely to hold in the heat and block out any
+  light. Bringing your own blanket puts your personal energy into the
+  construction of the Lodge.
+
+  This ceremony is approached in a humble and peaceful manner. Around
+  the sacred fire is the place to center ourselves and connect with
+  the Creator prior to entering the Lodge.
+
+  In the Apache tradition, we go into the Lodge as we came into the
+  world, without clothing.  The Lodge represents the womb of the
+  Mother Earth. We will wear a towel wrapped around us outside the
+  Lodge and then drop the towels once inside. Pride, ego, and false
+  modesty are left at the door. We enter as equals and are only
+  concerned once inside with our own prayers. We are never concerned
+  about what people look like or what others think about how we
+  look. We enter the womb, die a symbolic spiritual death, and emerge
+  reborn and renewed.
+
+  As in all ceremonies, there needs to be a balance. An exchange of
+  energy between the participants and the facilitator (water pourer)
+  and fire tender must take place. Tobacco is a traditional gift, but
+  whatever Spirit moves you to give is good as long as it comes from
+  the heart.
+
+  There is no charge for the ceremony --- just an exchange of energy
+  for balance. Some people leave crafted items, objects from nature,
+  books, CDs, etc. Some people leave nothing at all as they may be
+  financially unable to give something. An exchange of energy can
+  still take place through writing a poem, giving a big hug to the
+  facilitator, etc. Whatever the case, it is ``all good'' if the gifts
+  come from the heart.
+
+  If you have any special items you want blessed with the energy of
+  the ceremony, by all means, bring them and place them on the
+  altar. People have brought pipes, ritual objects, and pictures of
+  friends, family, and ancestors that have crossed over.
+
+
+
+  \subsection{\fpg Wants You!}
+
+  If you've got some time and want to give back to the community, visit
+  the Ministry of Magick office (near the Blue Room) to sign up for a
+  Community Service volunteer shift --- you could even win free
+  admission to your next \fpg!
+
+  Do you like making things happen? Giving back to your Community?
+  Being a part of something Magikal? If you said ``Yes!'' to any of
+  the above --- then we have a job for \emph{you}!
+
+  \teg is always looking for good, reliable people to fill staff
+  positions. There is a job for every type of person and ability, from
+  sit-down jobs to physical activity, between \& during festivals.
+
+  \subsubsection{The Perks} by becoming a Staff member your
+  registration fee is reduced, and you get to come to festival 1-2
+  days early! Additional perks include the Staff Ritual on Tuesday
+  night, and the Annual Staff Retreat \& Meeting!
+
+  If you are interested, talk to Medea and/or send an email to:
+  \texttt{staffing@flapagan.org}
+
+
+  \section{Life Events}
+
+  \fpg makes it possible for our guests to participate in Life
+  Event Rituals on site, including Handfastings, Weddings,
+  Wiccanings, Initiations, Coming of Age Rituals, Elevations,
+  Requiems, Cronings, Sagings, Coven Births, etc.
+
+  If you are interested in having a Life Event at Festival, talk
+  to Medea or email \texttt{lifeevents1@flapagan.org}
+
+  \subsection{Calling all Covens \& Groups}
+
+  Each Festival, the \FPG becomes a special community because you ---
+  our guests --- bond together to create a family of like-minded
+  people. To help promote this, \fpg encourages Covens, Groups, \&
+  Friends to host the Meet \& Greets and the Main Rituals at each
+  festival.
+
+  If you are interested in hosting a future Meet \& Greet, or becoming
+  the Marshall for a Parade, drop a note to
+  \texttt{workshops@flapagan.org}.
+
+
+  \subsubsection{Dragonwood Coven}
+  holds open circles for sabbats and esbats on the Saturday
+  closest. We have a beautiful outdoor circle in Pasco County.  For
+  more information, call Ardy or Fred at 352-521-3647. During
+  Festival, come see Dee the firetender.
+
+  \subsubsection{Dogs for Heroes} is a non-profit organization that
+  relies solely on donations and its volunteers to rescue and
+  rehabilitate Pitty/Bully breeds, train them as Companion and Service
+  dogs, and places them with disabled Veterans who suffer from
+  service-related injuries/illness\footnote{such as Post Traumatic
+    Stress Disorder (PTSD), Traumatic Brain Injuries (TBI), and
+    Military Sexual Trauma (MST)}.  This gives them both a second
+  chance at the best quality of life possible, together in a forever
+  home.  Visit \texttt{dogsforheroes.org} or
+  \texttt{facebook.com/DogsForHeroes}
+
+
+  \subsection{Main Ritual Etiquette}
+
+  While our opening and closing rituals tend to be more laid-back,
+  \fpg's Main Ritual on Saturday is a magickal rite where we come
+  together to worship the Gods, commune with the elements, and have a
+  spiritual experience.
+
+  Arrive at the ritual circle on time with your chairs or blankets.
+
+  Prepare your mind as well as your body for ritual. Relax your mind and
+  de-stress. Eat dinner, shower and change your clothes. Put on bug
+  repellent. Mind the weather: you may need a sweater or blanket at
+  Samhain.
+
+  When entering the circle, follow the instructions of the ritual
+  presenters, and enter the circle in a deocil (clockwise) motion
+  unless told to do otherwise.
+
+  Do not eat, drink, or smoke in the circle, or vicinity, before or
+  during ritual. (Bottled water is allowed.)
+
+  If you need to leave the circle for any reason, do so quietly and
+  discreetly, and have someone cut you a door.
+
+  Be courteous to the ritual presenters and other attendees.
+
+  Do not speak nor comment during the ritual.
+
+  \fpg's main rituals are hosted by Groups, Groves, Covens, and
+  Churches within our Pagan community. These individuals put a lot of
+  time and work into planning these rituals for all of our guests and
+  staff to experience. We have many diverse paths and traditions, and
+  sometimes these differ. Everyone who attends the ritual should be
+  tolerant and respectful of the ritual presenters, and their work.
+
+
+  \subsubsection{To present a Main Ritual} talk to any Board Member
+  at Emerald City, or mail \texttt{tegbod@flapagan.org}.
+
+  \section{Headliners}
+
+  #include "handbook-headliner-bios.tex"
+
+  \section{Musical Guests}
+
+  #include "handbook-music-bios.tex"
+
+  \section{Workshop Presenters}
+
+  #include "handbook-workshop-bios.tex"
+
+  \section{{\Large $\star$} Wednesday's Events}
+
+  #include "Announcements-WED.tex"
+  #include "Events-WED.tex"
+
+  \section{{\Large $\star$} Thursday's Events}
+
+  #include "Announcements-THU.tex"
+  #include "Events-THU.tex"
+
+  \section{{\Large $\star$} Friday's Events}
+
+  #include "Announcements-FRI.tex"
+  #include "Events-FRI.tex"
+
+  \section{{\Large $\star$} Saturday's Events}
+
+  #include "Announcements-SAT.tex"
+  #include "Events-SAT.tex"
+
+  \section{{\Large $\star$} Sunday's Event}
+  #include "Events-SUN.tex"
+
+
+\end{multicols}
+
+\section{Vendors' Row}
+
+\begin{multicols}{2}
+
+
+  Visit our Vendors' Row, located near the Forest Gate and Sanctuary,
+  to visit any of these fine vendors:
+
+  #include "handbook-vendors.tex"
+
+
+  \subsubsection{If you'd like to be an \fpg Vendor} it's easier than
+  you might think! Send an eMail to \texttt{vendors@flapagan.org} for
+  information.
+
+  \section{Food}
+
+  The local wildlife would like to eat your food just as much as you
+  would! Take care with storing food, particularly if you're camping
+  in a tent.
+
+  \fpg strictly enforces Florida law: alcoholic beverages are for ages
+  21+ \emph{only}.
+
+  \subsection{The Bubbling Cauldron Meal Plan}
+
+  The Bubbling Cauldron meal plan is a pre-paid dining service offered
+  by \fpg and run by our staff.
+
+  {\small Meal Plan availability is extremely limited, and must be
+    pre-paid before Festival.}
+
+  Meals are served in the Dining Hall. {\small Dinner is served early
+    on Wed. so everyone may attend the Opening Ritual.}
+
+
+  #include "insert-cauldron-meals.tex"
+
+  \subsection{Food Vendors}
+
+  You'll also find these food vendors near the Dining Hall:
+
+  #include "handbook-food-vendors.tex"
+
+  \section{Community Guidelines}
+
+  \subsection{Arriving}
+
+  The gates at \fpg open for guests at 3pm on Wednesday. Vendors may
+  arrive at 9am on Wednesday.  Retreats by the Lake is not available
+  for private camping in the days leading up to, or after, \fpg.
+
+  All adults must show their photo ID when signing in, whether they
+  are pre-registered or not, and sign a Release Agreement and Camera
+  Usage Policy.
+
+  Guests who arrive at night may be put up for the night in available
+  space, so that they don't have to set up their camp in the dark.
+
+  \subsection{Leaving}
+
+  The gates at \fpg are open until midnight nightly. The gate will be
+  open 1am-1:20, and 2am-2:20, to allow people to leave or
+  return. Everyone is required to show their Festival wristbands.
+
+  All guests must leave camp by 1pm on Sunday.
+
+  \subsection{Contraband}
+
+  Firearms or weapons are prohibited. (Ritual tools are allowed.)
+
+  Illegal substances are prohibited.
+
+  Neither pets nor familiars are allowed.
+
+  \subsection{Need Help?}
+
+  During the day, the Ministry of Magic Office is open, between the
+  Dining Hall and Blue Room. After office hours, any staff member with
+  a radio can page the Coordinator on Duty. The Board of Directors are
+  found in the Emerald City. Guardians can be identified by staves
+  with red flags, or lighted armbands at night.
+
+  To speak to the \teg Board, to pass on compliments, concerns, or
+  complaints, go to the Director's House --- Emerald City --- or email
+  \texttt{tegbod@flapagan.org}.
+
+  \subsection{Campsites}
+
+  Campsites are first come, first served. No campsites are assigned. Areas
+  near workshop and event sites are marked off for no camping. Do not camp
+  outside of the fenced area, nor close to the shore of Tiger Lake or the
+  lagoon; these are wildlife habitats.
+
+  Sites are primitive. Electricity is not available --- except to
+  those guests who have a legitimate medical need for it, such as for
+  CPAP and Lymphapress machines. If you need this, see the Board of
+  Directors in Emerald City for a special tag. You must provide your
+  own extension cord. Access to electricity is for the medical
+  equipment only, and not for luxuries such as lights, fans, heaters,
+  cooking devices, nor other electronics. Extension cords may not run
+  through windows nor doors.
+
+  Tiki torches and fire bowls are allowed, but must always be attended
+  while in use. Ground fires are \textsc{never} permitted in
+  campsites. Discard ash in the metal can found near the entrance to
+  the Forest, or near the fence, on the pool side of the lagoon. Do
+  not discard ash on the ground, even if you've soaked it!
+
+  Only take the space that your group needs, so other campers may have
+  space too. Be polite and neighborly to your fellow festival-goers,
+  so that all may have a good time.
+
+  \subsection{Cabin \& Lodge Usage}
+
+  Use of a Cabin or Lodge is for guests who paid for a cabin/lodge
+  bunk only. All have central heat and air conditioning, and bathrooms
+  with handicap showers. All are handicap accessible. Guests may
+  request a specific cabin via \texttt{register@flapagan.org}. Each
+  bunk requires a paid registration. Bunks are first come, first
+  served.
+
+  Specific bunks (such as lower bunks and single beds) can be reserved
+  by guests with medical need or physical limits only. If you
+  purchased a bunk, but plan to camp, allow other guests to take the
+  lower bunks. Reserved bunks are marked with signs. Removing signs,
+  or usurping a reserved bunk, is grounds for removal from the site.
+
+  Do not smoke, vape, nor burn a candle nor incense inside any
+  building. Do not cook in Cabins: this includes coffee pots, crock
+  pots, hot plates, microwaves,  etc. Cooking has never been allowed
+  in cabins.
+
+  Seven lodges are also available, each with a bathroom and
+  kitchen. Lodge guests may cook, but not with open flames or
+  grilling. Bring your own cooking, eating, and cleaning supplies for
+  the kitchen.
+
+  Report problems with any buildings (such as broken lights, clogged
+  toilets or other plumbing issues, or problems with the A/C) to the
+  Office, or to the Coordinator on Duty after office hours.
+
+  If any cabin/lodge is not left in a clean state, all attendees
+  registered in that cabin may be restricted from renting cabin bunks
+  in the future. Brooms and wipes are provided for your use.
+
+  \subsection{Camera Use}
+
+  Only guests and staff who have registered their cameras may take
+  pictures --- and then, only of people who have given permission. This
+  includes camera-phones and other recording devices.
+
+  Obtain permission from a parent or guardian to photograph any child. It
+  is never acceptable to photograph any nude child; this is illegal.
+
+  Cameras, Camera Phones, or other recording devices are not allowed in
+  the Fire Circle area (except the Staff Photographer).
+
+  Do not photograph or record Main Ritual, BEFORE NOR DURING the
+  ritual. If you wish to take pictures of the ritual presenters, altars,
+  and guests or staff, you may do so after the ritual has ended and the
+  circle is released, with their permission.
+
+  Ask vendors before photographing anything in their vending tent.
+
+  If you disobey these rules, your film or device (camera, phone) will be
+  confiscated, to be returned (with the images of \fpg erased) at the end
+  of Festival. You may also be removed from the site without a refund.
+
+
+  \subsection{On-Site Facilities}
+
+  Bathrooms, showers, and cold water spigots are available for guests'
+  use. Be polite if you need to enter a campsite to access the water
+  spigot. If your campsite is near a water spigot, allow access to the
+  spigot to those who need it.
+
+  Water must be carried back to your site for drinking and
+  cleaning. Dishes and cooking materials must not be washed in the
+  bathroom sinks, nor showers.
+
+  Public showers can be found near the Pool and behind the
+  Thunderdome, and in the back door to Cabin G. Public toilets can
+  also be found in the Dining Hall and the Arts and Crafts Center.
+
+  If you plan on cooking while at \fpg, bring your own cooking and
+  cleaning materials. Grills are welcome. Cooking is not allowed in the
+  cabins.
+
+  Cell phones will work throughout most of the area, depending on the
+  service provider. (AT\&T has the best coverage in the area.) WiFi
+  Internet is not available. Charging stations are located in the
+  Community Center.
+
+
+  \subsection{Property}
+
+  Mind your needs. Come to Festival with enough food, clothing, and
+  supplies. Bring any medications or equipment you need.
+
+  Mind your valuables. If you brought much cash, medicines, or
+  valuable electronics, please bring cases with locks.
+
+
+  \subsection{Wildlife}
+
+  Hunting, fishing, plant foraging, and wood cutting are not allowed.
+
+  We are fortunate to share our Festival with many creatures. The
+  forest is home to many animals that we don't often see: bears, boars
+  \& wild pigs, snakes, alligators, coyotes, and bobcats. If you see any
+  animals, do not approach them. If an animal reacts to you --- you are
+  too close to it. Leave the area immediately, and report their presence
+  to a staff member or Guardian.
+
+  Never feed a wild animal. Do not keep coolers or food inside, or
+  next to, your tent. Dispose of your trash daily.
+
+  \subsection{Alcohol \& Tobacco}
+
+  Alcohol may only be possessed or consumed by adults of 21 years or
+  older. Cigarettes and other tobacco or nicotine products (both
+  smoking and smokeless) may only be used by adults of 18 years or
+  older. This is the law. Do not give underage guests or staff alcohol
+  or tobacco.
+
+  Moderate your alcohol consumption to reasonable limits. If you are
+  intoxicated and your behavior is unacceptable, you will be asked to
+  return to your campsite.
+
+  If you smoke (or vape), mind where you smoke. Smoke downwind from
+  others. Do not smoke (nor vape) in any building, in workshop or
+  event spaces, or near a ``No Smoking'' sign. Smoking is not
+  permitted on the patio near the Dining Hall or outside the Blue Room
+  and Community Center.
+
+  \subsection{Sound \& Noise}
+
+  \fpg has designated a quieter camping area near Emerald City. The
+  site is large and open, and sound travels far. Drumming can be heard
+  all over, sometimes as late at 3am. Mind your noise wherever you
+  are. Lower the volume of your socialization after 1am. Be careful of
+  noise when returning to your cabin. Do not speak loudly or shout
+  near workshop or event venues when in use.
+
+
+  \subsection{Respect}
+
+  All guests and staff are responsible for themselves and any minors
+  in their charge.  \fpg is a place where all Pagans can gather
+  together to form a community and celebrate our faiths.
+
+  Be tolerant of others regardless of their race, gender, sexual
+  orientation, religious tradition, or any other way that a person
+  differs from you.
+
+  We require everyone to conduct themselves as mature, reasonable and
+  responsible adults and be respectful of other people and their
+  property.
+
+  We do not take sides in Witch Wars or drama that may be plaguing a
+  group outside: leave that drama at the gate, so that all may enjoy
+  \fpg.
+
+  Pagans are a loving group who don’t hesitate to embrace a stranger
+  in a friendly hug or kiss.  This does not mean anyone has a right to
+  invade your space, or behave objectionably around you, particularly
+  regarding physical contact or sexual behavior.
+
+  If someone encroaches on your personal space, it is your
+  responsibility to communicate with that person about it. Be clear
+  and forthcoming, but try to be kind. They may not mean to make you
+  uncomfortable. You have the right to say ``no,'' and request they stop
+  immediately.  Be firm if you must.
+
+  ``No'' means ``No.'' ``No'' does not mean ``keep trying,'' nor ``ask later.''
+  If you are told ``no,'' stay if the individual wishes to continue
+  polite conversation; if they do not, then walk away. Respect their
+  right to not speak further with you.
+
+  Any harassment, stalking, or unwanted touch should be reported to
+  the Guardians, Coordinator on Duty, or Board of Directors
+  immediately, so we can assist you to resolve this issue (or report
+  it to the authorities).
+
+
+  \subsubsection{Adults.} This welcoming and accepting environment may
+  allow you to forge new relationships. Consider the impact on
+  existing relationships and feelings. Think before you act.
+
+  Sex is permitted only between consenting adults. Inebriated people
+  can not consent. No one under the age of 18 can consent to any
+  sexual advances — neither physical, nor verbal.
+
+  Limit sexual activity to private, personal space. Showers are not
+  personal. Use discretion.  There may be children within earshot of
+  you. Other adults may not wish to participate secondhand in your
+  experience.
+
+  Practice safer sex. Insist your partners do also.  Condoms are
+  available at Guardian Camp.
+
+  \subsection{Payment}
+
+  Guests are expected to pay when they check-in. Guests with checks
+  that bounce, or whose cards cannot be charged, are expected to pay
+  any owed fees before leaving the site. Cash or money order will be
+  the only acceptable forms of payment for these guests.
+
+  Requests to cancel admission or meal plan cannot be made after the
+  festival has begun.
+
+\end{multicols}
+
+{\Large Violation of these rules or instructions may be grounds for
+  expulsion from the event without refund. }
+
+
+\vspace{16pt}
+
+{\Large The \TEG, Inc. Board of Directors and the \FPG Coordinators
+  and Staff sincerely hope that you enjoy your time with us. }
+
+\vspace{16pt}
+
+
+
+\section{\teg Staff}
+
+\begin{multicols}{2}
+
+  \subsection{\teg Board of Directors}
+  \begin{center}
+    \begin{tabular}{rl}
+      President & Ann Marie Augustino \\
+      Vice President & Lady Rae Blackhood \\
+      Secretary & Medea Athairn \\
+      Treasurer & Teresa Hines \\
+      Ombudsman & Paul Garrett \\
+    \end{tabular}
+  \end{center}
+
+  \subsection{Division Coordinators}
+  \begin{center}
+    \begin{tabular}{rl}
+      Guest Hearth      & Narissa \\
+      Operations        & Mystral \\
+      Marketing         & Akantha \\
+      Registration      & Bobbi Jo \hspace{1in} \\
+      Site              & Doug \\
+      Staff Services    & Sandi \\
+    \end{tabular}
+    {\footnotesize D.C. in training, SMAC/Youth Services --- Akantha}
+  \end{center}
+
+  \subsection{Service Groups}
+  \begin{center}
+    \begin{tabular}{rl}
+      Guardians & Sqrl \\
+      Drummers  & Shiny Happy People\\
+                & Drum Tribe \\
+    \end{tabular}
+  \end{center}
+
+  \begin{center}
+    \includegraphics[width=2in]{clansfolk.eps}
+  \end{center}
+
+  \subsection{\teg Elders}
+  \begin{center}
+    \begin{tabular}{l}
+      Roger Paraselsu Coleman \\
+      { \hspace{1in} \ldots \small Spiritual Advisor and Elder } \\
+      Galan \\
+      Thundar \\
+      Guardian Bob \\
+      Arachne \\
+    \end{tabular}
+  \end{center}
+
+\end{multicols}
+
+
+\subsection{Department Heads $($Lugals$)$}
+\begin{center}
+  \begin{tabular}{rl}
+    Bubbling Cauldron    & Melody \& Shawn \\
+    Comptroller          & Ray \& Jade \\
+    Concert \& Sound     & Paul \\
+    Design Team          & Medea, Diane \& Mystral \\
+    Fire Circle          & Dee \\
+    Gate                 & Tony \\
+    Gungans              & Perseus \\
+    Guest Hearth         & John ``Cowboy'' \\
+    Kids' Realm          & Jennifer \\
+    Parking              & Geoffrey \\
+    Photography \& Web Design & Diane \\
+    Registration         & Jim \& Amanda \\
+    Ritual               & Roger Paraselsu Coleman \hspace{3em} \\
+                           & \& Scion \\
+    Site \& Strike       & Cliff \& Joe \\
+    Staff Office         & Jessica \\
+    Staffing             & Medea \\
+    Store Runner         & Beth \\
+    Taxi/Trolley         & Aurora \& Jim \\
+    Technology           & Bruce--Robert \\
+    Teen Forge           & \textit{To be announced} \\
+    Trash                & Stew \\
+    Tween Time           & Soren \\
+    Vendors \& Workshops & Sage \\
+  \end{tabular}
+\end{center}
+
+\vfill
+
+{\tiny Typeset by \LaTeX --- \today --- Censorius Herald software \copyright 2013-\festyear{}}
+
+% {\hminfamily\Large Notes?}      %
+
+% \begin{tabular}{l}
+%   \hspace{6.5in} \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+%   \hline \\
+% \end{tabular}
+
+\thispagestyle{headings}
+\newpage
+\pagestyle{empty}
+
+\thispagestyle{empty}
+\includepdf[pages={1},offset=-10mm 0mm,width=7in]{map.pdf}
+\end{document}

@@ -1,0 +1,114 @@
+\batchmode
+\documentclass[letterpaper,10pt,twoside,openright,final,article,landscape]{memoir}
+\usepackage[top=.5in,left=.5in,right=.5in,bottom=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{multicol}
+\usepackage{pifont}
+\usepackage{newcent}
+\usepackage{rotating}
+\usepackage{needspace}
+
+\tolerance=1000
+\clubpenalty=10000
+\widowpenalty=10000
+\makeheadrule{headings}{\textwidth}{1pt}
+\makefootrule{headings}{\textwidth}{1pt}{4pt}
+\date{\today}
+\title{Samhain 2015}
+\author{Temple of Earth Gatherings \\ Florida Pagan Gathering}
+\renewcommand{\pfbreakdisplay}{%
+\needspace{24pt}%
+\vspace{8pt}\\\ding{76}\quad\ding{77}\quad\ding{78}\\%
+\vspace{11pt}}
+\setsecnumdepth{none}
+\makeevenhead{headings}{}{}{Florida Pagan Gathering}
+\makeoddhead{headings}{Temple of Earth Gatherings}{}{}
+\makeoddfoot{headings}{\thepage}{}{Samhain 2015}
+\makeevenfoot{headings}{Samhain 2015}{}{\thepage}
+\pagestyle{headings}
+\let\oldsection=\section
+\renewcommand{\section}{%
+  \filbreak \needspace{1.5in}
+ \vfill
+  \oldsection
+}
+\let\oldsubsection=\subsection
+\renewcommand{\subsection}{%
+  \needspace{1in}
+  \oldsubsection
+}
+\let\oldsubsubsection=\subsubsection
+\renewcommand{\subsubsection}{%
+   \needspace{.5in}
+  \oldsubsubsection
+}
+
+
+\begin{document}
+\thispagestyle{headings}
+\chapter{Vendors' Row Layout}
+\begin{tabular}{|rrl||||rlr|}
+\hline
+ 1 & Nightbirds Journey  & Dawn Nyht & & --- & 20 \\ 
+ \hline 
+ 2 & Nightbirds Journey  & Dawn Nyht & The Rock Guy \heartsuit  & Sean Lemore & 21 \\ 
+ \hline 
+ 3 & Mobile Massage  & Scott Nyht & The Rock Guy \heartsuit  & Sean Lemore & 22 \\ 
+ \hline 
+ 4 & Spyder Flutes  & Robert Dolan & & --- & 23 \\ 
+ \hline 
+ 5 & Unleash the Goddess  & Kerri Hirsch & & --- & 24 \\ 
+ \hline 
+ 6 & Unleash the Goddess  & Kerri Hirsch & Silve Fire Dreams  & Courtenay Mims & 25 \\ 
+ \hline 
+ 7 & You Rock Crystals  & Kathi Wahls & Silve Fire Dreams  & Courtenay Mims & 26 \\ 
+ \hline 
+ 8 & You Rock Crystals  & Kathi Wahls & Morganna  & Morgana Moonraven & 27 \\ 
+ \hline 
+ 9 & Spritual Pieces  & Prudy Buehl & & --- & 28 \\ 
+ \hline 
+ 10 & --- &  & & --- & 29 \\ 
+ \hline 
+ 11 & --- &  & MW Flutes  & Mark Wagenschnur & 30 \\ 
+ \hline 
+ 12 & --- &  & & --- & 31 \\ 
+ \hline 
+ 13 & Mama Vic \heartsuit  & Vicki Wright & & --- & 32 \\ 
+ \hline 
+ 14 & Mama Vic \heartsuit  & Vicki Wright & Piloshipher's stone  &   & 33 \\ 
+ \hline 
+ 15 & --- &  & Piloshipher's stone  &   & 34 \\ 
+ \hline 
+ 16 & Chainmaille  & David Belt & Piloshipher's stone  &   & 35 \\ 
+ \hline 
+ 17 & PJ  & PJ Theayer & & --- & 36 \\ 
+ \hline 
+ 18 & --- &  & & --- & 37 \\ 
+ \hline 
+ 19 & PJ  & PJ Theayer & & --- & 38 \\ 
+ \hline 
+ \hline \hline \hline \hline \hline 
+ 39 & --- &  & & --- & 41 \\ 
+ \hline 
+ 40 & --- &  & & --- & 42 \\ 
+ \hline 
+  &  &  & & --- & 43 \\ 
+ \hline 
+  &  &  & & --- & 44 \\ 
+ \hline 
+\end{tabular}
+\end{document}

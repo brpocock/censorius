@@ -1,0 +1,36 @@
+#!/bin/bash
+
+F="Samhain 2015"
+FS=S15
+
+set +e
+
+mkdir -p ~/work/"$F"/$(date +%Y%m%d)
+cd ~/work/"$F"/$(date +%Y%m%d)
+
+echo "in $(pwd)"
+
+for f in "Workshop-Presenters-$FS" "Workshop-Details-$FS" "Workshop-Schedule-$FS" "Vendor-Registrations-$FS"
+do
+	rm -f "$f*"
+
+	echo "☠ Fetching Google Doc $f"
+	google docs get "$f" ./
+
+	#	if [ "$f" = "Vendor-Registrations-$FS" ] ; then v="$f.ods"  ; else v="$f.xls"; fi
+	v="$f.ods"
+	ln "$f" -f "$v"
+
+	echo "☠ Converting $v to text (CSV)"
+	( . ~brpocock/bin/xenv ; libreoffice --headless --convert-to csv "$v" ) > "conversion.$f" 2>&1
+
+        CSV="$f.csv"
+
+	echo "☠ Converting $CSV from Latin-1 to UTF-8"
+        utrac -f ISO-8859-1 -t UTF-8 "$CSV" > "$CSV.#" && mv "$CSV.#" "$CSV"
+
+	du -sh "$CSV"
+
+done
+
+echo "☠ Done"

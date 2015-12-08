@@ -1,0 +1,206 @@
+html { 
+    background-color: black; 
+}
+
+@font-face {
+    font-family: 'Uncial Antiqua';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Uncial Antiqua'), local('UncialAntiqua-Regular'), url(UncialAntiqua.woff) format('woff');
+}
+
+@font-face {
+    font-family: 'New Century Schoolbook';
+    font-style: normal;
+    font-weight: 400;
+    src: local('New Century Schoolbook'), local('Century Schoolbook'),
+         local('Balt New Century Schoolbook'), local('Monotype Century Schoolbook'),
+         local('NewCenturySchoolbook'), local('CenturySchoolbook'),
+         local('BaltNewCenturySchoolbook'), local('MonotypeCenturySchoolbook'),
+         url(BaltNewCenturySchoolbook.ttf) format('ttf');
+}
+
+small { 
+    color: #666;
+}
+
+.headliner-left {
+    float: left; 
+    clear: left; 
+    width: 1.5in; 
+    margin-right: 1em; 
+    margin-bottom: 1em; 
+}
+
+
+.headliner-right {
+    float: right; 
+    clear: right; 
+    width: 1.5in;  
+    margin-left: 1em; 
+    margin-bottom: 1em; 
+}
+
+
+* { 
+    font-family: 'New Century Schoolbook', serif; 
+    color: #333; 
+}
+
+body { 
+    background-color: ivory; 
+    width: 40em; 
+    margin-left: 10em;
+    margin-left: min(10em, calc(50% - 20em));
+    margin-right: auto;
+    text-align: justify;
+    padding-left: 1em; 
+    padding-right: 1em;
+}
+
+body>* { 
+    max-width: 39em; 
+}
+
+p {
+    max-width: 39em;
+    text-align: justify;
+    text-indent: 1em;
+}
+
+p:first-line {
+    text-indent: 0; 
+}
+
+h1 { 
+    font-size: 1.25em; 
+    margin-top: 2.5em; 
+    margin-bottom: .75em;
+    font-family: 'Uncial Antiqua', serif; 
+    color: navy;
+} 
+
+h2 { 
+    font-size: 1.25em; 
+    margin-top: 1em; 
+    margin-bottom: .5em;
+    font-family: 'Uncial Antiqua', serif; 
+} 
+
+h3 { 
+    font-family:'Uncial Antiqua', serif; 
+    display: run-in;
+}
+
+nav {
+    display: block; 
+    border: 0; margin: 0;
+    background-color: transparent; 
+    color: #333; 
+    text-align: center;
+    padding: 0;
+}
+
+#pagenav { 
+    width: 10em;
+    position: fixed;
+    top: 0; left: 0;
+    top: max(0, calc(50% - 15em));
+}
+
+.index-link { 
+    font-family: "Uncial Antiqua", serif;
+}
+
+nav a:link, nav a:visited, input[type=submit], input[type=reset] { 
+    text-decoration: none; 
+    color: #333;
+    width: 9em;
+    height: 2.5em;
+    border: 2pt solid #333; 
+    margin: 0 .5em 0 .5em;
+    background-color: #ffc;
+    display: inline-block;
+    text-align: center;
+    line-spacing: 1em;
+}
+
+nav a:hover { 
+    background-color: white; 
+}
+
+table {
+    border-collapse: collapse;
+    border: 1.5pt solid #333;
+}
+
+th,td {
+    border: 1pt solid #333;
+}
+
+tr:nth-child(even) {
+    background-color: ivory;
+}
+
+
+tr:nth-child(odd) {
+    background-color: #ccc;
+}
+
+td.grid-corner { 
+    background-color: #444;
+}
+
+@media (max-width: 50em) {
+    html { 
+        margin: 0; 
+        padding: 0
+    }
+    body { 
+        margin: auto;; 
+        width: 100%; 
+        max-width: 40em;
+        width: calc(100% - 2ex );
+        padding: 1ex; 
+    }
+    #pagenav { 
+        display: block; 
+        position: relative; 
+        width: 100%; 
+        margin: 0; 
+        padding: 0; 
+        border-top: 2pt solid blue; 
+        border-bottom: 2pt solid blue; 
+        font-size: 75%;
+    }
+    h1 { font-size: medium }
+    h2 { font-size: medium }
+    h3 { font-size: medium }
+}
+
+@media print {
+    #pagenav { 
+        display: none
+    }
+}
+
+form { background-color: #ffc }
+
+input { width: 100% }
+input[type=checkbox] { width: 2em }
+
+.whiteboard-post { 
+    width: auto; 
+    border: 1pt solid #336; 
+} 
+
+.whiteboard-author { 
+    font-size: smaller; 
+    color: #996; 
+} 
+
+.whiteboard-timestamp { 
+    font-size: smaller; 
+    color: #669
+}
+

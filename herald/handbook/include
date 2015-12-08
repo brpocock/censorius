@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+
+while (my $line = <>) {
+
+  if ($line =~ /#include "(.*)"/) {
+
+    open IN, '<', $1 and do {
+      while (<IN>) { print }
+      close IN;
+    } or print " ### SHOULD BE File: $1 HERE ### \n\n\n"
+
+  } else { print $line }
+
+}
+

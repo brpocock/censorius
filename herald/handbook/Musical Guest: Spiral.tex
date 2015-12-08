@@ -1,0 +1,150 @@
+\batchmode
+\documentclass[letterpaper,10pt,twoside,openright,final,article]{memoir}
+\usepackage[top=.5in,left=1in,right=1in,bottom=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{multicol}
+\usepackage{pifont}
+\usepackage{newcent}
+\usepackage{rotating}
+\usepackage{needspace}
+
+\tolerance=1000
+\clubpenalty=10000
+\widowpenalty=10000
+\makeheadrule{headings}{\textwidth}{1pt}
+\makefootrule{headings}{\textwidth}{1pt}{4pt}
+\date{\today}
+\title{Samhain 2015}
+\author{Temple of Earth Gatherings \\ Florida Pagan Gathering}
+\renewcommand{\pfbreakdisplay}{%
+\needspace{24pt}%
+\vspace{8pt}\\\ding{76}\quad\ding{77}\quad\ding{78}\\%
+\vspace{11pt}}
+\setsecnumdepth{none}
+\makeevenhead{headings}{}{}{Florida Pagan Gathering}
+\makeoddhead{headings}{Temple of Earth Gatherings}{}{}
+\makeoddfoot{headings}{\thepage}{}{Samhain 2015}
+\makeevenfoot{headings}{Samhain 2015}{}{\thepage}
+\pagestyle{headings}
+\let\oldsection=\section
+\renewcommand{\section}{%
+  \filbreak \needspace{1.5in}
+ \vfill
+  \oldsection
+}
+\let\oldsubsection=\subsection
+\renewcommand{\subsection}{%
+  \needspace{1in}
+  \oldsubsection
+}
+\let\oldsubsubsection=\subsubsection
+\renewcommand{\subsubsection}{%
+   \needspace{.5in}
+  \oldsubsubsection
+}
+
+
+\begin{document}
+\thispagestyle{headings}
+\thispagestyle{headings}
+\makeevenhead{headings}{}{Spiral Dance}{}
+\makeoddhead{headings}{}{Spiral Dance}{}
+\makeoddfoot{headings}{}{TEG FPG NIL}{}
+\makeevenfoot{headings}{}{TEG FPG NIL}{}
+
+\begin{tabular}{cl}
+{\HUGE Spiral Dance} & \begin{minipage}{2in}
+              \includegraphics[width=1.5in]{teg-fpg-logo.png}
+
+              TEG FPG NIL
+              \end{minipage} \\
+\end{tabular}
+
+Dear Spiral Dance:
+
+Thank you for joining us at Florida Pagan Gathering! We're
+so happy that you've chosen to share your wisdom and talents with the
+FPG family.
+
+In order to ensure that everything goes smoothly, we have three staff
+members dedicated to supporting your events. Mystral is the
+Co\"ordinator for our Production Division. Sage and Bruce-Robert are
+Lugals (managers) assisting her. Naturally, any of our staff members
+will be happy to assist you in whatever way they can as well.
+
+\emph{Please} check in with any of these three as soon as you arrive!
+Our Registration staff by the front gate can direct you to where they
+can be found, or raise them on our camp-wide walkie-talkie system.
+
+Please also ensure that you let the Production Division team know in
+which cabin, lodge, or other area you're camping --- in case we
+need to reach you during the Festival.
+
+The following information lists the events for which you're
+scheduled. If you see any errors or omissions, please let the
+Production Division team know as soon as possible so that we can make
+alternate arrangements.
+
+Note that most of this information is also found in the FPG programmes
+handed out at Registration.
+
+Your contact information:  
+
+Recording and photography will \emph{not} be allowed at your events.
+
+
+\subsection*{Note:}
+
+The time slot shown for an event is where it appears on the schedule
+grid in the programme.
+
+The ``Short (Grid) Name'' is the possibly-abbreviated name that will
+appear on the schedule grid. The full title will be displayed in the
+events listing.
+
+
+
+\vspace{12pt}\hline\vspace{12pt}
+
+ \section*{Spiral Dance Concert}
+
+ \textbf{Short (Grid) Name:} Spiral DanceConcert
+
+ \textbf{Location:} Blue Room
+
+ \textbf{Time:} 8pm - 9:30pm  Fri
+
+ \textbf{Description:} Spiral Dance Concert
+
+ Attendees: All ages
+
+
+\vspace{12pt}\hline\vspace{12pt}
+
+ \section*{Spiral Dance Concert}
+
+ \textbf{Short (Grid) Name:} Spiral Dance Encore
+
+ \textbf{Location:} Blue Room
+
+ \textbf{Time:} 1:30pm - 3:30pm  Sat
+
+ \textbf{Description:} Spiral Dance Concert
+
+ Attendees: All ages
+\end{document}
+

@@ -1,0 +1,13 @@
+#!/bin/sh
+mkdir -p ~/work/Beltane\ 2015/$(date +%Y%m%d)/
+cd  ~/work/Beltane\ 2015/$(date +%Y%m%d)/
+
+stamp=$(date +%Y%m%d%H%M%S)
+
+~/Projects/Herald/run-batch < /dev/null |tee ./log.$stamp 2>&1
+      
+mimesend -t workshops@flapagan.org \
+	 -s "Beltane 2015 Handbook; $(date +%Y%m%d) (Batch)" \
+	 -f ./log.$stamp -m text/plain \
+	 -f ./Beltane\ 2015\ Handbook.pdf -m application/pdf \
+	 

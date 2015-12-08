@@ -1,0 +1,503 @@
+\batchmode
+\documentclass[9pt,twoside,openright,final,article,letterpaper]{memoir}
+\usepackage[top=.5in,left=.5in,right=.5in,bottom=.5in]{geometry}
+
+% \setstocksize{8.5in}{7in}
+% \settrimmedsize{\stockheight}{\dimexpr 7in-15mm}{*}
+% \settypeblocksize{542.024925pt}{415.5524425pt}{*}
+% \usepackage[top=.5in,left=.25in,right=.25in,bottom=.5in]{geometry}
+\usepackage[utf8]{inputenc}
+
+\usepackage{humanist}
+
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{multicol}
+\usepackage{pifont}
+\usepackage{newcent}
+\usepackage{rotating}
+\usepackage{needspace}
+
+\tolerance=1000
+\clubpenalty=70000
+\widowpenalty=30000
+
+\hyphenpenalty=7000 \exhyphenpenalty=1000 \pretolerance=1000
+
+\makeheadrule{headings}{\textwidth}{1pt}
+\makefootrule{headings}{\textwidth}{1pt}{4pt}
+\date{\today}
+\title{Samhain 2014}
+\author{Temple of Earth Gathering \\ Florida Pagan Gathering}
+\renewcommand{\pfbreakdisplay}{%
+  \needspace{24pt}%
+  \vspace{8pt}\\\ding{76}\quad\ding{77}\quad\ding{78}\\%
+  \vspace{11pt}}
+\setsecnumdepth{none}
+
+\makeevenhead{headings}{\rightmark}{}{Florida Pagan Gathering}
+\makeoddhead{headings}{Temple of Earth Gathering}{}{\rightmark}
+\makeevenfoot{headings}{\thepage}{}{Samhain 2014}
+\makeoddfoot{headings}{Samhain 2014}{}{\thepage}
+
+\setaftersubsubsecskip{-1em}
+
+\setsecheadstyle{\hminfamily\Large\raggedright}
+\setsubsecheadstyle{\hminfamily\large\raggedright}
+
+\let\oldsection=\section
+\renewcommand{\section}[1]{%
+  % \filbreak
+  \nopagebreak
+  \vspace{6pt} % \hline \vfill
+  \needspace{1.5in}
+  % { \hline } \nopagebreak
+  \oldsection{#1}
+  \nopagebreak}
+\let\oldsubsection=\subsection
+\renewcommand{\subsection}[1]{%
+  \vspace{6pt}
+  \needspace{1.25in}
+  \oldsubsection{#1}
+  \nopagebreak}
+\let\oldsubsubsection=\subsubsection
+\renewcommand{\subsubsection}[1]{%
+  \needspace{.75in}
+  \oldsubsubsection{#1}
+  \nopagebreak}
+
+
+\setlength{\droptitle}{2in}
+\setlength{\bottomsectionskip}{0pt}
+\setlength{\columnsep}{16pt}
+\normalbottomsection
+
+\begin{document}
+
+\thispagestyle{empty}
+\vfill
+\includegraphics[width=\textwidth]{kids-cover.png}
+{\centering {~ ~ ~ ~ ~ \LARGE Florida Pagan Gathering\texttrademark{}} presents
+  this special handbook just for kids up to age 12}
+\vfill
+
+\pagestyle{headings}
+\newpage
+\thispagestyle{headings}
+
+{\hminfamily \HUGE Welcome to FPG Samhain 2014}
+
+\begin{multicols}{3}
+
+  \tableofcontents*
+
+  \columnbreak
+
+  Welcome to the Florida Pagan Gathering\texttrademark{} for Samhain 2014 by the
+  Temple of Earth Gathering, Inc\texttrademark{}\footnote{The Florida Pagan
+    Gathering, FPG, TEG, the Blowing Palms and Temple logos are all
+    registered trademarks of the Temple of Earth Gathering, Inc.
+    All rights are reserved and our trademarks may not be used without
+    permission.}!
+
+
+  \texttt{http://FlaPagan.org/}
+
+  {\centering
+    \includegraphics[width=\linewidth]{teg-fpg-logo.png}}
+
+\end{multicols}
+
+\vspace{1pt}
+\vfill
+
+\section{Safety}
+
+\begin{multicols}{3}
+
+  \begin{center}
+    \textbf{\large \textsc{In case of emergency or injury} \\ please contact the
+      nearest Guardian \\ or Staff Member}
+  \end{center}
+
+  If you have a problem any time during Festival --- if someone gets
+  hurt, scared, worried, or anything at all --- find a Guardian
+  to help. Guardians carry staves (big walking-sticks) with a little red
+  flag on top.
+
+  If a Guardian asks you to do something, pay attention! They're here to
+  keep you safe.
+
+  % \fancybreak{\pfbreakdisplay}
+
+  \subsection{Pool Rules}
+
+  \begin{itemize}
+  \item \textsc{No Swimming} without a Camp Lifeguard present.
+    Please treat the Camp Lifeguards with respect at all times.
+  \item All FPG and campground rules must be followed. See the signs
+    posted near the pool.
+  \item For your safety, no one is allowed on the docks, pool deck,
+    or beach after dark.
+  \end{itemize}
+
+  Get your parent's or guardian's permission before going into the pool area!
+
+  % \subsubsection{Pool Hours}
+
+  #include "insert-pool-hours.tex"
+
+\end{multicols}
+
+\vfill
+\pagestyle{headings}
+\thispagestyle{headings}
+
+
+\begin{multicols}{3}
+
+  \section{Trolley}
+
+  The FPG Trolley runs from 9am to 2am. You can only ride the Trolley
+  if you bring an adult, though --- and no food or drinks are allowed.
+
+  The Trolley Stops are marked on your map.
+
+  \fancybreak{\pfbreakdisplay}
+
+  \section{Communications \& Staff}
+
+
+  \subsubsection{Community Service}
+
+  For each volunteer shift that you perform, you'll earn another entry
+  into a raffle for prizes that include half-off or a free admission
+  to your next FPG!
+
+  Sign up with Registration at the Main Gate.
+
+  \fancybreak{\pfbreakdisplay}
+
+  \subsection{FPG Community Center}
+
+  Between \& after meal times, the Dining Hall is available for
+  everyone to use.
+
+  Please be respectful of others using the space, and clean up
+  after yourself.
+
+  A Charging Station for your electronic devices can be found in the
+  Dining Hall. {\small Don't leave your things behind!.}
+
+  \columnbreak
+
+
+  \vfill
+\end{multicols}
+
+\section{Community Organizations}
+
+\begin{multicols}{3}
+
+  \subsection{Red Tent}
+
+  \begingroup
+  \setlength{\columnsep}{6pt}%
+  \begin{wrapfigure}{l}{.5\columnwidth}
+  \includegraphics[width=.5\columnwidth]{red-tent.png}
+  \end{wrapfigure}
+
+  Open all day for women and girls with their mothers; A great place
+  to relax, meet newcomers and renew friendships.
+
+  All who identify as girls or women are welcome to come share coffee,
+  cookies and conversations in a beautiful and comfortable space
+  filled with solidarity and great donated stuff for the benefit of
+  the RT. No need to buy anything- treats and workshop materials are
+  free. Just hang out, share advice, browse our library, read cards,
+  eat chocolate and laugh a lot. Bring a chair if you can.
+
+  \endgroup
+  {\small
+  #include "handbook-red-tent.tex"
+   }
+
+  \fancybreak{\pfbreakdisplay}
+
+  \subsection{Kids' Realm}
+
+  Ask your adults to bring you to the Kids' Realm tent for supervised
+  playtime and workshops with special presenters just for you --- up to
+  age 12.
+
+  Your parents will need to check you in, and out, from Kids'
+  Realm. Make sure they read the rules about volunteering!
+
+  In bad weather, Kids’ Realm will move into the Dining Hall.
+
+  \fancybreak{\pfbreakdisplay}
+
+
+  \subsection{Father Sky Lodge}
+
+  \begingroup
+  \setlength{\columnsep}{6pt}%
+  \begin{wrapfigure}{r}{.5\columnwidth}
+    \includegraphics[width=.5\columnwidth]{FSL.png}
+  \end{wrapfigure}
+
+  Father Sky Lodge (FSL) is a group effort of Pagan men to provide
+  support and resources to their community in order to encourage the
+  exploration of Male Spirituality, the Male Mysteries and to return The
+  Masculine Divine/God to a place of balance within Neopagan
+  spirituality. It allows Pagan men to come together in fellowship and
+  brotherhood.
+
+  Our goal is to create a place where anyone, man or woman, can come
+  with questions about masculine Pagan Spirituality, and know that
+  there would be answers; a place where any member of our Pagan
+  community can freely ask ``Can you help me?'' on matters related to
+  Pagan Men, and know that the answer will always be a resounding
+  ``Yes!''
+
+  We are a brother group with Sisterhood of the Shield and work with
+  them to support each other in our Spiritual journeys.
+
+  \endgroup
+
+  \subsection{Art Abandonment Project}
+
+  The faeries are at it again! Keep your eyes open for random gifts of
+  love just for us at FPG!
+
+  If you find these little packages of fun marked ``FAE GIFT thanks to
+  The Art Abandonment Project,'' they are yours to keep, trade or give
+  to a loved one or friend!  All gifts will be randomly found around
+  the campsite over the week except Vendors' Row (which is off-limits)
+  \ldots Happy Samhain from the Fae!
+
+  \subsection{Sisterhood of the Shield}
+
+  \begingroup
+  \setlength{\columnsep}{6pt}%
+  \begin{wrapfigure}{l}{.5\columnwidth}
+    \includegraphics[width=.5\columnwidth]{sts.png}
+  \end{wrapfigure}
+
+  Sisterhood of the Shield (StS) is a women’s-only group. Though we
+  embrace the traditional aspects of womanhood, we also seek the more
+  primal and earthy energy; a place where the warrior women and other
+  such traditions are as welcome as the maiden, mother and crone.
+
+  We have an Equalist mentality: Men and Women are equal but there are
+  things that each experience that only someone of their own gender can
+  understand.
+
+  We are a sister group with Father Sky Lodge and work with them to
+  support each other in our Spiritual journeys.
+
+  \endgroup
+
+  \fancybreak{\pfbreakdisplay}
+
+  \subsection{Tween Time}
+
+  'Tween-agers have their special place to hang out and express
+  themseves at Festival, too. Look for the Tween Tent near Kids' Realm!
+
+
+
+\end{multicols}
+
+
+
+
+\section{FPG Traditions}
+\begin{multicols}{3}
+
+  \subsection{Celtic Games}
+
+  Celtic Games is an event that remembers days long past when kingdoms
+  fought for control, power, riches, and territory; when kings and
+  queens chose their champions to limit loss of life upon the
+  battlefield. Will you be brave enough, strong enough, quick enough,
+  or witty enough to take the coveted crown for your own and become
+  King or Queen of FPG Celtic Games. 
+
+  Lay on --- and may the most skilled sword claim victory!
+
+  Your parents need to come with you to sign up. Ages 5 and up.
+
+  \subsection{Fire Temple Drum Altar}
+
+  The Drum \& Dance Altar is a place for participants \& performers to
+  go to gain refreshment and sustenance (both physically and
+  spiritually). It is built for the Community and by the Community.
+  
+  It would be appreciated if you would bring donation items to the
+  drum circle before 10pm each night.
+
+  Possible contributions include: blankets, rugs, tables, hay bales,
+  candles, flowers, fruits, drinks, granola bars, and other midnight
+  snacks. If you have any questions, stop by the Shiny Happy People Drum
+  Tribe booth on Vendors’ Row anytime during the festival.
+
+
+  \subsection{Coming Of Age}
+
+  If you or someone you know is interested in participating in the
+  Coming of Age ordeal, please contact Sage when he's over near Lodge 7,
+  or at \texttt{Sage@star-hope.org}. Participants must be age 18--24 at
+  next Samhain.
+
+  \subsection{FPG Wants You!}
+
+  If you've got some time and want to give back to the community, visit
+  the Ministry of Magick office (near the Blue Room) to sign up for a
+  Community Service volunteer shift --- you could even win free
+  admission to your next FPG!
+
+  \fancybreak{\pfbreakdisplay}
+
+\end{multicols}
+
+
+\newpage
+
+\section{Coloring Page}
+
+\vfill
+{\centering\includegraphics[width=.95\columnwidth]{dryad.png}}
+\vfill
+
+\newpage
+
+\section{Fun Stuff!}
+
+\vfill
+
+\newpage
+
+\section{More Fun Stuff!}
+
+\vfill
+
+\newpage
+
+
+%\newpage
+
+% % wasting space and looking pretty
+% \vfill
+% {\centering  \includegraphics[width=.75\textwidth]{fairy.jpeg}}
+% \vfill
+
+% \newpage
+
+\begin{multicols}{3}
+  \section{{\Large $\star$} Wednesday's Events}
+
+  #include "kids-events-WED.tex"
+\end{multicols}
+
+{ \hline }
+
+\section{{\Large $\star$} Thursday's Events}
+\begin{multicols}{3}
+  #include "kids-events-THU.tex"
+\end{multicols}
+
+{ \hline }
+
+\section{{\Large $\star$} Friday's Events}
+\begin{multicols}{3}
+  #include "kids-events-FRI.tex"
+\end{multicols}
+
+%{ \hline }
+
+\vfill
+
+\begin{multicols}{3}
+  \section{{\Large $\star$} Saturday's Events}
+  #include "kids-events-SAT.tex"
+
+  \fancybreak{\pfbreakdisplay}
+
+  \section{{\Large $\star$} Sunday's Event}
+  #include "kids-events-SUN.tex"
+\end{multicols}
+
+\section{Food}
+
+\begin{multicols}{3}
+
+  Make sure you clean up when you eat! And remember, stay \emph{away} from
+  ``adult beverages'' like wine and mead!
+
+  \fancybreak{\pfbreakdisplay}
+
+  \subsection{The Bubbling Cauldron Meal Plan}
+
+  If your grown-ups registered you for the Bubbling Cauldron meal plan
+  before Festival, meals are served in the Dining Hall. {\small Dinner
+    will be served early on Wed. so everyone may attend the
+    Opening Ritual.}
+
+  #include "insert-cauldron-meals.tex"
+
+
+  \subsection{Apollo's Coffee Shop }
+
+  {\small Located near the Dining Hall }
+
+  Stop by enjoy our Coffee, Teas, Sodas, Energy Drinks, Lemonades, \&
+  the new favorite, Frozen Hot Chocolate!
+
+  Low on fuel? Apollo's carries a variety of snacks to feed those sweet
+  \& salty cravings.
+
+  Don't forget to pick up an FPG mug or reusable water bottle!
+
+  (You do need to pay for the things at the coffee shop, so bring a
+  parent or your spending money.)
+
+  \vfill
+
+  \begin{center}
+    \includegraphics[width=1.5in]{Apollo.png}
+  \end{center}
+
+
+  \subsection{Food Vendors}
+
+  You'll also find these food vendors near the Dining Hall:
+
+  #include "handbook-food-vendors.tex"
+
+\end{multicols}
+
+
+
+\thispagestyle{headings}
+\newpage
+\pagestyle{empty}
+\thispagestyle{empty}
+
+\thispagestyle{empty}
+\vfill
+\includegraphics[height=\textwidth,angle=270]{color-map.png}
+\vfill
+
+\end{document}

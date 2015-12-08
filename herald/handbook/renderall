@@ -1,0 +1,87 @@
+#!/bin/sh
+
+F="$1"
+
+set +e
+
+echo " ☠☠☠ Preparing the working folder"
+
+cd ~/work/"$F"/$(date +%Y-%m-%d)
+
+cp ~/Projects/Herald/insert-*.tex ./
+cp ~/Projects/Herald/Announcements-???.tex ./
+cp ~/Projects/Herald/bw-cover.pdf ./
+cp ~/Projects/Herald/map.pdf ./
+cp ~/Projects/Herald/*.{png,jpeg,ttf,woff,css,html,eps} ./
+
+echo ""; echo ""; echo "☠ Merging LaTeX source files"
+
+~/Projects/Herald/include < ~/Projects/Herald/handbook-inserts-little.tex > ./"$F Handbook.tex"
+~/Projects/Herald/include < ~/Projects/Herald/grids-inserts.tex > ./"$F Grids.tex"
+
+echo ""; echo ""; echo "☠ Generating handbook"
+
+xelatex "$F Handbook"
+xelatex "$F Handbook"
+
+du -sh "$F Handbook.pdf"
+
+echo ""; echo ""; echo " ☠ Building signatures"
+
+PAGES=$(pdfinfo "$F Handbook.pdf" | grep Pages: | cut -d: -f2)
+
+pdfjam --booklet true --landscape --signature $(( $PAGES / 4 )) \
+    --outfile "$F"\ Handbook\ Signatures.pdf -- "$F"\ Handbook.pdf 
+
+echo ""; echo ""; echo " ☠ Rendering grid insert"
+
+xelatex "$F Grids"
+xelatex "$F Grids"
+
+
+
+
+echo ""; echo ""; echo "☠ Merging LaTeX source files"
+
+~/Projects/Herald/include < ~/Projects/Herald/handbook-kids-inserts.tex > ./"$F Kids Handbook.tex"
+
+echo ""; echo ""; echo "☠ Generating kids' handbook"
+
+xelatex "$F Kids Handbook"
+xelatex "$F Kids Handbook"
+
+du -sh "$F Kids Handbook.pdf"
+
+echo ""; echo ""; echo " ☠ Building signatures"
+
+PAGES=$(pdfinfo "$F Kids Handbook.pdf" | grep Pages: | cut -d: -f2)
+
+pdfjam --booklet true --landscape --signature $(( $PAGES / 4 )) \
+    --outfile "$F Kids Handbook Signatures.pdf" -- "$F Kids Handbook.pdf"
+
+
+
+exit 
+
+
+
+echo ""; echo ""; echo " ☠☠☠ Preparing to mass render all other PDF's:"
+
+ls -1 {Location,Presenter,Vendor,Venue}*.tex
+
+
+##echo " ☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠ aborting now" ; exit -277
+
+
+
+for f in {Location,Presenter,Headlin,Musical,Vendor,Venue}*.tex ; do
+    echo ""; echo ""; echo " ☠ Rendering $f"
+    xelatex "$f" < /dev/null
+    xelatex "$f" < /dev/null
+# #    dvips "${f/.tex/.dvi}"
+# #    ps2pdf "${f/.tex/.ps}"
+    rm -f "${f/.tex/.log}" "${f/.tex/.aux}" "${f/.tex/.out}"
+done
+
+echo " ☠☠☠ Done rendering all PDF's"
+
