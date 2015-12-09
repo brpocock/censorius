@@ -6,6 +6,7 @@
   "Given an ASCII character, return the Unicode Roman numeral code-point
 that     it     resembles;     eg,      for     #\C     this     returns
 #\ROMAN_NUMERAL_ONE_HUNDRED."
+  #-ccl
   (case (char-downcase char)
     (#\i #\roman_numeral_one)
     (#\v #\roman_numeral_five)
@@ -18,6 +19,7 @@ that     it     resembles;     eg,      for     #\C     this     returns
     (otherwise nil)))
 
 (defun presentation-roman-numeral (string)
+  #-ccl
   (regex-replace-pairs '#.(mapcar (lambda (pair)
                                     (cons (coerce (car pair) 'string) (coerce (cdr pair) 'string)))
                                   '((#(#\roman_numeral_one #\roman_numeral_one #\roman_numeral_one #\roman_numeral_one) 
@@ -32,6 +34,7 @@ that     it     resembles;     eg,      for     #\C     this     returns
 
 (defun roman-numeral-value (char)
   "Return the numeric value of an Unicode Roman numeral."
+  #-ccl
   (case char
     (#\roman_numeral_one 1)
     (#\roman_numeral_two 2)
@@ -66,6 +69,7 @@ Assumes that the string follows typical  rules, and may yield results of
 questionable value  on malformed  strings. Functions with  Unicode Roman
 numeral codepoints  like #\ROMAN_NUMERAL_FIVE  as well as  Latin letters
 that approximate them (as may be produced by `FORMAT' ~:@R)."
+  #-ccl
   (loop for char across string
      for position from 0
      for value = (roman-numeral-value char)
