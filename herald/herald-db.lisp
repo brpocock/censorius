@@ -6,16 +6,16 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar +compile-time+ (- (get-universal-time) +compile-time-offset+)))
 
-;;; Load the current configuration
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (load (make-pathname :name "herald-mysql"
-                       :defaults (user-homedir-pathname))))
-
 (defvar *db* :disconnected)
 
 (defvar *arc* :disconnected)
 
 (defvar *select-cache* (make-hash-table :test #'equal))
+
+;; Temporary definition until HERALD-FCGI loads
+(defun herald-fcgi::whine (message-format &rest stuff)
+  (error "Early WHINE: ~?" message-format stuff))
+
 
 (defmacro with-sql (&body body)
   `(dbi:with-connection (*db* :mysql ,@herald-db-config:+params+)

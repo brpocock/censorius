@@ -1551,7 +1551,7 @@ Details: Invoice token ~s;
 (defun paypal-get-new-oauth2-token ()
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config:paypal-url "oauth2/token")
+       (paypal-url "oauth2/token")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
@@ -1619,7 +1619,7 @@ Details: Invoice token ~s;
 (defun paypal-demand-payment (invoice amount)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config:paypal-url "payments/payment")
+       (paypal-url "payments/payment")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
@@ -1651,7 +1651,7 @@ Details: Invoice token ~s;
 (defun paypal-get-payment-status (payment-id)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config:paypal-url "payments/payment/" payment-id)
+       (paypal-url "payments/payment/" payment-id)
        :method :get
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
@@ -1763,7 +1763,7 @@ values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   (declare (ignore token))
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (herald-secret-config:paypal-url "payments/payment/" payment-id "/execute")
+       (paypal-url "payments/payment/" payment-id "/execute")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )

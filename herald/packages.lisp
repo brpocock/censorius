@@ -63,3 +63,15 @@
    :supported-languages
    :translate))
 
+(defpackage :herald-secret-config
+  (:use :cl :alexandria)
+  (:export #:+mysql+ #:+params+ 
+           #:+google-server-api-key+
+           #:*paypal-sandbox-p*
+           #:paypal-app-id
+           #:paypal-account
+           #:paypal-client-id
+           #:paypal-secret)
+  (:nicknames :herald-db-config))
+
+(import 'herald-fcgi:+test-build+ :herald-secret-config)
