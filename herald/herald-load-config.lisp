@@ -40,8 +40,8 @@
 (config-mail workshops-mail)
 (config-mail archive-mail)
 
-(define-symbol-macro herald-config::true t)
-(define-symbol-macro herald-config::false nil)
+(defconstant herald-config::true t)
+(defconstant herald-config::false nil)
 
 (defmacro herald-config::test-build (boolean)
   (ecase boolean
