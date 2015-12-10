@@ -51,6 +51,7 @@
         :brfp :herald-db :herald-util)
   (:export :herald-cgi :herald-fcgi
            :herald-user-agent :whine
+           :+test-build+
            :+host-name+ 
            :+uri-prefix+))
 
