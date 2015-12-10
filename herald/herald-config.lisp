@@ -1,8 +1,8 @@
 (in-package :herald-config)
 
-(test-build false)
+(test-build t)
 (host-name "http://flapagan.org")
-(uri-prefix "/reg/herald.cgi")
+(uri-prefix "/reg/test/herald.cgi")
 (sysop-mail "\"Bruce-Robert Fenn Pocock\" <brpocock@star-hope.org>")
 (registrar-mail "\"TEG FPG Registration Team\" <register@flapagan.org>")
 (vendors-mail "\"TEG FPG Vendors Team\" <vendors@flapagan.org>")

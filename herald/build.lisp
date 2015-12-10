@@ -32,4 +32,9 @@
   ;;   (force-output)
   ;;   (load file))
   )
+(with-open-file (*standard-output* (make-pathname :directory (pathname-directory (user-homedir-pathname))
+                                                  :name (format nil "herald-build-~:@(~36r~)" (eval (intern "+COMPILE-TIME+" :herald-fcgi)))
+                                                  :type "log")
+                                   :direction :output :if-exists :supersede)
+  (eval (list (intern "ABOUT-ME" :herald-fcgi))))
 

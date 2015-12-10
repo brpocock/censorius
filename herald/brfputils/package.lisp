@@ -30,6 +30,7 @@ package (or similar). Perhaps it's even named the same? Try (APROPOS
    #:+inline-whitespace+
    #:+often-naughty-chars+
    #:+whitespace+
+   #:+utf-8+
    #:a/an
    #:36r
    #:a/an/some
@@ -516,5 +517,4 @@ package (or similar). Perhaps it's even named the same? Try (APROPOS
 (in-package :brfp)
 
 (defvar +utf-8+ (flexi-streams:make-external-format :utf8 :eol-style :lf))
-
 

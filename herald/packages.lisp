@@ -9,12 +9,13 @@
    :boolbool
    :clean-plist
    :field-?-p
-   :groups-of
    :group-by
+   :groups-of
    :interleave
    :interpret-field
-   :lambda&keys
    :keyword*
+   :lambda&keys
+   :mail-only
    :mail-only
    :mapplist
    :null-if
@@ -27,9 +28,9 @@
    :proper-roman-numeral
    :regex-replace-pairs
    :remove-commas
+   :repeat
    :roman-number-value
    :roman-numeral-value
-   :repeat
    :schemey-record
    :string-begins
    :string-ends
@@ -51,6 +52,7 @@
         :brfp :herald-db :herald-util)
   (:export :herald-cgi :herald-fcgi
            :herald-user-agent :whine
+           :+test-build+
            :+host-name+ 
            :+uri-prefix+))
 
@@ -62,3 +64,16 @@
    :supported-languages
    :translate))
 
+(defpackage :herald-secret-config
+  (:use :cl :alexandria)
+  (:export #:+mysql+ #:+params+ 
+           #:+google-server-api-key+
+           #:*paypal-sandbox-p*
+           #:paypal-app-id
+           #:paypal-account
+           #:paypal-client-id
+           #:paypal-url
+           #:paypal-secret)
+  (:nicknames :herald-db-config))
+
+(import 'herald-fcgi:+test-build+ :herald-secret-config)

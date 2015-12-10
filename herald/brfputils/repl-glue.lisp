@@ -4,7 +4,7 @@
 (require :local-time)
 (require :trivial-garbage)
 
-(defpackage :brfp-user 
+(defpackage :brfp-user
   (:nicknames :romance2-user :romans-user :romance-ii-user :romance-user)
   (:use :cl :brfp)
   (:export #:help #:hello #:bye))
@@ -19,9 +19,9 @@
                     (cons "USER"
                           (package-nicknames :brfp-user)))))
 
-(defvar *user-ident* (make-hash-table 
-                      #-ccl :weakness #-ccl :key
-                      :test 'equal))
+(defvar *user-ident* (make-hash-table
+                      #+sbcl :weakness
+                      #+sbcl :key :test 'equal))
 
 (defun user-ident (&optional (new-name nil new-name-?))
   (prog1 (gethash (current-thread) *user-ident*)
@@ -32,7 +32,7 @@
   "In USER, F means NIL for user-friendly'ish false values.")
 
 (defgeneric repl-help (keyword)
-  (:documentation "The REPL-HELP methods allow arbitrary text pages to 
+  (:documentation "The REPL-HELP methods allow arbitrary text pages to
 be added to the not-very-nice online help system.
 
 TODO: Replace the online help system with a nice, hypertext
@@ -82,7 +82,7 @@ very careful.
  • Use (BYE) to leave the REPL.
 ")
 
-(defmethod repl-help ((keyword (eql :start))) 
+(defmethod repl-help ((keyword (eql :start)))
   "~| ★ Getting Started with the Romance Ⅱ REPL ★
 
 This REPL (Read-Eval-Print Loop) is one way to interact directly with a
@@ -161,15 +161,15 @@ If you're totally lost here, try (HELP :START)
         (sunset (cons 18 0))
         (hour (timestamp-hour instant))
         (minute (timestamp-minute instant)))
-    (concatenate 
+    (concatenate
      'string
      (cond
        ((and
          (or (> hour (car sunrise))
              (and (= hour (car sunrise))
-                  (>= minute (cdr sunrise)))) 
+                  (>= minute (cdr sunrise))))
          (<= hour 12)) "Good morning")
-       ((and 
+       ((and
          (or (< hour (car sunset))
              (and (= hour (car sunset))
                   (< minute (cdr sunset))))
@@ -191,8 +191,8 @@ If you're totally lost here, try (HELP :START)
 (defun bye ()
   (invoke-restart (find-restart 'exit-module)))
 
-(defmacro help (&optional (word :intro)) 
-  (typecase word 
+(defmacro help (&optional (word :intro))
+  (typecase word
     (keyword
      (romans::repl-help word))
     (string
@@ -200,22 +200,22 @@ If you're totally lost here, try (HELP :START)
      (terpri)
      (ql:system-apropos word))
     (t (when (swank:connection-info)
-         (ignore-errors 
-           (swank:eval-in-emacs 
-            `(ignore-errors 
+         (ignore-errors
+           (swank:eval-in-emacs
+            `(ignore-errors
                (slime-hyperspec-lookup ,(string word))))))
        (when (symbolp word)
          (describe word)
          ;; (describe-object word t)
          (when (boundp word)
-           (format t "~&Bound: The ~[current~;constant~] value is ~:D" 
+           (format t "~&Bound: The ~[current~;constant~] value is ~:D"
                    (constantp word)
                    (symbol-value word)))
          (dolist (doc-type '(variable function structure type setf t))
            (when-let ((info (without-warnings (documentation word doc-type))))
              (format t "~&~%Documentation of the ~(~A~) ~S:~%~A~%"
                      doc-type word info))))
-       
+
        (when-let ((system (asdf:find-system word nil)))
          (format t "~&~|~%ASDF System ~A:~{~%  ~:(~A~): ~A~}"
                  word
@@ -232,21 +232,21 @@ If you're totally lost here, try (HELP :START)
                                     asdf:system-defsystem-depends-on
                                     asdf:system-depends-on
                                     asdf:system-weakly-depends-on
-                                    asdf:system-source-control 	
+                                    asdf:system-source-control
                                     asdf:system-source-directory
                                     asdf:system-source-file)
                     for val = (funcall fun system)
                     when val
                     appending (list (subseq (symbol-name fun) 7)
                                     val))))
-       
+
        (when-let ((package (find-package (string word))))
          (format t "~&~|~% ~:@(~A~) is a package, which exports these symbols:~%"
                  word)
-         (let ((package-symbols 
+         (let ((package-symbols
                 (sort (loop for sym being the external-symbols of package
                          collect sym) #'string< :key #'symbol-name)))
-           (when-let ((bound (remove-if-not #'boundp package-symbols))) 
+           (when-let ((bound (remove-if-not #'boundp package-symbols)))
              (format t "~% Values bound in package ~A:~{~%   ~32A~^ ~32A~}~%"
                      word
                      bound))

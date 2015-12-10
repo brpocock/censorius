@@ -36,3 +36,4 @@ herald/herald
 herald/herald.backup* 
 *png
 *.log
+*.lx64fsl
