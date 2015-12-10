@@ -9,12 +9,13 @@
    :boolbool
    :clean-plist
    :field-?-p
-   :groups-of
    :group-by
+   :groups-of
    :interleave
    :interpret-field
-   :lambda&keys
    :keyword*
+   :lambda&keys
+   :mail-only
    :mail-only
    :mapplist
    :null-if
@@ -27,9 +28,9 @@
    :proper-roman-numeral
    :regex-replace-pairs
    :remove-commas
+   :repeat
    :roman-number-value
    :roman-numeral-value
-   :repeat
    :schemey-record
    :string-begins
    :string-ends
@@ -71,6 +72,7 @@
            #:paypal-app-id
            #:paypal-account
            #:paypal-client-id
+           #:paypal-url
            #:paypal-secret)
   (:nicknames :herald-db-config))
 

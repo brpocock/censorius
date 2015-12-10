@@ -16,9 +16,12 @@
                   "herald-db" "herald-db-orm"
                   "herald-fcgi" "google-apis"
                   "login/login" "login/google-login" "login/facebook-login"))
-    (format t "~& File ~a — compiling …" file)
+    (format t "~& File ~a — " file)
     (force-output)
-    (compile-file file)
+    (unless (search "load" file)
+      (format t " compiling … ")
+      (force-output)
+      (compile-file file))
     (format t " … loading …")
     (force-output)
     (load file)))

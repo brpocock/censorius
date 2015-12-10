@@ -23,9 +23,7 @@ string"
 
 (defvar *run-model* :cgi
   "In  which type  of runtime  environment are  we embedded?  This should  be :CGI  for the  traditional Common  Gateway
-Interface, or :FAST for the FastCGI interface.
-
-Some functions could also be invoked from :BATCH or :TTY modes.")
+Interface, or :FAST for the FastCGI interface. `INVOKE-VERB' sets it to:BATCH")
 
 (defvar *request* nil
   "Attributes of the current request (query) which we are dispatching.")
@@ -143,7 +141,8 @@ Normally called via convenience function `FIELD'")
   (:method ((a symbol) (b null) (c null))
     (ecase *run-model*
       (:fast (fcgx-getparam a *request*))
-      (:cgi (getf (query-params) (keyword* a)))))
+      (:cgi (getf (query-params) (keyword* a)))
+      ((:batch :tty) (getf *request* (keyword* a)))))
   (:method ((a string) (b number) (c string))
     (when-let (field-jso (field (make-keyword a)))
       (when-let (st-jso (st-json:read-json field-jso))
@@ -196,21 +195,25 @@ Content-Type: text/plain; charset=utf-8
                          (princ condition s)))))
          *error-output*))
 
-(defun mail-reg (destination subject reference &rest message-fmt+args)
+(defun mail-reg (destination subject reference message-format &rest message-args)
   "Send mail to someone about a Registration-related topic."
   (cl-sendmail:with-email
-      (mail-stream destination
-                   :bcc +sysop-mail+
-                   :cc +archive-mail+
-                   :subject subject
+      (mail-stream destination	 :bcc +sysop-mail+
+                   :cc +archive-mail+	 :subject subject
                    :from +herald-mail+
                    :other-headers `(("References" ,(concatenate 'string (string reference) "."
                                                                 +herald-mail-base+))
                                     ("Organization" "Temple of Earth Gathering, Inc.")
                                     ("X-Censorius-Herald-Version" ,(36r +compile-time+)))
                    :charset :utf-8
-                   :type "text" :subtype "plain")
-    (apply (curry #'format mail-stream) message-fmt+args)))
+                   :type "text" 	:subtype "plain")
+    (let ((*print-miser-width* 60)	 (*print-right-margin* 70)
+          (*print-readably* nil)	 (*print-pretty* t)
+          (*print-circle* nil)	 (*print-radix* 10)
+          (*print-escape* nil)	 (*print-length* 12)
+          (*print-case* :capitalize)	 (*print-lines* 12)
+          (*print-level* 10))
+      (format mail-stream "~?" message-format message-args))))
 
 (defmacro with-text-attachment ((&optional (mime-type "text")
                                            (mime-subtype "plain"))
@@ -224,17 +227,15 @@ Content-Type: text/plain; charset=utf-8
 (defun mail-reg-with-attachments (destination subject reference
                                   attachments message-fmt+args)
   (cl-sendmail:with-email
-      (mail-stream destination
-                   :bcc +sysop-mail+
-                   :cc +archive-mail+
-                   :subject subject
+      (mail-stream destination	 :bcc +sysop-mail+
+                   :cc +archive-mail+	 :subject subject
                    :from +herald-mail+
                    :other-headers `(("References" ,(concatenate 'string (string reference) "."
                                                                 +herald-mail-base+))
                                     ("Organization" "Temple of Earth Gathering, Inc.")
                                     ("X-Censorius-Herald-Version" ,(36r +compile-time+)))
                    :charset :utf-8
-                   :type "text" :subtype "plain"
+                   :type "text" 	:subtype "plain"
                    :attachments attachments)
     (apply (curry #'format mail-stream) message-fmt+args)))
 
@@ -530,12 +531,10 @@ Note on invoice:
             (concatenate 'string "[herald-error] " (let ((condition$ (format nil "~a" condition)))
                                                      (subseq condition$ 0 (min (length condition$)
                                                                                40))))
-            (concatenate 'string "condition."
-                         (simply$ (type-of condition))
-                         "." +herald-mail-base+)
+            (concatenate 'string "condition." (simply$ (type-of condition)) "." +herald-mail-base+)
             "A condition of type ~a was signaled. ~2%~a~%
 Query params:~%~s~2%
-Backtrace:~% ~{~% → ~a~}~2%
+Backtrace:~% ~% → ~a ~2%
 ~@[ Invoice data:~% ~{ ~a ~s ~}~]~% \(end of line)"
             (type-of condition)
             (or condition "Ø")
@@ -637,7 +636,8 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
     (:raw (ecase *run-model*
             (:fast (cl-fastcgi:fcgx-puts *request* (second structure)))
             (:cgi (princ (second structure))
-                  (princ (second structure) *error-output*))))))
+                  (princ (second structure) *error-output*))
+            ((:batch :tty) (princ (second structure) *error-output*))))))
 
 (define-constant +save-fields+
     '(:note)
@@ -1282,6 +1282,10 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
   (format *error-output* "~& DISPATCH:  verb = ~a~%" (field :verb))
   (handle-verb (keyword* (field :verb))))
 
+(defun invoke-verb (verb &rest *request* &key &allow-other-keys)
+  (let ((*run-model* :batch))
+    (handle-verb verb)))
+
 (defun herald-fcgi (req)
   (let ((*run-model* :fast)
         (*request* req)
@@ -1498,11 +1502,13 @@ Details: Invoice token ~s;
       (invoke-restart continue))
     (reply-error condition)))
 
-(defun exec-cgi (command-line)
-  (declare (ignore command-line))
+(defun exec-cgi (&optional command-line)
   (let ((*debugger-hook* #'cgi-debugger)
         (drakma:*drakma-default-external-format* :utf-8)
         (flexi-streams:*default-eol-style* :lf))
+    (when command-line
+      (unless (every (compose #'zerop #'length #'string) command-line)
+        (format *error-output* "CGI invoked with (ignored) command-line: ~s" command-line)))
     (handler-case
         (with-sql (herald-cgi))
       (error (c) (cgi-debugger c nil)))))
@@ -1512,10 +1518,11 @@ Details: Invoice token ~s;
         (drakma:*drakma-default-external-format* :utf-8)
         (flexi-streams:*default-eol-style* :lf)        )
     (handler-case
-        (with-sql (herald-fcgi (first command-line)))
+        (with-sql (herald-fcgi (when command-line 
+                                 (first command-line))))
       (error (c) (cgi-debugger c nil)))))
 
-(defun exec-repl (command-line)
+(defun exec-repl (&optional command-line)
   (ql:quickload :prepl)
   (with-sql
     (format t "~&~|~%REPL for Censorius Herald~2%")
@@ -1551,7 +1558,7 @@ Details: Invoice token ~s;
 (defun paypal-get-new-oauth2-token ()
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "oauth2/token")
+       (herald-secret-config:paypal-url "oauth2/token")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
@@ -1619,7 +1626,7 @@ Details: Invoice token ~s;
 (defun paypal-demand-payment (invoice amount)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "payments/payment")
+       (herald-secret-config:paypal-url "payments/payment")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
@@ -1651,7 +1658,7 @@ Details: Invoice token ~s;
 (defun paypal-get-payment-status (payment-id)
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "payments/payment/" payment-id)
+       (herald-secret-config:paypal-url "payments/payment/" payment-id)
        :method :get
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
@@ -1763,7 +1770,7 @@ values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
   (declare (ignore token))
   (multiple-value-bind (response-body http-status-code response-headers uri stream happiness http-status-string )
       (drakma:http-request
-       (paypal-url "payments/payment/" payment-id "/execute")
+       (herald-secret-config:paypal-url "payments/payment/" payment-id "/execute")
        :method :post
        :external-format-in :utf-8 :external-format-out :utf-8
        :user-agent (herald-user-agent )
@@ -2790,12 +2797,13 @@ a whole, or within the confines of the /news/ site.")
       (let ((gender (or (person-gender person) 
                         (random-elt #(:m :f)))))
         (ecase gender
-          (:m #.(coerce #(#\boy) 'string))
-          (:f #.(coerce #(#\girl) 'string))))))
+          (:m "👦")
+          (:f "👧")))))
 
 (defmethod couple-icon (one spouse &key (text-only-p t))
   (if (and (not text-only-p)
-           (person-gravatar-p ))
+           (person-gravatar-p one)
+           (person-gravatar-p other))
       (concatenate 'string
                    "<div class=\"couple-icons\"><img src=\""
                    (person-gravatar one)
@@ -2808,9 +2816,9 @@ a whole, or within the confines of the /news/ site.")
                       (or (person-gender spouse)
                           (random-elt #(:m :f))))))
     (cond ((not spouse) (person-icon one))
-          ((not (eql gender1 gender2)) #\man_and_woman_holding_hands)
-          ((eql :f gender2) #\two_women_holding_hands)
-          (t #\two_men_holding_hands))))
+          ((not (eql gender1 gender2)) "👫")
+          ((eql :f gender2) "👭")
+          (t "👬"))))
 
 (defmethod lugal+-p (person) nil) ; FIXME
 (defmethod staffp (person) nil) ; FIXME
@@ -2907,7 +2915,7 @@ a whole, or within the confines of the /news/ site.")
                      (otherwise "partner"))
                    " of "
                    (if (lugal+-p to)
-                       #(#\cuneiform_sign_lugal #\space)
+                       "𒈗 "
                        "")
                    (personal-address to))
       ""))
