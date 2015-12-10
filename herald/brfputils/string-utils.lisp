@@ -218,18 +218,18 @@ For example, to octal-escape all characters outside the range of printable ASCII
                (symbol-value '*language*))
     (setf *language* (keywordify
                       (first (split-sequence 
-                              #\_ (sb-posix:getenv "LANG"))))))
+                              #\_ (uiop/os:getenv "LANG"))))))
   (unless (and (boundp '*dialect*)
                (symbol-value '*dialect*))
     (setf *dialect* (keywordify
                      (first (split-sequence 
                              #\. (second (split-sequence
-                                          #\_ (sb-posix:getenv "LANG"))))))))
+                                          #\_ (uiop/os:getenv "LANG"))))))))
   (unless (and (boundp '*language-coding*)
                (symbol-value '*language-coding*))
     (setf *language-coding* (keywordify
                              (second (split-sequence 
-                                      #\. (sb-posix:getenv "LANG")))))))
+                                      #\. (uiop/os:getenv "LANG")))))))
 
 (defun letter-case (string)
   "Determine the case of a STRING, by returning the symbol of the CL function that describes it. If the string is in all
