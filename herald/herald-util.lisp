@@ -7,7 +7,13 @@
   (defvar +compile-time+ (- (get-universal-time) +compile-time-offset+)))
 
 
+;;; Patch to substitute for a missing (but required for e.g. FORMAT ~T) method in SBCL
+;; XXX  Note  that it  might  be  possible to  backtrack  into  the  string buffer  to  find  a #\Newline  and  actually
+;; implement this.
+#+sbcl
+(defmethod stream-line-column ((stream sb-impl::string-output-stream)) nil)
 
+
 ;;; this function is taken from Hunchentoot 1.1.0 without effective modification
 (defun url-decode (string &optional (external-format +utf-8+))
   "Decodes a URL-encoded STRING which is assumed to be encoded using the external format EXTERNAL-FORMAT."
