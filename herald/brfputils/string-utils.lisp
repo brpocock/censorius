@@ -10,19 +10,26 @@
                   (remove-if #'null strings))))
 
 (define-constant +whitespace+
-    (coerce #(;; Defined in ASCII
-              #\Space #\Tab #\Page #\Linefeed #\Return #\Null
-              ;; defined in ISO-8859-*
-              #\No-Break_Space #\Reverse-Linefeed
-              ;; defined in Unicode
-              #\Ogham_space_mark #\Mongolian_Vowel_Separator
-              #\En_quad #\Em_quad #\En_Space #\Em_Space
-              #\Three-per-Em_Space #\Four-per-Em_Space
-              #\Six-per-Em_Space #\Figure_Space #\Punctuation_Space
-              #\Thin_Space #\Hair_Space
-              #\Zero_Width_Space #\Narrow_No-Break_Space
-              #\Medium_Mathematical_Space #\Ideographic_Space
-              #\Zero_Width_No-Break_Space)
+    (coerce #+sbcl #(;; Defined in ASCII
+                     #\Space #\Tab #\Page #\Linefeed #\Return #\Null
+                     ;; defined in ISO-8859-*
+                     #\No-Break_Space #\Reverse-Linefeed
+                     ;; defined in Unicode 
+                     #\Ogham_space_mark #\Mongolian_Vowel_Separator
+                     #\En_quad #\Em_quad #\En_Space #\Em_Space
+                     #\Three-per-Em_Space #\Four-per-Em_Space
+                     #\Six-per-Em_Space #\Figure_Space #\Punctuation_Space
+                     #\Thin_Space #\Hair_Space
+                     #\Zero_Width_Space #\Narrow_No-Break_Space
+                     #\Medium_Mathematical_Space #\Ideographic_Space
+                     #\Zero_Width_No-Break_Space)
+            
+            #+ccl #(;; Defined in ASCII
+                    #\Space #\Tab #\Page #\Linefeed #\Return #\Null
+                    ;; defined in ISO-8859-*
+                    #\No-Break_Space 
+                    ;; defined in Unicode 
+                    #\Figure_Space)
             'simple-string)
   :test #'equal
   :documentation "A list of all whitespace chars in Unicode. Superset of
@@ -30,19 +37,25 @@
 
 
 (define-constant +inline-whitespace+
-    (coerce #(;; Defined in ASCII
-              #\Space #\Tab
-              ;; defined in ISO-8859-*
-              #\No-Break_Space
-              ;; defined in Unicode
-              #\Ogham_space_mark #\Mongolian_Vowel_Separator
-              #\En_quad #\Em_quad #\En_Space #\Em_Space
-              #\Three-per-Em_Space #\Four-per-Em_Space
-              #\Six-per-Em_Space #\Figure_Space #\Punctuation_Space
-              #\Thin_Space #\Hair_Space
-              #\Zero_Width_Space #\Narrow_No-Break_Space
-              #\Medium_Mathematical_Space #\Ideographic_Space
-              #\Zero_Width_No-Break_Space)
+    (coerce #+sbcl #(;; Defined in ASCII
+                     #\Space #\Tab
+                     ;; defined in ISO-8859-*
+                     #\No-Break_Space
+                     ;; defined in Unicode
+                     #\Ogham_space_mark #\Mongolian_Vowel_Separator
+                     #\En_quad #\Em_quad #\En_Space #\Em_Space
+                     #\Three-per-Em_Space #\Four-per-Em_Space
+                     #\Six-per-Em_Space #\Figure_Space #\Punctuation_Space
+                     #\Thin_Space #\Hair_Space
+                     #\Zero_Width_Space #\Narrow_No-Break_Space
+                     #\Medium_Mathematical_Space #\Ideographic_Space
+                     #\Zero_Width_No-Break_Space)
+            #+ccl #(;; Defined in ASCII
+                    #\Space #\Tab 
+                    ;; defined in ISO-8859-*
+                    #\No-Break_Space 
+                    ;; defined in Unicode 
+                    #\Figure_Space)
             'simple-string)
   :test #'equal
   :documentation "A list of all whitespace chars in Unicode that occur
@@ -53,12 +66,17 @@
 
 
 (define-constant +often-naughty-chars+
-    (coerce #(#\\ #\! #\| #\# #\$ #\% #\& #\?
-              #\{ #\[ #\( #\) #\] #\} #\= #\^ #\~
-              #\' #\" #\` #\< #\> #\*
-              #\Space #\Tab #\Page #\Linefeed #\Return #\Null
-              #\No-Break_Space #\Reverse-Linefeed
-              #\Zero_Width_No-Break_Space)
+    (coerce #+sbcl #(#\\ #\! #\| #\# #\$ #\% #\& #\?
+                     #\{ #\[ #\( #\) #\] #\} #\= #\^ #\~
+                     #\' #\" #\` #\< #\> #\*
+                     #\Space #\Tab #\Page #\Linefeed #\Return #\Null
+                     #\No-Break_Space #\Reverse-Linefeed
+                     #\Zero_Width_No-Break_Space)
+            #+ccl #(#\\ #\! #\| #\# #\$ #\% #\& #\?
+                    #\{ #\[ #\( #\) #\] #\} #\= #\^ #\~
+                    #\' #\" #\` #\< #\> #\*
+                    #\Space #\Tab #\Page #\Linefeed #\Return #\Null
+                    #\No-Break_Space)
             'simple-string)
   :test #'equal
   :documentation "A list of characters which often have special
