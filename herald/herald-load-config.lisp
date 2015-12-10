@@ -45,8 +45,8 @@
 
 (defmacro herald-config::test-build (boolean)
   (ecase boolean
-    ((t herald-config::true) (cl:defconstant herald-fcgi::+test-build+ t))
-    ((nil herald-config::false) (cl:defconstant herald-fcgi::+test-build+ nil))))
+    ((t herald-config::t herald-config::true) (cl:defconstant herald-fcgi::+test-build+ t))
+    ((nil herald-config::nil herald-config::false) (cl:defconstant herald-fcgi::+test-build+ nil))))
 
 (define-constant +herald-mail-base+ "herald@star-hope.org" :test #'equal)
 
