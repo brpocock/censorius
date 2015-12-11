@@ -50,8 +50,13 @@
 (defpackage :herald-fcgi
   (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
         :brfp :herald-db :herald-util)
-  (:export :herald-cgi :herald-fcgi
-           :herald-user-agent :whine
+  (:export :herald-cgi 
+           :herald-fcgi
+           :exec-repl
+           :invoke-verb
+           :about-me
+           :herald-user-agent 
+           :whine
            :+test-build+
            :+host-name+ 
            :+uri-prefix+))
