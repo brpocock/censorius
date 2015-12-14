@@ -81,4 +81,6 @@
            #:paypal-secret)
   (:nicknames :herald-db-config))
 
+(defpackage :herald-config)             ; does not use CL
+
 (import 'herald-fcgi:+test-build+ :herald-secret-config)

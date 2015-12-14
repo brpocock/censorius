@@ -2,76 +2,112 @@
 
 ;;; control cards
 
-(defpackage :herald-config)
-(defmacro herald-config::host-name (name-string)
-  (check-type name-string string)
-  (assert (string-begins "http" name-string))
-  (assert (not (string-ends "/" name-string)))
-  `(define-constant +host-name+ ,name-string :test #'equal))
+(eval-when (:compile-toplevel :load-toplevel)
+  (defpackage :herald-config)
+  (defmacro herald-config::host-name (name-string)
+    (check-type name-string string)
+    (assert (string-begins "http" name-string))
+    (assert (not (string-ends "/" name-string)))
+    `(define-constant +host-name+ ,name-string :test #'equal))
 
-(defmacro herald-config::uri-prefix (uri-prefix)
-  (check-type uri-prefix string)
-  (assert (string-begins "/" uri-prefix))
-  `(define-constant +uri-prefix+ ,uri-prefix :test #'equal))
+  (defmacro herald-config::uri-prefix (uri-prefix)
+    (check-type uri-prefix string)
+    (assert (string-begins "/" uri-prefix))
+    `(define-constant +uri-prefix+ ,uri-prefix :test #'equal))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun check-mail (mail)
-    (check-type mail string)
-    (assert (string-begins "\"" mail))
-    (assert (< (position #\" mail)
-               (position #\" mail :from-end t)
-               (position #\< mail)
-               (position #\@ mail)
-               (position #\. mail :from-end t)
-               (position #\> mail)))
-    (assert (string-ends ">" mail))))
+  (eval-when (:compile-toplevel :load-toplevel :execute)
+    (defun check-mail (mail)
+      (check-type mail string)
+      (assert (string-begins "\"" mail))
+      (assert (< (position #\" mail)
+                 (position #\" mail :from-end t)
+                 (position #\< mail)
+                 (position #\@ mail)
+                 (position #\. mail :from-end t)
+                 (position #\> mail)))
+      (assert (string-ends ">" mail))))
 
-(defmacro config-mail (symbol)
-  `(defmacro ,(intern (symbol-name symbol) :herald-config) (,symbol)
-     (check-mail ,symbol)
-     ,(list 'define-constant (intern (concatenate 'string "+" (symbol-name symbol) "+"))
-            symbol
-            :test '#'equal)))
+  (defmacro config-mail (symbol)
+    `(defmacro ,(intern (symbol-name symbol) :herald-config) (,symbol)
+       (check-mail ,symbol)
+       ,(list 'define-constant (intern (concatenate 'string "+" (symbol-name symbol) "+"))
+              symbol
+              :test '#'equal)))
 
-(config-mail sysop-mail)
-(config-mail herald-mail)
-(config-mail registrar-mail)
-(config-mail vendors-mail)
-(config-mail workshops-mail)
-(config-mail archive-mail)
+  (config-mail sysop-mail)
+  (config-mail herald-mail)
+  (config-mail registrar-mail)
+  (config-mail vendors-mail)
+  (config-mail workshops-mail)
+  (config-mail archive-mail)
 
-(defconstant herald-config::true t)
-(defconstant herald-config::false nil)
+  (defconstant herald-config::true t)
+  (defconstant herald-config::false nil)
 
-(defmacro herald-config::test-build (boolean)
-  (ecase boolean
-    ((t herald-config::t herald-config::true) (cl:defconstant herald-fcgi::+test-build+ t))
-    ((nil herald-config::nil herald-config::false) (cl:defconstant herald-fcgi::+test-build+ nil))))
+  (defmacro herald-config::test-build (boolean)
+    (ecase boolean
+      ((herald-config::t herald-config::true) (cl:defconstant herald-fcgi::+test-build+ t))
+      ((herald-config::nil herald-config::false) (cl:defconstant herald-fcgi::+test-build+ nil))))
 
-(define-constant +herald-mail-base+ "herald@star-hope.org" :test #'equal)
+  (define-constant +herald-mail-base+ "herald@star-hope.org" :test #'equal)
 
-(defvar +accepted-currency+ "USD")
+  (defvar +accepted-currency+ "USD"))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
+#+ (or)
+(eval-when (:compile-toplevel :load-toplevel)
   (tagbody do-over
      (restart-bind
          ((do-over (lambda () (go do-over))
             :report-function (lambda (s) (princ "Try loading the file herald-config.lisp again" s))))
+       (format t "~& About to load herald-config… ")
        (load (make-pathname :name "herald-config" :type "lisp"
                             :defaults (or *load-truename* *compile-file-truename*)))
+       (format t " … loaded herald-config.")
        (dolist (sym '(test-build host-name uri-prefix sysop-mail registrar-mail vendors-mail workshops-mail
                       archive-mail herald-mail))
          (let ((const (intern (concatenate 'string "+" (symbol-name sym) "+"))))
            (assert (boundp const) ()
                    "The value ~a should be set in the file herald-config.lisp" sym)))))
+  (format t "~& About to load herald-secrets… ")
   (load (make-pathname :name "herald-secrets" :type "lisp"
-                       :defaults (user-homedir-pathname))))
+                       :defaults (user-homedir-pathname)))
+  (format t " … loaded herald-secrets."))
 
 (defparameter *read-post-max* (* 4 1024 1024)
   "The maximum number of characters to allow to be read from a POST")
 
 (defparameter *read-post-timeout* 10
   "The maximum number of seconds to wait while reading from a POST")
+
+(eval-when (:compile-toplevel :load-toplevel)
+  (tagbody do-over
+     (restart-bind
+         ((do-over (lambda () (go do-over))
+            :report-function (lambda (s) (princ "Try loading the file herald-config.lisp again" s))))
+       (format t "~& About to load herald-config… ")
+       (let ((config-file (let ((in-projects (merge-pathnames (make-pathname 
+                                                               :directory '(:relative "Projects" "censorius" "herald")
+                                                               :name "herald-config" :type "lisp"
+                                                               )
+                                                              (user-homedir-pathname ))))
+                            (if (probe-file in-projects) 
+                                in-projects
+                                (merge-pathnames (make-pathname 
+                                                  :directory "herald"
+                                                  :name "herald-config" :type "lisp")
+                                                 (user-homedir-pathname))))))
+         (load config-file))
+       (format t " … loaded herald-config.")
+       (dolist (sym '(test-build host-name uri-prefix sysop-mail registrar-mail vendors-mail workshops-mail
+                      archive-mail herald-mail))
+         (let ((const (intern (concatenate 'string "+" (symbol-name sym) "+"))))
+           (assert (boundp const) ()
+                   "The value ~a should be set in the file herald-config.lisp" sym)))))
+  (format t "~& About to load herald-secrets… ")
+  (load (make-pathname :name "herald-secrets" :type "lisp"
+                       :defaults (user-homedir-pathname)))
+  (format t " … loaded herald-secrets."))
+
 
 ;;; compile-time constants
 (defconstant +compile-time-offset+ 3639900000)

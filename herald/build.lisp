@@ -15,8 +15,10 @@
            :test #'equal)
   (pushnew (make-pathname :directory "brfputils") asdf:*central-registry*
            :test #'equal)
-  (map nil (compose #'load #'merge-pathnames) '("brfputils/brfputils.asd"
-                                                "herald.asd"))
+  (map nil (lambda (file)
+             (load (merge-pathnames file))) 
+       '("brfputils/brfputils.asd"
+         "herald.asd"))
   (ql:quickload :brfputils)
   (handler-bind
       (#+ccl (cffi:load-foreign-library-error 
@@ -25,23 +27,10 @@
                 (invoke-restart 'use-value "/usr/lib64/libfcgi.so.0"))))
     (ql:quickload #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi))
   
-  (ql:quickload :herald-fcgi)
-  ;; (dolist (file '("setup" "packages"
-  ;;                 "herald-util"
-  ;;                 "herald-load-config"
-  ;;                 "herald-db" "herald-db-orm"
-  ;; "herald-fcgi" "google-apis"
-  ;; "login/login" "login/google-login" "login/facebook-login"))
-  ;;   (format t "~& File ~a — compiling …" file)
-  ;;   (force-output)
-  ;;   (compile-file file)
-  ;;   (format t " … loading …")
-  ;;   (force-output)
-  ;;   (load file))
-  )
+  (ql:quickload :herald-fcgi))
 
-(compile-file "build-install.lisp")
-(load "build-install.lisp")
+;; (compile-file "build-install.lisp")
+;; (load "build-install.lisp")
 
 (with-open-file (*standard-output* (make-pathname :directory (pathname-directory (user-homedir-pathname))
                                                   :name (format nil "herald-build-~:@(~36r~)" (eval (intern "+COMPILE-TIME+" :herald-fcgi)))
@@ -49,14 +38,17 @@
                                    :direction :output :if-exists :supersede)
   (eval (list (intern "ABOUT-ME" :herald-fcgi))))
 
-(with-open-file (s (make-pathname :name (format nil "install-herald~@[-test~]" herald-fcgi:+test-build+))
-                   :direction :output :if-exists :supersede)
-  (format s "#!/bin/sh
+(let ((install-filename (make-pathname :name (format nil "install-herald~@[-test~]" herald-fcgi:+test-build+))))
+  (with-open-file (s install-filename
+                     :direction :output :if-exists :supersede)
+    (format s "#!/bin/sh
 echo Installing Censorius Herald build ~@:(~36r~) for ~:[★LIVE PRODUCTION★~;testing~]"
-          herald-fcgi::+compile-time+ herald-fcgi:+test-build+)
-  (format s "~2%ln -f ~:[herald.cgi~;herald.fcgi~] ../~a~%" 
-          (search ".fcgi" herald-fcgi:+uri-prefix+)
-          herald-fcgi:+uri-prefix+))
-(uiop/os:)
+            herald-fcgi::+compile-time+ herald-fcgi:+test-build+)
+    (format s "~2%ln -f ~:[herald.cgi~;herald.fcgi~] ../~a~%" 
+            (search ".fcgi" herald-fcgi:+uri-prefix+)
+            herald-fcgi:+uri-prefix+))
+  (#+sbcl sb-posix:chmod
+          #+ccl error 
+          install-filename #o775))
 
 
