@@ -1,13 +1,13 @@
-(defpackage :brfputils
+(defpackage :elephant
   (:use :cl :alexandria :split-sequence)
   )
 
-(in-package :brfputils)
+(in-package :elephant)
 
 
 
 (defpackage :herald-server
-  (:use :cl :alexandria :split-sequence :hunchentoot :brfputils)
+  (:use :cl :alexandria :split-sequence :hunchentoot :elephant)
   (:export #:toplevel #:start-server #:stop-server 
            #:dispatch-cgi #:dispatch-fastcgi #:dispatch))
 

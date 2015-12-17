@@ -13,18 +13,18 @@
                                            (truename "~/herald/")))))
   (pushnew *default-pathname-defaults* asdf:*central-registry*
            :test #'equal)
-  (pushnew (make-pathname :directory "brfputils") asdf:*central-registry*
+  (pushnew (make-pathname :directory "elephant") asdf:*central-registry*
            :test #'equal)
   (map nil (lambda (file)
              (load (merge-pathnames file))) 
-       '("brfputils/brfputils.asd"
+       '("elephant/elephant.asd"
          "herald.asd"))
-  (ql:quickload :brfputils)
+  (ql:quickload :elephant)
   (handler-bind
       (#+ccl (cffi:load-foreign-library-error 
-              (lambda (c)
-                (format *error-output* "⁂ Condition signaled: ~s~%~:*~a~%Going to try loading /usr/lib64/libfcgi.so.0" c)
-                (invoke-restart 'use-value "/usr/lib64/libfcgi.so.0"))))
+               (lambda (c)
+                 (format *error-output* "⁂ Condition signaled: ~s~%~:*~a~%Going to try loading /usr/lib64/libfcgi.so.0" c)
+                 (invoke-restart 'use-value "/usr/lib64/libfcgi.so.0"))))
     (ql:quickload #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi))
   
   (ql:quickload :herald-fcgi))
@@ -38,7 +38,8 @@
                                    :direction :output :if-exists :supersede)
   (eval (list (intern "ABOUT-ME" :herald-fcgi))))
 
-(let ((install-filename (make-pathname :name (format nil "install-herald~@[-test~]" herald-fcgi:+test-build+))))
+(let ((install-filename (make-pathname :name (format nil "install-herald~@[~*-test~]"
+                                                     herald-fcgi:+test-build+))))
   (with-open-file (s install-filename
                      :direction :output :if-exists :supersede)
     (format s "#!/bin/sh
@@ -48,7 +49,7 @@ echo Installing Censorius Herald build ~@:(~36r~) for ~:[★LIVE PRODUCTION★~;
             (search ".fcgi" herald-fcgi:+uri-prefix+)
             herald-fcgi:+uri-prefix+))
   (#+sbcl sb-posix:chmod
-          #+ccl error 
-          install-filename #o775))
+   #+ccl osicat-posix:chmod 
+   install-filename #o775))
 
 

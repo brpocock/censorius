@@ -6,7 +6,7 @@ buildapp --output herald \
 	--logfile herald.buildapp.log \
 	--load ~/quicklisp/setup.lisp \
 	--asdf-path $(pwd) \
-          --asdf-path $(pwd)/brfputils \
+          --asdf-path $(pwd)/elephant \
 	--load build.lisp \
 	--dispatched-entry herald.cgi/herald-fcgi::exec-cgi \
 	--dispatched-entry herald.fcgi/herald-fcgi::exec-fcgi \
