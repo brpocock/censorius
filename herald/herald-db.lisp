@@ -184,45 +184,80 @@ where constraint_schema=? and table_name=?"
 (defun dequote (s)
   (if (and (member (elt s 0) '(#\' #\") :test #'char=)
            (char= (elt s 0) (last-elt s)))
-      (subseq s 1 (- (length s) 2))
+      (subseq s 1 (1- (length s)))
       s))
+
+(defgeneric sql-column-type->lisp (kind detail)
+  (:method ((kind (eql :timestamp)) (detail null))
+    (values 'timestamp 'unix-to-timestamp 'timestamp-to-unix))
+  (:method ((kind (eql :date)) (detail null))
+    (sql-column-type->lisp :timestamp nil))
+  (:method ((kind (eql :datetime)) (detail null))
+    (sql-column-type->lisp :timestamp nil))
+  (:method ((kind (eql :char)) (detail cons))
+    (values 'string 
+            `(lambda (s) (string-fixed s ,(parse-integer (first detail))))
+            'identity))
+  (:method ((kind (eql :enum)) (detail cons))
+    (values `(member ,@(mapcar (compose #'keyword* #'dequote) detail))
+            'string-upcase 'keyword*))
+  (:method ((kind (eql :text)) (detail null))
+    (declare (ignore detail))
+    (values 'string 'identity 'princ-to-string))
+  (:method ((kind (eql :varchar)) (detail cons))
+    (declare (ignore detail))
+    ;; TODO: Warning on truncation?
+    (sql-column-type->lisp :text nil))
+  (:method ((kind (eql :blob)) (detail null))
+    (declare (ignore detail))
+    (values '(vector (unsigned-byte 8)) 'identity 'identity))
+  (:method ((kind (eql :tinyint)) (detail cons))
+    (assert (equalp '("1") detail))
+    (values 't 'boolbool 'c-bool))
+  (:method ((kind (eql :bigint)) (detail cons))
+    (values (list 'integer 
+                  (- (expt 10 (parse-integer (first detail))))
+                  (1- (expt 10 (parse-integer (first detail)))))
+            'identity 'identity))
+  (:method ((kind (eql :int)) detail)
+    (sql-column-type->lisp :bigint detail))
+  (:method ((kind (eql :double)) (detail null))
+    (declare (ignore detail))
+    (values 'real '(lambda (n) (* 1.0 n)) 'identity))
+  (:method ((kind (eql :decimal)) (detail cons))
+    (let ((e (expt 10 (parse-integer (first detail))))
+          (scalar (expt 10 (parse-integer (second detail)))))
+      (values (list 'real (- e) (1- e))
+              `(lambda (n) (* ,scalar (round (* 1.0 n) ,scalar)))
+              'identity)))
+  (:method ((kind (eql :year)) (detail cons))
+    (assert (equalp '("4") detail))
+    (values '(integer 1 9999) 'identity 'identity)))
+
 
 (defun lisp-type-for-column (column-name table-description)
   (let* ((column (find column-name table-description
                        :key (rcurry #'getf :field)
                        :test #'string-equal))
          (column-type (getf column :type))
-         (kind (when (find #\( column-type)
-                 (subseq column-type 0 (position #\( column-type))))
+         (kind (if (find #\( column-type)
+                   (subseq column-type 0 (position #\( column-type))
+                   column-type))
          (detail (when (find #\( column-type)
                    (split-sequence #\,
                                    (subseq column-type
                                            (1+ (position #\( column-type))
                                            (position #\) column-type))))))
-    
-    (ecase (keyword* kind)
-      (:date (values 'timestamp 'unix-to-timestamp 'timestamp-to-unix))
-      (:char (values 'string 
-                     `(lambda (s) (string-fixed s ,(parse-integer (first detail))))
-                     'identity))
-      (:enum (values `(member ,@(mapcar (compose #'keyword* #'dequote) detail))
-                     'string-upcase 'keyword*))
-      (:varchar (values 'string 'identity 'princ-to-string))
-      (:tinyint (values 'boolean 'boolbool 'c-bool))
-      (:decimal (let ((scalar (expt 10 (parse-integer (second detail)))))
-                  (values (list 'real 0 (1- (expt 10 (parse-integer (first detail)))))
-                          `(lambda (n) (* ,scalar (round (* 1.0 n) ,scalar)))
-                          'identity)))
-      (:year (values '(integer 1 9999) 'identity 'identity)))))
+    (sql-column-type->lisp (keyword* kind) detail)))
 
 (defun assert-columns-exist (db-table table start-column end-column logical-deletion-column)
   (loop for column in '(start-column end-column logical-deletion-column)
-     for column-name in (list start-column end-column logical-deletion-column)
-     when column-name
-     do (assert (simple-record-table-has-column table column-name)
-                ()
-                "The ~a given for ~a is ~a, which is not a column on that table"
-                column db-table column-name)))
+        for column-name in (list start-column end-column logical-deletion-column)
+        when column-name
+          do (assert (simple-record-table-has-column table column-name)
+                     ()
+                     "The ~a given for ~a is ~a, which is not a column on that table"
+                     column db-table column-name)))
 
 (defun assert-primary-keys-exist (object db-table primary-key-columns)
   (assert (every (curry #'simple-record-table-has-column object) primary-key-columns)
@@ -288,34 +323,36 @@ where constraint_schema=? and table_name=?"
           (multiple-value-bind (general-type casting cast-from) 
               (lisp-type-for-column column-name (simple-record-table-description object))
             
-            (eval `(defmethod ,accessor-name ((instance ,record-class))
-                     (the (or ,general-type null)
-                          (,cast-from
-                           (getf (instance) ,(keyword* column-name))))))
+            (eval (print `(defmethod ,accessor-name ((instance ,record-class))
+                            (the (or ,general-type null)
+                                 (,cast-from
+                                  (getf (instance) ,(keyword* column-name)))))))
             (export accessor-name)
             
-            (let ((general-type-class (if (consp general-type) (car general-type) general-type)))
+            (let ((general-type-class (if (consp general-type)
+                                          (let ((car (car general-type)))
+                                            (if (eql car 'member)
+                                                'symbol
+                                                car))
+                                          general-type)))
               (unless (member column-name primary-key-columns :test #'string-equal)
-                (identity #+ (or) let 
-                          #+ (or) ((unkey-columns (remove-if (rcurry #'member primary-key-columns :test #'string-equal)
-                                                             columns)))
-                          (eval (print `(defmethod (setf ,accessor-name) ((new-value ,general-type-class)
-                                                                          (instance ,record-class))
-                                          (check-type new-value (or ,general-type null))
-                                          (db-query ,(format nil "update `~a` set `~a`=? where ~{`~a`=?~^ and ~}"
-                                                             db-table
-                                                             column-name
-                                                             primary-key-columns)
-                                                    (,casting new-value)
-                                                    ;; (mapcar (curry #'getf instance) ',(mapcar #'keyword* unkey-columns))
-                                                    (mapcar (curry #'getf instance) ',(mapcar #'keyword* primary-key-columns)))
-                                          (setf (getf instance ,(keyword* column-name)) new-value))))))))))))
-  
+                (eval (print `(defmethod (setf ,accessor-name) ((new-value ,general-type-class)
+                                                                (instance ,record-class))
+                                (check-type new-value (or ,general-type null))
+                                (db-query ,(format nil "update `~a` set `~a`=? where ~{`~a`=?~^ and ~}"
+                                                   db-table
+                                                   column-name
+                                                   primary-key-columns)
+                                          (,casting new-value)
+                                          ;; (mapcar (curry #'getf instance) ',(mapcar #'keyword* unkey-columns))
+                                          (mapcar (curry #'getf instance) ',(mapcar #'keyword* primary-key-columns)))
+                                (setf (getf instance ,(keyword* column-name)) new-value)))))))))))
+  2
   (setf (gethash db-table *simple-record-tables*) object))
 
 
 (defun all-tables ()
-       (mapcar #'second (db-query "show tables")))
+  (mapcar #'second (db-query "show tables")))
 
 
 (defmethod print-object ((table simple-record-table) s)
