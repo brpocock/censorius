@@ -46,7 +46,7 @@
   (error 'unimplemented))
 
 (defparameter *auths*
-  '(:brfp (:wheel :adm :world :events :vendors)
+  '(:elephant (:wheel :adm :world :events :vendors)
     :sage (:wheel :adm :world :events :vendors)
     :mystral (:world :events :vendors)
     :anonymous (:world)))

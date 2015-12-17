@@ -138,7 +138,7 @@
     (plusp (length (db-query (format nil "describe `~a`" table))))))
 
 (defun singular (name)
-  (brfp::make-english-singular name))
+  (elephant::make-english-singular name))
 
 (assert (equal (singular "people-in-places") "person-in-place"))
 (assert (equal (singular "countries") "country"))
