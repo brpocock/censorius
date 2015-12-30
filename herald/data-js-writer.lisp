@@ -148,7 +148,7 @@ values. Descends plists recursively. Coerces keys to strings"
 
 
 
-(defonce people (atom {:elephant {:given-name ["Bruce-Robert"]
+(defonce people (atom {:oliphaunt {:given-name ["Bruce-Robert"]
                       :surname ["Pocock"]
                       :dob {:year 1977 :month 10 :day 21}
                                        :e-mail [[:personal "brpocock@star-hope.org"]
@@ -159,7 +159,7 @@ values. Descends plists recursively. Coerces keys to strings"
                       :sage {:given-name ["John"]
                                        :surname ["Starkie"]
                                        :called-by ["Sage"]
-                                       :rel [[:spouse :elephant]]}
+                                       :rel [[:spouse :oliphaunt]]}
                       :annemarie {:given-name ["Ann Marie"]
                                        :surname ["Augustino"]
                                        :e-mail [[:personal "ama422@aol.com"]]}

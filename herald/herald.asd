@@ -12,7 +12,7 @@
                :dbd-mysql
                :split-sequence
                
-               :elephant)
+               :oliphaunt)
   :serial t
   :components ((:file "packages")
                (:file "herald-util")))
@@ -36,7 +36,7 @@
                
                #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
                
-               :elephant
+               :oliphaunt
                :herald-util)
   :serial t
   :components ((:file "packages")
@@ -54,7 +54,7 @@
                :cl-ppcre
                :trivial-backtrace
                
-               :elephant
+               :oliphaunt
                :herald-util
                :herald-db)
   :serial t

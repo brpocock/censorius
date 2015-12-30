@@ -1,7 +1,7 @@
 ;;; Package declarations and exported symbols
 
 (defpackage :herald-util
-  (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi :elephant)
+  (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi :oliphaunt)
   (:export 
    :+utf-8+
    :36r
@@ -44,12 +44,12 @@
 
 (defpackage :herald-db
   (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :elephant :herald-util)
+        :oliphaunt :herald-util)
   (:export :db-query :*db* :with-sql :*arc* :with-archive-sql :archive-query :record-plist))
 
 (defpackage :herald-fcgi
   (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :elephant :herald-db :herald-util)
+        :oliphaunt :herald-db :herald-util)
   (:export :herald-cgi 
            :herald-fcgi
            :exec-repl
@@ -63,7 +63,7 @@
 
 (defpackage :google-apis
   (:use :cl #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :elephant :herald-util)
+        :oliphaunt :herald-util)
   (:export 
    :detect-language
    :supported-languages
