@@ -13,13 +13,13 @@
                                            (truename "~/herald/")))))
   (pushnew *default-pathname-defaults* asdf:*central-registry*
            :test #'equal)
-  (pushnew (make-pathname :directory "elephant") asdf:*central-registry*
+  (pushnew (make-pathname :directory "oliphaunt") asdf:*central-registry*
            :test #'equal)
   (map nil (lambda (file)
              (load (merge-pathnames file))) 
-       '("elephant/elephant.asd"
+       '("oliphaunt/oliphaunt.asd"
          "herald.asd"))
-  (ql:quickload :elephant)
+  (ql:quickload :oliphaunt)
   (handler-bind
       (#+ccl (cffi:load-foreign-library-error 
                (lambda (c)

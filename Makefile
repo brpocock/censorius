@@ -11,38 +11,38 @@ SOURCES=$(shell find . -name \*.lisp -or -name \*.asd) ~/herald-secrets.lisp
 WWWSOURCES=$(shell find . -name \*.clj -or -name \*.cljs)
 
 bin/herald.cgi:	${SOURCES}
-	cd herald
+	cd herald; \
 	buildapp --output herald.cgi \
 		--logfile build.herald.cgi.log \
 		--load ~/quicklisp/setup.lisp \
 		--asdf-path $$(pwd) \
-		--asdf-path $$(pwd)/brfputils \
+		--asdf-path $$(pwd)/oliphaunt \
 		--load build.lisp \
 		--entry herald-fcgi::exec-cgi
 
 bin/herald.fcgi:	${SOURCES}
-	cd herald
+	cd herald; \
 	buildapp --output herald.cgi \
 		--logfile build.herald.cgi.log \
 		--load ~/quicklisp/setup.lisp \
 		--asdf-path $$(pwd) \
-		--asdf-path $$(pwd)/brfputils \
+		--asdf-path $$(pwd)/oliphaunt \
 		--load build.lisp \
 		--entry herald-fcgi::exec-fcgi
 
 bin/herald.repl:	${SOURCES}
-	cd herald
+	cd herald; \
 	buildapp --output herald.cgi \
 		--logfile build.herald.cgi.log \
 		--load ~/quicklisp/setup.lisp \
-		--exec '(ql:quickload :prepl)'
+		--eval '(ql:quickload :prepl)' \
 		--asdf-path $$(pwd) \
-		--asdf-path $$(pwd)/brfputils \
+		--asdf-path $$(pwd)/oliphaunt \
 		--load build.lisp \
 		--entry herald-fcgi::exec-repl
 
 censorius/www/js/app.js: ${WWWSOURCES}
-	cd censorius
+	cd censorius; \
 	lein cljsbuild once
 
 install:	all
