@@ -511,7 +511,7 @@ to find out about TEG's refund policy, enter a note in the "
        " have at least one adult's eMail address entered as well."])]])
 
 (defn suspend-button []
-  [:div {:style {:display (if (waiver-signed?) "inline" "none")}}
+  [:div {:style {:display (if (or true (waiver-signed?)) "inline" "none")}}
    [:p  "Can't  check   out?  If  you're  not  able   to  complete  your
    registration without  assistance on-line,  add a  note above  and you
    can "
