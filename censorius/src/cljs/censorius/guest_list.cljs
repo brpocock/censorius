@@ -195,7 +195,10 @@
                           :editing-name? (atom false)
                           :gender (guess-gender given)
                           :t-shirt nil :coffee? false :tote? false
-                          :added (util/now)})]))
+                          :added (util/now)})])
+  (js/window.scrollTo 0,0)
+  (.scrollIntoView (js/getElementById "guest-list-box-title")
+                   js#{"block" "start" "behaviour" "smooth"}))
 
 (defn add-additional-guest [given surname]
   (let [leader @(first @guests)]
@@ -207,7 +210,10 @@
                               :editing-name? (atom false)
                               :gender (guess-gender given)
                               :t-shirt nil :coffee? false :tote? false
-                              :added (util/now)}))))
+                              :added (util/now)})))
+  (js/window.scrollTo 0,0)
+  (.scrollIntoView (js/getElementById "guest-list-box-title") 
+                   js#{"block" "start" "behaviour" "smooth"}))
 
 (defn have-guests []
   (pos? (count @guests)))
@@ -421,7 +427,8 @@ For now, could you please put down the additional “"
   (count (filter #(= (:ticket-type @%) :adult) @guests)))
 
 (defn guest-list-box-title []
-  [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
+  [:h1 {:id "guest-list-box-title"}
+   "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
    [:span {:style {:display (if (:invoice @d/general)
                               "inline" "none")}}
     "— " (if (:closed @d/general) " CLOSED " "")

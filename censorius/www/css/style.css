@@ -849,8 +849,9 @@ abbr>.ellide {
         width: 100%; 
     }
 
-    table.people.solo>tfoot,    table.people.solo>tfoot>tr {
-        display: block
+    table.people.solo>tfoot,    table.people.solo>*>tr {
+        display: block;
+        width: 100%;
     }
 
     table.people.solo>tfoot>tr>th, table.people.solo>tfoot>tr>td { 
@@ -863,7 +864,7 @@ abbr>.ellide {
 
     table.people.solo>tbody>tr>td {
         display: block;
-        width: auto;
+        width: 50%;
         padding: 1ex;
         margin-left: auto;
         margin-right: auto;
@@ -883,13 +884,22 @@ abbr>.ellide {
      */
     
     table.people.solo>tbody>tr>td::before {
-        font-size: 125%;
-        color: blue;
-        width: 25%;
-        float: left;
-        clear: left;
+        display: inline-block;
+        font-size: 100%;
+        color: black;
+        width: 20%;
+        text-align: right;
     }
 
+    table.people.solo>tbody>tr>td::after {
+        display: inline-block;
+        font-size: 100%;
+        color: black;
+        width: 20%;
+        text-align: right;
+    }
+
+    
     table.people.solo>tbody>tr>td.name::before {
         content: "Name: ";
     }
