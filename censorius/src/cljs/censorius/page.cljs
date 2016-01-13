@@ -235,7 +235,8 @@
   #_ (reader/read-string "(defn boo [] (js/alert \"boo\"))")
   (set! js/document.title (str "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)))
   
-  (set! js/window.onbeforeunload #("This application is asking you to confirm that you want to quit. Your registration information will not be saved."))
+  (set! js/window.onbeforeunload (fn [x]
+                                   "This application is asking you to confirm that you want to quit. Your registration information will not be saved."))
   
   (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))
 
@@ -246,7 +247,8 @@
     (let [slash2 (.indexOf (js/window.location.hash.substring (+ 8 recall)) \/)
           invoice (js/window.location.hash.substring (+ 8 recall) (+ 8 recall slash2))
           cookie (js/window.location.hash.substring (+ 9 recall slash2))]
-      (util/log " Recall invoice# "(js/parseInt invoice) " with verification cookie " (js/decodeURIComponent cookie))
+      (util/log " Recall invoice# " (js/parseInt invoice) 
+                " with verification cookie " (js/decodeURIComponent cookie))
       (when (> invoice 4000)
         (invoice/recall-invoice (js/parseInt invoice) (js/decodeURIComponent cookie))))))
 

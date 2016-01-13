@@ -29,6 +29,8 @@
 (defn guest-list []
   censorius.guest-list/guests)
 
+(def whirlwind (atom :name))
+
 (defn everyone-else-but [guest]
   (filter #(not (same-person? guest %))
           @(guest-list)))
@@ -323,7 +325,6 @@
                                 "block" "none")}
              :key (legal-name guest)}
    [:h3 (str "Staff Application: " (legal-name guest))]
-   [:h4 "Warning: We have a report that this form may not work. Please hold off until after Thanksgiving on applying for a new staff position. Sorry! ~brfp"]
    [text/text-input {:cursor guest
                      :keys :address
                      :rows 2
@@ -472,18 +473,17 @@
                                           staff/+departments+))
                                  [nil (str (or (:called-by @guest)
                                                (:given-name @guest)) "  is not on staff")])}]
-   [:button {:on-click #(swap! guest assoc :staff-verify? false)
-             :style {:display (if (and (not (staff/staff? guest))
-                                       (:staff-verify? @guest))
-                                "block" "none")}}
+   [:div {:on-click #(swap! guest assoc :staff-verify? false)
+          :style {:display (if (and (not (staff/staff? guest))
+                                    (:staff-verify? @guest))
+                             "block" "none")}}
     "←"]])
 
 
 (defn staff-apply-hint [guest editing?]
   [:fieldset {:style {:display (if (and (adult? guest)
                                         (not (staff/staff? guest))
-                                        (not (:staff-apply? @guest))
-                                        #_ (not (:staff-verify? @guest)))
+                                        (not (:staff-apply? @guest)))
                                  "block" "none")}}
    [:legend "Join the Staff!"]
    [:p {:class "hint"}
@@ -519,57 +519,59 @@
     (swap! (guest-list) mmap remove (fn [it] (= (deref it) @guest)))))
 
 (defn name-cell [guest]
-  (let [editing? (atom false)]
+  (let [editing-name? (atom false)]
     (fn [guest]
-      [:td (if @editing?
+      [:td {:class "name"}
+       [:div {:class "pop-out"
+              :style {:display (if @editing-name? "block" "none")}}
+        [name-edit-box guest]
 
-             [:div {:class "pop-out"}
-              [name-edit-box guest]
+        [:div {:style {:display (if (< 1 (count @(guest-list)))
+                                  "block"
+                                  "none")}}
+         [:button {:class "false"
+                   :on-click #(remove-guest guest)}
+          "Remove from party"]]
+        
+        (ed/close editing-name?)]
 
-              [:div {:style {:display (if (< 1 (count @(guest-list)))
-                                        "block"
-                                        "none")}}
-               [:button {:class "false"
-                         :on-click #(remove-guest guest)}
-                "Remove from party"]]
-              (ed/close editing?)]
-
-             [:div (ed/click-edit editing? :name)
-              [:abbr {:title (str (:given-name @guest)
-                                  " "
-                                  (if-let [nick (:called-by @guest)]
-                                    (str "“" nick "”")
-                                    "")
-                                  " "
-                                  (:surname @guest))}
-               [:big (or (:called-by @guest)
-                         (:given-name @guest))] ]])])))
+       [:div (ed/click-edit editing-name? :name)
+        [:abbr {:title (str (:given-name @guest)
+                            " "
+                            (if-let [nick (:called-by @guest)]
+                              (str "“" nick "”")
+                              "")
+                            " "
+                            (:surname @guest))}
+         [:big (or (:called-by @guest)
+                   (:given-name @guest))] ]]])))
 
 (defn email-cell [guest editing?]
-  [:td
-   (if (adult? guest)
-     (if @editing?
-       [:div {:class "pop-out"}
-        [text/text-input {:cursor guest
-                          :keys :e-mail
-                          :label "eMail address"
-                          :placeholder (.toLowerCase (str (first (:given-name @guest))
-                                                          (:surname @guest)
-                                                          "@example.com"))
-                          :format util/format-email
-                          :validate util/email?
-                          :rows 1}]
-        (ed/close editing?) ]
-       [:div (ed/click-edit editing? :mail)
-        (if-let [mail (:e-mail @guest)]
-          (abbr* "✉" mail)
-          (abbr* "⃠" "No e-mail address"))])
-     (abbr* "—" "We do not e-mail children"))])
+  (fn [guest]
+    [:td {:class "mail"}
+     (if (adult? guest)
+       [:span [:div {:class "pop-out"
+                     :style {:display (if @editing? "block" "none")}}
+               [text/text-input {:cursor guest
+                                 :keys :e-mail
+                                 :label "eMail address"
+                                 :placeholder (.toLowerCase (str (first (:given-name @guest))
+                                                                 (:surname @guest)
+                                                                 "@example.com"))
+                                 :format util/format-email
+                                 :validate util/email?
+                                 :rows 1}]
+               (ed/close editing?) ]
+        [:div (ed/click-edit editing? :mail)
+         (if-let [mail (:e-mail @guest)]
+           (abbr* "✉" mail)
+           (abbr* "⃠" "No e-mail address"))]]
+       (abbr* "—" "We do not e-mail children"))]))
 
 (defn phone-cell [guest]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td
+      [:td {:class "phone"}
        (if (adult? guest)
          (if @editing?
            [:div {:class "pop-out"}
@@ -668,9 +670,10 @@
 (defn ticket-cell [guest editing-email?]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td (if @editing?
-             [edit-ticket-cell guest editing? editing-email?]
-             [ticket-cell-icon guest editing?])])))
+      [:td {:class "ticket-type"}
+       (if @editing?
+         [edit-ticket-cell guest editing? editing-email?]
+         [ticket-cell-icon guest editing?])])))
 
 (defn staff-days []
   [:h5 "Tuesday→Sunday"
@@ -716,14 +719,15 @@
 (defn days-cell [guest]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td (if @editing?
-             [editing-days-cell guest editing?]
-             [fixed-days-cell guest editing?])])))
+      [:td {:class "days"}
+       (if @editing?
+         [editing-days-cell guest editing?]
+         [fixed-days-cell guest editing?])])))
 
 (defn lodging-cell [guest]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td
+      [:td {:class "sleep"}
        (if @editing?
          [:div {:class "pop-out"}
           [radio/radio-set {:label "Sleeping Arrangements"
@@ -776,7 +780,7 @@
 (defn food-cell [guest]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td
+      [:td {:class "eat"}
        (if @editing?
          [:div {:class "pop-out"}
           #_ [:p "A meal plan from Curbside Café can be purchased from them directly. Contact "
@@ -795,9 +799,9 @@ Wales, as well. "
            [:a {:href "https://www.google.com/maps/search/food/@27.8884748,-81.51927,11z/data=!3m1!4b1!4m8!2m7!3m6!1sfood!2sRetreats+by+The+Lake,+2819+Tiger+Lake+Rd,+Lake+Wales,+FL+33898!3s0x88dda4f089ba2327:0x654253b8021d0691!4m2!1d-81.375796!2d27.901445/"
                 :target "food-map-window"}
             "(view map)"]]
-          #_
           [radio/radio-set {:label "Eating Arrangements"
                             :key :eat
+                            :style {:display "none"}
                             :cursor guest
                             :tags [ [:salad-bar
                                      (str "🍲 Bubbling Cauldron soup&salad bar only ("
@@ -841,7 +845,7 @@ Wales, as well. "
 (defn t-shirt-cell [guest]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td
+      [:td {:class "t-shirt"}
        (if @editing?
          [:div {:class "pop-out"
                 :key "t-shirt"}
@@ -874,18 +878,19 @@ Wales, as well. "
 (defn tote-bag-cell [guest]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td [:div {:class "pop-out"
-                  :style {:display (if @editing? "block" "none")}}
-            [radio/radio-set {:label "Buy a Festival Tote Bag"
-                              :cursor guest
-                              :key :tote?
-                              :tags [[true "💼 Tote bag"]
-                                     [false "⃠ No tote bag"]] }]
-            [:div (str "Price: " (util/format-money (merch/price-tote)))]
-            [:p {:class "hint"}
-             "Buy other merchandise below, under "
-             [:q "Extras."]]
-            (ed/close editing?)]
+      [:td {:class "tote"}
+       [:div {:class "pop-out"
+              :style {:display (if @editing? "block" "none")}}
+        [radio/radio-set {:label "Buy a Festival Tote Bag"
+                          :cursor guest
+                          :key :tote?
+                          :tags [[true "💼 Tote bag"]
+                                 [false "⃠ No tote bag"]] }]
+        [:div (str "Price: " (util/format-money (merch/price-tote)))]
+        [:p {:class "hint"}
+         "Buy other merchandise below, under "
+         [:q "Extras."]]
+        (ed/close editing?)]
        [:div (ed/click-edit editing? :tote)
         (if (:tote? @guest)
           (abbr* "💼" "Tote Bag")
@@ -894,7 +899,7 @@ Wales, as well. "
 (defn mug-cell [guest]
   (let [editing? (atom false)]
     (fn [guest]
-      [:td
+      [:td {:class "coffee"}
        [:div {:class "pop-out"
               :style {:display (if @editing? "block" "none")}}
         [radio/radio-set {:label "Buy a Festival Coffee Mug"
@@ -919,11 +924,12 @@ Wales, as well. "
         (:tote? guest))))
 
 (defn guest-row [guest]
-  (let [editing-email? (atom (not (pos? (count @(guest-list)))))]
-    [:tr {:key (personal-address guest)
+  (let [editing-email? (atom (and (= 1 (count @(guest-list)))
+                                  (not (:e-mail @guest))))]
+    [:tr {:key (:added @guest)
           :style {:border (cond
-                            (> 5000 (:added @guest)) "3pt solid green"
-                            (> 1000 (:added @guest)) "2pt dotted green"
+                            (> 5000 (- (util/now) (:added @guest))) "3pt solid green"
+                            (> 1000 (- (util/now) (:added @guest))) "2pt dotted green"
                             :else "none")}}
      [name-cell guest]
      [email-cell guest editing-email?]

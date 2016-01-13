@@ -32,7 +32,7 @@
               :target "VendorFAQ"} 
           [:button {:class "true"} "Read Vendor Rules"]]
          [:button {:on-click #(swap! vending assoc :agreement true)}
-          "✓ Accept the vendor agreement"]]
+          "□ Accept the vendor agreement"]]
    [:div {:key "vendor-agreement-abort"
           :style {:display (if (:agreement @vending)
                              "block" "none")}}

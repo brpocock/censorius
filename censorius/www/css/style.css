@@ -1,8 +1,6 @@
-@import url(https://fonts.googleapis.com/css?family=Damion);
-
 @import url(http://fonts.googleapis.com/css?family=Cantarell:400,400italic,700,700italic);
+@import url(https://fonts.googleapis.com/css?family=Damion);
 @import url(http://fonts.googleapis.com/css?family=Herr+Von+Muellerhoff);
-
 
 * {
     -webkit-tap-highlight-color: rgba(0,0,0,0);
@@ -236,6 +234,8 @@ button {
 }
 
 .editable-clickable {
+    min-height: 6pt;
+    min-width: 6pt;
     cursor: pointer;
     border: 2pt solid #222;
     color: #227;
@@ -843,6 +843,93 @@ abbr>.ellide {
     max-height: 100%;
     overflow-y: scroll;
 }
+
+    table.people.solo { 
+        display: block; 
+        width: 100%; 
+    }
+
+    table.people.solo>tfoot,    table.people.solo>tfoot>tr {
+        display: block
+    }
+
+    table.people.solo>tfoot>tr>th, table.people.solo>tfoot>tr>td { 
+        display: inline-block; 
+    }
+
+    table.people.solo>thead { 
+        display: none
+    }
+
+    table.people.solo>tbody>tr>td {
+        display: block;
+        width: auto;
+        padding: 1ex;
+        margin-left: auto;
+        margin-right: auto;
+        border: 0;
+        background: transparent;
+    }
+     /* 
+     * table.people.solo .editable-clickable {
+     *     min-height: 1cm;
+     *     padding-top: auto;
+     *     padding-bottom: auto;
+     * }
+     * 
+     * table.people.solo .editable-clickable:hover {
+     *     transform: none;
+     * }
+     */
+    
+    table.people.solo>tbody>tr>td::before {
+        font-size: 125%;
+        color: blue;
+        width: 25%;
+        float: left;
+        clear: left;
+    }
+
+    table.people.solo>tbody>tr>td.name::before {
+        content: "Name: ";
+    }
+
+    table.people.solo>tbody>tr>td.mail::before {
+        content: "eMail Address: ";
+    }
+
+    table.people.solo>tbody>tr>td.phone::before {
+        content: "Telephone number: ";
+    }
+
+    table.people.solo>tbody>tr>td.ticket-type::before {
+        content: "Ticket Type: ";
+    }
+
+    table.people.solo>tbody>tr>td.days::before {
+        content: "Days: ";
+    }
+
+    table.people.solo>tbody>tr>td.sleep::before {
+        content: "Sleeping: ";
+    }
+
+    table.people.solo>tbody>tr>td.eat::before {
+        content: "Meal Plan: ";
+    }
+
+    table.people.solo>tbody>tr>td.t-shirt::before {
+        content: "T-Shirt: ";
+    }
+
+    table.people.solo>tbody>tr>td.tote::before {
+        content: "Tote Bag: ";
+    }
+
+    table.people.solo>tbody>tr>td.coffee::before {
+        content: "Coffee Mug: ";
+    }
+
 
 @media screen and (max-width: 40rem) {
 

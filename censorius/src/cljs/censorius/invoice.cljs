@@ -447,28 +447,25 @@ to find out about TEG's refund policy, enter a note in the "
    each adult  member of your  party. Please  be sure that  your party's
    legal names are: "
     (string/join ", " (map guest/legal-name @guest-list/guests))]
+
+   
    [:h3 "Quick Check-In"]
-   [:p "If you, " (:waiver-signature @d/general) 
-    ", have a Florida ID or Driver's License, you may be able to use our
- new Quick Check-In by swiping your ID card on site. If you supply these
- extra address information, they'll be  used to verify your reservation.
- The Quick Check-In scanner will only work if you have a Florida ID with
- the magnetic stripe on the back. We use this information "
-    [:em "only"] " for your registration check-in purposes."]
+   [:p "TODO: remove this option from the UI"]
+   
    [:p {:class "hint"} 
     "Example:  Bert and Ernie live  at 123 Sesame St,  Opa-Locka, FL,
    33054. They would enter " [:q "123"] " and " [:q "33054"] "below."]
    [:div
     [text/text-input {:cursor d/general
                       :keys :fast-check-in-address
-                      :label "The house/building number on your street address (digits only)"
+                      :label ":fast-check-in-address"
                       :placeholder "1234"
                       :validate util/just-digits?
                       :rows 1}]]
    [:div
     [text/text-input {:cursor d/general
                       :keys :fast-check-in-postal-code
-                      :label "Your home ZIP code"
+                      :label ":fast-check-in-postal-code"
                       :placeholder "33000"
                       :validate util/fl-zip-code?
                       :rows 1}]]])
@@ -485,7 +482,8 @@ to find out about TEG's refund policy, enter a note in the "
              :style {:display (if (and (pos? (total-due))
                                        (or true (waiver-signed?))
                                        (not (guest-list/need-adult-email?)))
-                                "inline" "none")}}
+                                "inline" "none")
+                     :margin "1 in"}}
     "Ready, Make Payment →"]
    [:button {:on-click try-check-out
              :style {:display (if (and (zero? (total-due))
