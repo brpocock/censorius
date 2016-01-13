@@ -148,33 +148,33 @@ values. Descends plists recursively. Coerces keys to strings"
 
 
 
-(defonce people (atom {:oliphaunt {:given-name ["Bruce-Robert"]
+(defonce people (atom {:brfp {:given-name ["Bruce-Robert"]
                       :surname ["Pocock"]
                       :dob {:year 1977 :month 10 :day 21}
-                                       :e-mail [[:personal "brpocock@star-hope.org"]
+                      :e-mail [[:personal "brpocock@star-hope.org"]
                       [:personal "brpocock@gmail.com"]]
                       :phone [[:mobile "321-396-2625"]]
                       :rel [[:spouse :sage]]}
-                                       :diane {:given-name ["Diane"]}
+                      :diane {:given-name ["Diane"]}
                       :sage {:given-name ["John"]
-                                       :surname ["Starkie"]
-                                       :called-by ["Sage"]
-                                       :rel [[:spouse :oliphaunt]]}
+                      :surname ["Starkie"]
+                      :called-by ["Sage"]
+                      :rel [[:spouse :brfp]]}
                       :annemarie {:given-name ["Ann Marie"]
-                                       :surname ["Augustino"]
-                                       :e-mail [[:personal "ama422@aol.com"]]}
-                                       :mystral {:given-name ["Sue Anne"]
+                      :surname ["Augustino"]
+                      :e-mail [[:personal "ama422@aol.com"]]}
+                      :mystral {:given-name ["Sue Anne"]
                       :surname ["Gould"]
                       :called-by ["Mystral"]
                       :rel [[:spouse :thor]
                       [:child :soren]]}
-                                       :thor {:given-name ["John"]
+                      :thor {:given-name ["John"]
                       :surname ["Gould"]
                       :called-by ["Thor"]
                       :rel [[:spouse :mystral]
                       [:child :soren]]}
 
-                                       :soren {:given-name ["Soren"]
+                      :soren {:given-name ["Soren"]
                       :surname ["Gould"]
                       :rel [[:parent :mystral]
                       [:parent :thor]]}}))

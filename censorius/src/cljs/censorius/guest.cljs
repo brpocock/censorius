@@ -676,8 +676,7 @@
   [:h5 "Tuesday→Sunday"
    [:p {:class "hint"}
     "Staff  members  are always  a  full  week admission.  All  staff
-       members are expected on-site on Tuesday."]]
-  (swap! guest :days nil))
+       members are expected on-site on Tuesday."]])
 
 (defn editing-days-cell [guest editing?]
   [:div {:class "pop-out"}

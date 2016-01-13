@@ -275,11 +275,8 @@ For now, could you please put down the additional “"
          :style {:display (if (have-guests) "none" "block")}
          :key "maybe-add-first-person"}
    [:div
-    [:h3 "To get started:"]
-    [:p [:big "Enter your first and last name, "]
-     [:small "or the first and last name of the party's “leader.”"]
-     "Your registration will be “filed under” this person's name. "]
-    [:p "Please use your legal first name and surname as they appear on your ID. "] 
+    [:h3 "Let's get started."]
+    [:p "Hello. What's your (legal) name?"] 
     [:p {:class "hint"} "(If you  have two given names, enter
                them  with a  hyphen: Bruce-Robert,  Ann-Marie, Bobbi-Jo,
                et al.)"]]])
@@ -309,9 +306,9 @@ For now, could you please put down the additional “"
   [:div {:class "no-print"}
    [text/text-input {:cursor new-name
                      :keys :new-name-entered
-                     :label (fn [] (if (empty? @guests) 
-                                     "Start with this person"
-                                     "Add this person"))
+                     :label (fn [] (if (have-guests) 
+                                     "Add this person"
+                                     "Hello, my name is"))
                      :placeholder suggest-new-guest-name
                      :format util/name-case
                      :validate (fn [new-name] 
@@ -322,7 +319,6 @@ For now, could you please put down the additional “"
                                                       (= (:given-name %) new-name))
                                                  @guests))))
                      :rows 1}]
-   " \u00a0 \u00a0 \u00a0 "
    [:button {:key "add-person-button"
              :on-click (add-to-party! new-name)
              :class (str (if (let [name$ (:new-name-entered @new-name)]
@@ -331,7 +327,9 @@ For now, could you please put down the additional “"
                                     (not (string/blank? name$))))
                            (if (have-guests) "true" "true urgent")
                            "disabled"))}
-    "+ Add to party"]])
+    (if (have-guests)
+      "+ Add to party"
+      "Let's set up your Festival")]])
 
 (defn add-person-row [_ children this]
   (let [new-name (atom  {:new-name-entered ""})]
@@ -456,8 +454,6 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
                                 :else 0)}}
        [:p "Welcome! Now  that you've added yourself, click  each of the
        table cells to plan your Festival. "]
-       [:p {:class "hint"} "For example,  click on your name first, then  work your way
-       across the columns."]
        [:p "Add other members of your party, and watch the Assistant box
        for advice."]]
       

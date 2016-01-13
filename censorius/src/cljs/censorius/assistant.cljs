@@ -116,5 +116,8 @@ to new party members."]])
        [assistant-merch+]
        [assistant-merch])
      [assistant-vendors]
-     [assistant-workshops])])
+     [assistant-workshops])
+   [:p {:class "hint"} 
+    "If you need further assistance, contact " [:a {:href "mailto:registration@flapagan.org&subject=Trouble+with+registration"}
+                                                "registration@flapagan.org"]]])
 

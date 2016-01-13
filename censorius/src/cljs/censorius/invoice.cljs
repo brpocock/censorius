@@ -314,74 +314,80 @@ to find out about TEG's refund policy, enter a note in the "
                              "block" "none")}}
     [:h2 "Sign the FPG Release"]
     
-    [:h3 "Release, Waiver, and Indemnity Agreement"]
+    [:p "Waiver removal in progress."]
     
-    [:p "I am an adult over  18 years of age and wish to participate in the  Florida Pagan Gathering (“EVENT”). In addition,
+    [:div {:style {:display "none"}}
+     
+     [:h3 "Release, Waiver, and Indemnity Agreement"]
+     
+     [:p "I am an adult over  18 years of age and wish to participate in the  Florida Pagan Gathering (“EVENT”). In addition,
     I give my children, if any, permission to participate in  the EVENT and I assume full responsibility for the conduct
     and safety of my children."]
-    
-    [:p "This “Release, Waiver, and Indemnity Agreement” (“AGREEMENT”) is  for the purpose of promoting a safe and happy
+     
+     [:p "This “Release, Waiver, and Indemnity Agreement” (“AGREEMENT”) is  for the purpose of promoting a safe and happy
     religious event and to assure that continued religious events may be held in the future."]
 
-    [:p "In consideration for my  participation and attendance at the EVENT, I do hereby  understand and hereby agree to
+     [:p "In consideration for my  participation and attendance at the EVENT, I do hereby  understand and hereby agree to
     the following:"]
 
-    [:ol
-     [:li "I become a participant of the Florida Pagan Gathering by registering and paying an entrance fee to attend the
+     [:ol
+      [:li "I become a participant of the Florida Pagan Gathering by registering and paying an entrance fee to attend the
     EVENT;"]
 
-     [:li "I agree to RELEASE, WAIVE, DISCHARGE AND COVENANT  NOT TO SUE the promoter(s); the participant(s); the Temple
+      [:li "I agree to RELEASE, WAIVE, DISCHARGE AND COVENANT  NOT TO SUE the promoter(s); the participant(s); the Temple
            of Earth  Gathering, Inc., its  members, its officers,  its employees, its volunteers;  any of the  Temple of
            Earth Gathering, Inc.’s affiliates; and, owners and lessees of the premises (hereinafter the “RELEASEES”); "]
 
-     [:li  "I  agree not  to  hold  the  RELEASEES liable  to  me;  members of  my  family  or  my guests;  my  personal
+      [:li  "I  agree not  to  hold  the  RELEASEES liable  to  me;  members of  my  family  or  my guests;  my  personal
            representatives, assigns, heirs; and, next  of kin for any and all loss or damage,  and any claims or demands
            therefore  on account  of injury  to my  person or  my  property or  resulting in  my death,  arising out  my
            attendance and participation at the EVENT whether caused by the negligence or otherwise of the RELEASEES;"]
-     
-     [:li "I  understand that there  are dangerous animals,  insects, and plants  located on the  campgrounds, including
+      
+      [:li "I  understand that there  are dangerous animals,  insects, and plants  located on the  campgrounds, including
            a lake.  Attendance at the  EVENT involves a  risk of  injury and/or death  and/or property damage.  As such,
            I  VOLUNTARILY AGREE  TO ACCEPT  ALL RISKS  reasonably  associated with  my attendance  and participation  in
            activities at the EVENT;"]
-     
-     [:li "I  accept full  responsibility for minor  children who accompany  me. I  understand that there  are dangerous
+      
+      [:li "I  accept full  responsibility for minor  children who accompany  me. I  understand that there  are dangerous
            animals, insects, and plants  located on the campgrounds, including a lake. Attendance  at the EVENT involves
            a risk  of injury  and/or death and/or  property damage.  As such,  I VOLUNTARILY AGREE  TO ACCEPT  ALL RISKS
            reasonably associated with my attendance and participation in activities at the EVENT; "]
 
-     [:li "I  AGREE TO HOLD  THE RELEASEES harmless  and indemnify RELEASEES  for any claim  judgment or expense  of the
+      [:li "I  AGREE TO HOLD  THE RELEASEES harmless  and indemnify RELEASEES  for any claim  judgment or expense  of the
            RELEASEES that they may incur arising out of my activities or my presence at the EVENT; "]
 
-     [:li "I understand further that the foregoing AGREEMENT is intended to be as broad and inclusive as is permitted by
+      [:li "I understand further that the foregoing AGREEMENT is intended to be as broad and inclusive as is permitted by
            the state of Florida  and that if any portion thereof  is held invalid, it is agreed  that the balance shall,
            notwithstanding, continue in full legal force and effect;"]
 
-     [:li "Notwithstanding the express provisions of this AGREEMENT, I agree that if I elect to file suit against any of
+      [:li "Notwithstanding the express provisions of this AGREEMENT, I agree that if I elect to file suit against any of
            the aforementioned RELEASEES on the basis of negligence or  otherwise, I agree to be liable for attorney fees
            and costs. "]
 
-     [:li "I HAVE READ AND HAVE VOLUNTARILY SIGNED THIS “RELEASE, WAIVER AND INDEMNITY AGREEMENT” and further agree that
+      [:li "I HAVE READ AND HAVE VOLUNTARILY SIGNED THIS “RELEASE, WAIVER AND INDEMNITY AGREEMENT” and further agree that
            no oral  representations, statements  or inducements  apart from  the foregoing  written agreement  have been
            made. "]]
-    
-    [:h3 "Camera Use Policy"]
-    
-    [:ol
      
-     [:li "Only guests  and staff who have signed this  Camera Use Policy may take pictures  while attending the Florida
+     [:h3 "Camera Use Policy"]
+     
+     [:ol
+      
+      [:li "Only guests  and staff who have signed this  Camera Use Policy may take pictures  while attending the Florida
             Pagan Gathering and then only of people who have  given permission for you to photograph them. This includes
             Camera Phones and other recording devices."]
-     
-     [:li "You must ask permission of a child’s parent or legal guardian in order to photograph any child. AT NO TIME is
+      
+      [:li "You must ask permission of a child’s parent or legal guardian in order to photograph any child. AT NO TIME is
             it acceptable to photograph any nude children, photographing nude children is against Federal law."]
-     
-     [:li "Cameras, Camera Phones or other recording devices are NOT  allowed in the fire circle area unless you are one
+      
+      [:li "Cameras, Camera Phones or other recording devices are NOT  allowed in the fire circle area unless you are one
             of the official FPG Staff Photographers. ABSOLUTELY NO photography in the fire circle area after sundown."]
-     
-     [:li "Be polite and ask vendors for permission before photographing anything in their vending tent."]
-     
-     [:li "Those who  fail to comply with these rules  are subject to having their film  and/or camera (including camera
+      
+      [:li "Be polite and ask vendors for permission before photographing anything in their vending tent."]
+      
+      [:li "Those who  fail to comply with these rules  are subject to having their film  and/or camera (including camera
             phone) confiscated and including, but not limited to, being removed from the event site without a refund."]]
+     
+     ]
     
     [:hr]
     
@@ -433,7 +439,7 @@ to find out about TEG's refund policy, enter a note in the "
 
 
 (defn check-out-check-in []
-  [:div {:style {:display (if (and (waiver-signed?)
+  [:div {:style {:display (if (and (or true (waiver-signed?))
                                    (not (guest-list/need-adult-email?)))
                             "block" "none")}}
    [:h3 "ID Check!"]
@@ -468,27 +474,27 @@ to find out about TEG's refund policy, enter a note in the "
                       :rows 1}]]])
 
 (defn check-out-button-box []
-  [:div {:class "buttonBox"}
+  [:div {:class "buttonBox" }
    [:div
     { :style {:display (if (and (pos? (total-due))
-                                (waiver-signed?)
+                                (or true (waiver-signed?))
                                 (not (guest-list/need-adult-email?)))
                          "block" "none")}}]
    
    [:button {:on-click try-check-out
              :style {:display (if (and (pos? (total-due))
-                                       (waiver-signed?)
+                                       (or true (waiver-signed?))
                                        (not (guest-list/need-adult-email?)))
                                 "inline" "none")}}
     "Ready, Make Payment →"]
    [:button {:on-click try-check-out
              :style {:display (if (and (zero? (total-due))
-                                       (waiver-signed?)
+                                       (or true (waiver-signed?))
                                        (pos? (count @guest-list/guests))
                                        (some staff/lugal+? @guest-list/guests)
                                        (not (guest-list/need-adult-email?)))
                                 "inline" "none")}}
-    "Ready. Close Registration $0.00 →"]])
+    "Ready. Close Registration with zero balance →"]])
 
 (defn check-out-notes []
   [:div {:key "notes-div"}
@@ -518,19 +524,16 @@ to find out about TEG's refund policy, enter a note in the "
     "Suspend registration and send to Reg. staff"]])
 
 (defn check-out-box []
-  (if (and false
-           (zero? (total-due))
-           (zero? (count @payments)))
-    
-    [:span {:id "check-out"}] ; placeholder, nil
-    
-    [:section {:class "card" :id "check-out"}
-     [:h2 "Check Out"]
-     [check-out-invoice]
-     [check-out-notes]
-     [need-adults-warning]
-     [adult-email-prevent-checkout]
-     [sign-fpg-waiver]
-     [check-out-check-in]
-     [check-out-button-box]
-     [suspend-button]]))
+  [:section {:class "card" :id "check-out"
+             :display (if (or (pos? (count @guest-list/guests))
+                              (pos? (total-due)))
+                        "block" "none")}
+   [:h2 "Check Out"]
+   [check-out-invoice]
+   [check-out-notes]
+   [need-adults-warning]
+   [adult-email-prevent-checkout]
+   [sign-fpg-waiver]
+   [check-out-check-in]
+   [check-out-button-box]
+   [suspend-button]])
