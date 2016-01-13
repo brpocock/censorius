@@ -6,7 +6,7 @@
    [goog.events :as events]
    [goog.history.EventType :as EventType]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
+   ;; [reagent.session :as session]
    [secretary.core :as secretary :refer-macros [defroute]]
 
    [censorius.assistant :as assistant]

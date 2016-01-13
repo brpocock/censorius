@@ -6,7 +6,7 @@
    [clojure.string :as string]
    [goog.events :as events]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
+   ;; [reagent.session :as session]
    [secretary.core :as secretary]
 
    [censorius.utils :as util])

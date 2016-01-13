@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as string]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
+   ;; [reagent.session :as session]
    [censorius.utils :as util]))
 
 (def +staff-mail+ {"bjcalupca@aol.com" "bjcalupca@aol.com"

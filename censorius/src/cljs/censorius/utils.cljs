@@ -5,7 +5,7 @@
    [goog.string :as gstring] 
    [goog.string.format :as format]
    [reagent.core :as reagent :refer [atom]]
-   [reagent.session :as session]
+   ;; [reagent.session :as session]
    [reagent.core :as reagent :refer [atom]]))
 
 

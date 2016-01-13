@@ -9,40 +9,7 @@
    [censorius.utils :as util]))
 
 (defonce guests (reagent/atom
-                 []
-                 #_ 
-                 
-                 [ (reagent/atom { :called-by "Sage"
-                                  :given-name "John"
-                                  :surname "Fenn Pocock"
-                                  :formal-name nil                                  :presenter-bio nil
-                                  :presenter-requests nil
-                                  :e-mail "sage@star-hope.org"
-                                  :telephone nil
-                                  :sleep :tent
-                                  :eat nil
-                                  :day nil
-                                  :gender :m
-                                  :ticket-type :adult
-                                  :t-shirt :xs
-                                  :coffee? false
-                                  :tote? false })
-                  (reagent/atom { :called-by nil
-                                 :given-name "Bruce-Robert"
-                                 :surname "Fenn Pocock"
-                                 :formal-name nil
-                                 :presenter-bio nil
-                                 :presenter-requests nil
-                                 :e-mail "brpocock@star-hope.org"
-                                 :telephone nil
-                                 :sleep :tent
-                                 :eat nil
-                                 :day nil
-                                 :gender :m
-                                 :ticket-type :adult
-                                 :t-shirt :s
-                                 :coffee? false
-                                 :tote? false })]))
+                 []))
 (util/log "Seeded guest list : " @guests)
 
 (defn need-adult-email? []

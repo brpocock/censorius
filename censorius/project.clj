@@ -9,28 +9,28 @@
 
   :dependencies [ ;; -- (these come first, to be safe)
                  [org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.170"]
+                 [org.clojure/clojurescript "1.7.228"]
                  ;; --- (sorted, to make life easier)
                  
-                 [com.cemerick/piggieback "0.1.4"]
-                 [com.cognitect/transit-cljs "0.8.232"]
-                 ;;  [com.facebook/react "0.14.2"]
-                 [cljs-ajax "0.5.1"]
-                 [compojure "1.3.1"]
-                 [enlive "1.1.5"]
-                 [environ "1.0.0"]
-                 [figwheel "0.5.0-1"]
-                 [hickory "0.5.4"]
+                 ;;[com.cemerick/piggieback "0.1.4"]
+                 ;;[com.cognitect/transit-cljs "0.8.232"]
+                 [com.facebook/react "0.12.2.4"]
+                 ;;[cljs-ajax "0.5.1"]
+                 ;;[compojure "1.3.1"]
+                 ;;[enlive "1.1.5"]
+                 ;;[environ "1.0.0"]
+                 ;;[figwheel "0.5.0-1"]
+                 ;;[hickory "0.5.4"]
                  [leiningen "2.5.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [prone "0.8.0"]
-                 [reagent "0.5.1"]
-                 [reagent-utils "0.1.0"]
-                 [ring "1.3.2"]
-                 [ring/ring-defaults "0.1.3"]
+                 [reagent "0.6.0-alpha"]
+                 ;; [reagent-utils "0.1.0"]
+                 ;;[ring "1.3.2"]
+                 ;;[ring/ring-defaults "0.1.3"]
                  [secretary "1.2.3"]
-                 [selmer "0.7.9"]
-                 [weasel "0.5.0"]
+                 ;;[selmer "0.7.9"]
+                 ;;[weasel "0.5.0"]
                  ;; ---
                  ]
 
@@ -101,7 +101,7 @@
                    :cljsbuild {:builds {:app {:source-paths ["src/cljs" "env/dev/cljs"]
                                               :pretty-print true
                                               :optimizations :advanced ; :none
-                                              :compiler {:source-map  "www/js/app.js.map"}}}}}
+                                              :compiler {:source-map true}}}}}
 
              :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
                        :env {:production true}
