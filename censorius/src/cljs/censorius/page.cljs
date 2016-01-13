@@ -235,6 +235,8 @@
   #_ (reader/read-string "(defn boo [] (js/alert \"boo\"))")
   (set! js/document.title (str "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)))
   
+  (set! js/window.onbeforeunload #("This application is asking you to confirm that you want to quit. Your registration information will not be saved."))
+  
   (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))
 
 
