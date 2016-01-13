@@ -183,11 +183,11 @@
 
 (defn married-line [from to]
   [:span (if (and from to)
-           (str (couple-icon from to) " " (case (:gender @from)
-                                            :m "husband"
-                                            :f "wife"
-                                            "partner")
-                " of " (if (staff/lugal+? to) "𒈗 " "") (personal-address to))
+           [:span (couple-icon from to) " " (case (:gender @from)
+                                              :m "husband"
+                                              :f "wife"
+                                              "partner")
+            " of " (if (staff/lugal+? to) [:span {:lang "sux"} "𒈗 "] "") (personal-address to)]
            "")])
 
 (defn legal-name [guest]
@@ -610,7 +610,7 @@
   [:div {:style {:display (if (staff/lugal+? guest)
                             "block" "none")}}
    [:h3 {:style {:font-size "48pt"}}
-    "𒈗 Lugal+"]
+    [:span {:lang "sux"} "𒈗"] " Lugal+"]
    [:p {:class "hint"} "As a Lugal (or DC/BoD) staff member, your admission
             is free. You may also admit your spouse at a discounted rate, and
             apply discounted rates to spouse and children's cabin or
@@ -655,13 +655,13 @@
      (staff/staff? guest) (abbr* "⛤" "Staff" "General staff members (not a lugal)")
      
      (staff/lugal+? guest)
-     (abbr* (str "🎫" (person-icon guest) "𒈗")
+     (abbr* [:span "🎫" (person-icon guest) [:span {:lang "sux"} "𒈗"]]
             "Lugal+" "Lugals head each department. This ticket type also
      includes   Division   Coördinators   or  members   of   the   Board
      of Directors.")
 
      (lugal+-spouse? guest)
-     (abbr* (str "𒈗" (couple-icon guest (spouse guest))) "Lugal+ spouse"
+     (abbr* [:span [:span {:lang "sux"} "𒈗"] (couple-icon guest (spouse guest))] "Lugal+ spouse"
             "Spouse of a lugal (or DC or board member)")
 
      :else (abbr* (str "🎫" (person-icon guest))
