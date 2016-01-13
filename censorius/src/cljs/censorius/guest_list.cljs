@@ -198,7 +198,7 @@
                           :added (util/now)})])
   (js/window.scrollTo 0,0)
   (.scrollIntoView (js/getElementById "guest-list-box-title")
-                   js#{"block" "start" "behaviour" "smooth"}))
+                   #js{"block" "start" "behaviour" "smooth"}))
 
 (defn add-additional-guest [given surname]
   (let [leader @(first @guests)]
@@ -213,7 +213,7 @@
                               :added (util/now)})))
   (js/window.scrollTo 0,0)
   (.scrollIntoView (js/getElementById "guest-list-box-title") 
-                   js#{"block" "start" "behaviour" "smooth"}))
+                   #js{"block" "start" "behaviour" "smooth"}))
 
 (defn have-guests []
   (pos? (count @guests)))
