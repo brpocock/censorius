@@ -176,6 +176,12 @@ must use a string.)"
 
 
 ;;; Reply with errors
+(defun print-condition-backtrace (condition stream)
+  (let ((stamp (get-universal-time)))
+    (format stream "BEGIN Backtrace ~36r" stamp)
+    (uiop/image:print-condition-backtrace condition :stream s)
+    (format stream "END Backtrace ~36r" stamp)))
+
 (defun reply-error/text (conditions)
   "Replies with a plain-text error report. The first element of the list
 must be the numeric HTTP status code."
@@ -191,7 +197,7 @@ Content-Type: text/plain; charset=utf-8
                  (with-output-to-string (s)
                    (dolist (condition conditions)
                      (if (typep condition 'condition)
-                         (uiop/image:print-condition-backtrace condition :stream s)
+                         (print-condition-backtrace condition s)
                          (princ condition s)))))
          *error-output*))
 
@@ -541,7 +547,7 @@ Backtrace:~% ~% → ~a ~2%
             (ignore-errors (query-params))
             (ignore-errors (with-output-to-string (s)
                              (when (typep condition 'condition)
-                               (uiop/image:print-condition-backtrace condition :stream s))))
+                               (print-condition-backtrace condition s))))
             (if (field :invoice)
                 (list (read-invoice (field :invoice))
                       (itinerary/text (field :invoice))))))
@@ -600,7 +606,7 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
                             :error (first conditions)
                             :conditions conditions
                             :backtrace (with-output-to-string (s)
-                                         (map nil (rcurry #'uiop/image:print-condition-backtrace :stream s)
+                                         (map nil (rcurry #'print-condition-backtrace s)
                                               (remove-if-not (rcurry #'typep 'condition)
                                                              conditions)))
                             :service *run-model*
@@ -1297,13 +1303,13 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
           (reply `(:error 500 ,c))
           (fresh-line *error-output*)
           (format *error-output* "~a" c)
-          (uiop/image:print-condition-backtrace c :stream *error-output*)
+          (print-condition-backtrace c *error-output*)
           (mail-reg +sysop-mail+ (format nil "Herald error: ~a" (princ-to-string c))
                     (format nil "Error/~a" (string (type-of c)))
                     "~a~2%~a"
                     (princ-to-string c)
                     (with-output-to-string (s) 
-                      (uiop/image:print-condition-backtrace c :stream s)))
+                      (print-condition-backtrace c s)))
           (return-from fastcgi nil))))))
 
 (defun cgi-environment ()
@@ -1328,7 +1334,7 @@ Resending e-mails for ~:[suspended~;completed~] invoice ~:d
 (defun cgi-error-reporter (c)
   (fresh-line *error-output*)
   (warn "~10% --- Error signaled: ~a ---~10%" c)
-  (uiop/image:print-condition-backtrace c :stream *error-output*)
+  (print-condition-backtrace c *error-output*)
   (format *error-output* "~10%")
   (throw 'cgi-bye (list :error 500 c)))
 
