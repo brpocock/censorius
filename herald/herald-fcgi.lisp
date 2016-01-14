@@ -16,7 +16,7 @@ string"
   (cond ((find #\F (string-upcase gender)) "♀ Female")
         ((find #\M (string-upcase gender)) "♂ Male")
         (t "⊕")))
-
+
 ;;; The  environment  surrounding  each  query is  stashed  into  these;
 ;;; they're unbound at the top-level SO THAT trying to access them will
 ;;; signal an error.
@@ -83,17 +83,17 @@ Note that I'm NOT handling multipart/form-data posts here."
 This means that POST trumps GET (query-string) trumps path-info."
   (or (getf *request* :query-params)
       
-      (setf (getf *request* :query-params)
-            (alist-plist
-             (mapcar (lambda (pair)
-                       (destructuring-bind  (key &optional value) (split-sequence #\= pair)
-                         (cons (keyword* key)
-                               (if (and (stringp value)
-                                        (plusp (length value)))
-                                   (url-decode value)
-                                   t))))
-                     (split-sequence #\&
-                                     (all-submitted-params)))))))
+    (setf (getf *request* :query-params)
+          (alist-plist
+           (mapcar (lambda (pair)
+                     (destructuring-bind  (key &optional value) (split-sequence #\= pair)
+                       (cons (keyword* key)
+                             (if (and (stringp value)
+                                      (plusp (length value)))
+                                 (url-decode value)
+                                 t))))
+                   (split-sequence #\&
+                                   (all-submitted-params)))))))
 
 
 ;;; Memoize a function.
@@ -127,7 +127,7 @@ wish for."
                  (let ((,new-value (progn ,@body)))
                    (setf (gethash ,key ,cache) ,new-value)
                    ,new-value))))))))
-
+
 ;;; Read fields provided by CGI POSTs
 (defgeneric field-read (a b c)
   (:documentation "Select a value that  may have been posted from the user. In particular, the  first item given will be
@@ -137,33 +137,33 @@ key. If absent, the B and C parameters must be NIL.
 
 Normally called via convenience function `FIELD'")
   (:method ((a t) (b t) (c t))
-    (error "Invalid field selector: ~s ~s ~s" a b c))
+  (error "Invalid field selector: ~s ~s ~s" a b c))
   (:method ((a symbol) (b null) (c null))
     (ecase *run-model*
-      (:fast (fcgx-getparam a *request*))
+    (:fast (fcgx-getparam a *request*))
       (:cgi (getf (query-params) (keyword* a)))
       ((:batch :tty) (getf *request* (keyword* a)))))
   (:method ((a string) (b number) (c string))
-    (when-let (field-jso (field (make-keyword a)))
-      (when-let (st-jso (st-json:read-json field-jso))
-        (when-let (elt (elt st-jso b))
-          (st-json:getjso (field-?-p c) elt)))))
+  (when-let (field-jso (field (make-keyword a)))
+    (when-let (st-jso (st-json:read-json field-jso))
+      (when-let (elt (elt st-jso b))
+        (st-json:getjso (field-?-p c) elt)))))
   (:method ((a string) (b string) (c null))
-    (when-let (field-jso (field (keyword* a)))
-      (when-let (st-jso (st-json:read-json field-jso))
-        (st-json:getjso (field-?-p b) st-jso))))
+  (when-let (field-jso (field (keyword* a)))
+    (when-let (st-jso (st-json:read-json field-jso))
+      (st-json:getjso (field-?-p b) st-jso))))
   (:method ((a symbol) (b number) (c symbol))
-    (field (string-downcase a) b (string-downcase c)))
+  (field (string-downcase a) b (string-downcase c)))
   (:method ((a string) (b number) (c symbol))
-    (field a b (string-downcase c)))
+  (field a b (string-downcase c)))
   (:method ((a symbol) (b number) (c string))
-    (field (string-downcase a) b c))
+  (field (string-downcase a) b c))
   (:method ((a symbol) (b symbol) (c null))
-    (field (string-downcase a) (string-downcase b)))
+  (field (string-downcase a) (string-downcase b)))
   (:method ((a string) (b symbol) (c null))
-    (field a (string-downcase b) nil))
+  (field a (string-downcase b) nil))
   (:method ((a symbol) (b string) (c null))
-    (field (string-downcase a) b nil))
+  (field (string-downcase a) b nil))
   (:method ((a string) (b null) (c null))
     (field (make-keyword a) nil nil)))
 
@@ -212,7 +212,7 @@ Content-Type: text/plain; charset=utf-8
                                     ("Organization" "Temple of Earth Gathering, Inc.")
                                     ("X-Censorius-Herald-Version" ,(36r +compile-time+)))
                    :charset :utf-8
-                   :type "text" 	:subtype "plain")
+                   :type "text" :subtype "plain")
     (let ((*print-miser-width* 60)	 (*print-right-margin* 70)
           (*print-readably* nil)	 (*print-pretty* t)
           (*print-circle* nil)	 (*print-radix* 10)
@@ -241,7 +241,7 @@ Content-Type: text/plain; charset=utf-8
                                     ("Organization" "Temple of Earth Gathering, Inc.")
                                     ("X-Censorius-Herald-Version" ,(36r +compile-time+)))
                    :charset :utf-8
-                   :type "text" 	:subtype "plain"
+                   :type "text" :subtype "plain"
                    :attachments attachments)
     (apply (curry #'format mail-stream) message-fmt+args)))
 
@@ -356,11 +356,11 @@ where (`starting` is null or `starting` <= date(?))
   (etypecase invoice
     (invoice (read-scholarships (invoice-id invoice)))
     (integer
-     (alist-plist
-      (mapcar (lambda (each)
-                (cons (keyword* (getf each :scholarship))
-                      (getf each :amount)))
-              (db-query "select scholarship, amount from `invoice-scholarships` where invoice=?"
+  (alist-plist
+   (mapcar (lambda (each)
+             (cons (keyword* (getf each :scholarship))
+                   (getf each :amount)))
+           (db-query "select scholarship, amount from `invoice-scholarships` where invoice=?"
                         invoice))))))
 
 (defun read-invoice (invoice)
@@ -500,7 +500,7 @@ where (`starting` is null or `starting` <= date(?))
             (workshop-record-beautify invoice))
     (format s "~2% ★ Scholarship Funds ★~% ~:[No scholarship fund donations.~;~:*~{ • ~a: ~/json/~%~}~]"
             (scholarship-record-beautify invoice))
-    (format s "~2% ★ General Information ★
+      (format s "~2% ★ General Information ★
 ~:[No fast check-in.~;~
 
  💳 Fast check-in  enabled. 
@@ -962,8 +962,8 @@ cookie says “~36r.”
 (defun update-general (invoice)
   (sql-update-invoice-fields (nil general) ()
                              (created closed closed-by old-system-p
-                                      festival-season festival-year
-                                      note signature memo fast-check-in-address fast-check-in-postal-code)))
+                                     festival-season festival-year
+                                     note signature memo fast-check-in-address fast-check-in-postal-code)))
 
 (defmacro accept+update-array ((table) key-fields fields)
   `(progn
@@ -1471,12 +1471,12 @@ Details: Invoice token ~s;
 (defun read-merch-ordered (invoice)
   (etypecase invoice
     (integer (let ((ordered (db-query
-                             "select * from `invoice-merch`  where invoice=?"
-                             invoice)))
-               (loop for item in (remove-duplicates (mapcar #'first ordered))
-                  collecting (loop for (nil style qty)
-                                in (remove-if-not (lambda (row)
-                                                    (equal (first row) item)) ordered)
+                  "select * from `invoice-merch`  where invoice=?"
+                  invoice)))
+    (loop for item in (remove-duplicates (mapcar #'first ordered))
+       collecting (loop for (nil style qty)
+                     in (remove-if-not (lambda (row)
+                                         (equal (first row) item)) ordered)
                                 appending (list style qty)))))))
 
 (defun guests->edn (invoice)
