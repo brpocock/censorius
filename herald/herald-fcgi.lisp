@@ -1543,7 +1543,7 @@ Details: Invoice token ~s;
   (when (field "deployment-marker")
     (format *error-output* "~25%"))
   (list :data (list :program "Censorius Herald"
-                    :copyright "© 2013-2015, Bruce-Robert Fenn Pocock"
+                    :copyright "© 2013-2016, Bruce-Robert Fenn Pocock"
                     :version (36r +compile-time+)
                     :build-date (let ((built (multiple-value-list (decode-universal-time (+ +compile-time+
                                                                                             +compile-time-offset+)))))
