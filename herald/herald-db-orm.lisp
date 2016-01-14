@@ -55,13 +55,13 @@ order by table_name, constraint_name, ordinal_position"
                 keys)))
   
 (defun ♂write-find-record-by-keywords (dest-table keys)
-  (cons
-   (format-symbol *package* "FIND-~@:(~a~)-BY" dest-table)
-   (mapcar (lambda&keys (&key source-table source-column dest-column &allow-other-keys)
-             `(,(make-keyword (string-upcase dest-column))
-                (,(format-symbol *package* "~:@(~a-~a~)" (singular source-table) source-column)
-                  ,(♂table->class source-table))))
-           keys)))
+  (reduce #'append
+          (cons (cons (format-symbol *package* "FIND-~@:(~a~)-BY" dest-table) nil)
+               (mapcar (lambda&keys (&key source-table source-column dest-column &allow-other-keys)
+                         `(,(make-keyword (string-upcase dest-column))
+                            (,(format-symbol *package* "~:@(~a-~a~)" (singular source-table) source-column)
+                              ,(♂table->class source-table))))
+                       keys))))
 
 (defun ♂constraint-joins-two-tables-p (source-table dest-table keys)
   (every (lambda (key) 
@@ -84,14 +84,14 @@ order by table_name, constraint_name, ordinal_position"
                 (let ((link-name (♂link-between-records-symbol source-table dest-table source-column dest-columns keys)))
                   #+swank (format t "~& Link ~a from ~a to ~a using ~r key~:p (dest column~:p: ~{~a~^, ~})" 
                                   link-name source-table dest-table (length keys) dest-columns)
-                  (eval `(defmethod ,link-name ((,(♂table->class source-table) 
-                                                  ,(♂table->class source-table)))
-                           ,(cond ((equalp dest-columns (primary-key-columns-for-table dest-table))
-                                   #+swank (format t " — using primary keys on ~a, so FIND-~:@(~a~)" dest-table (singular dest-table))
-                                   (♂write-find-dest-by-primary-keys dest-table keys))
-                                  (t (warn "key is not primary? ~a" keys)
-                                     #+swank (format t " — using non-primary keys on ~a, so FIND…BY is used" dest-table)
-                                     (♂write-find-record-by-keywords dest-table keys))))))
+                  (eval (print `(defmethod ,link-name ((,(♂table->class source-table) 
+                                                         ,(♂table->class source-table)))
+                                  ,(cond ((equalp dest-columns (primary-key-columns-for-table dest-table))
+                                          #+swank (format t " — using primary keys on ~a, so FIND-~:@(~a~)" dest-table (singular dest-table))
+                                          (♂write-find-dest-by-primary-keys dest-table keys))
+                                         (t (warn "key is not primary? ~a" keys)
+                                            #+swank (format t " — using non-primary keys on ~a, so FIND…BY is used" dest-table)
+                                            (♂write-find-record-by-keywords dest-table keys)))))))
                 (warn "~% Complex keys, skipping ~s" keys))))))))
 
 (with-sql (♂do-orm-mapping))

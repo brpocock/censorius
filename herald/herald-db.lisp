@@ -216,7 +216,7 @@ where constraint_schema=? and table_name=?"
     (values 't 'boolbool 'c-bool))
   (:method ((kind (eql :bigint)) (detail cons))
     (values (list 'integer 
-                  (- (expt 10 (parse-integer (first detail))))
+                  (- (1- (expt 10 (parse-integer (first detail)))))
                   (1- (expt 10 (parse-integer (first detail)))))
             'identity 'identity))
   (:method ((kind (eql :int)) detail)
@@ -227,7 +227,7 @@ where constraint_schema=? and table_name=?"
   (:method ((kind (eql :decimal)) (detail cons))
     (let ((e (expt 10 (parse-integer (first detail))))
           (scalar (expt 10 (parse-integer (second detail)))))
-      (values (list 'real (- e) (1- e))
+      (values (list 'real (- (1- e)) (1- e))
               `(lambda (n) (* ,scalar (round (* 1.0 n) ,scalar)))
               'identity)))
   (:method ((kind (eql :year)) (detail cons))
@@ -308,9 +308,11 @@ where constraint_schema=? and table_name=?"
     (eval `(defmethod ,finder-name ,primary-keys (find-simple-record ,object ,@primary-keys)))
     (export finder-name)
     
-    (let ((columns (mapcar (rcurry #'getf :field) (db-query (format nil "describe `~a`" db-table)))))
+    (let* ((columns (mapcar (rcurry #'getf :field) (db-query (format nil "describe `~a`" db-table))))
+           (column-keys (mapcar (compose #'intern #'string-upcase) columns)))
       (eval `(defmethod ,finder-by-keys-name (&rest search-keys 
-                                              &key ,@(mapcar (compose #'intern #'string-upcase) columns))
+                                              &key ,@column-keys)
+                 (declare (ignorable ,@column-keys))
                (find-simple-records ,object search-keys)))
       (export finder-by-keys-name)
       (dolist (column-name columns)
@@ -323,10 +325,11 @@ where constraint_schema=? and table_name=?"
           (multiple-value-bind (general-type casting cast-from) 
               (lisp-type-for-column column-name (simple-record-table-description object))
             
-            (eval (print `(defmethod ,accessor-name ((instance ,record-class))
-                            (the (or ,general-type null)
-                                 (,cast-from
-                                  (getf (instance) ,(keyword* column-name)))))))
+            (eval `(defmethod ,accessor-name ((instance ,record-class))
+                       (the (or ,general-type null)
+                        (and (getf instance ,(keyword* column-name))
+                             (,cast-from
+                              (getf instance ,(keyword* column-name)))))))
             (export accessor-name)
             
             (let ((general-type-class (if (consp general-type)
@@ -336,18 +339,33 @@ where constraint_schema=? and table_name=?"
                                                 car))
                                           general-type)))
               (unless (member column-name primary-key-columns :test #'string-equal)
-                (eval (print `(defmethod (setf ,accessor-name) ((new-value ,general-type-class)
-                                                                (instance ,record-class))
-                                (check-type new-value (or ,general-type null))
-                                (db-query ,(format nil "update `~a` set `~a`=? where ~{`~a`=?~^ and ~}"
-                                                   db-table
-                                                   column-name
-                                                   primary-key-columns)
-                                          (,casting new-value)
-                                          ;; (mapcar (curry #'getf instance) ',(mapcar #'keyword* unkey-columns))
-                                          (mapcar (curry #'getf instance) ',(mapcar #'keyword* primary-key-columns)))
-                                (setf (getf instance ,(keyword* column-name)) new-value)))))))))))
-  2
+                (eval `(defmethod (setf ,accessor-name) ((new-value ,general-type-class)
+                                                         (instance ,record-class))
+                           (check-type new-value ,general-type)
+                         (db-query ,(format nil "update `~a` set `~a`=? where ~{`~a`=?~^ and ~}"
+                                            db-table
+                                            column-name
+                                            primary-key-columns)
+                                   (,casting new-value)
+                                   ;; (mapcar (curry #'getf instance) ',(mapcar #'keyword* unkey-columns))
+                                   ,@(mapcar (lambda (key)
+                                               (list 'getf 'instance 
+                                                     (keyword* key)))
+                                             primary-key-columns))
+                         (setf (getf instance ,(keyword* column-name)) new-value)))
+                (eval `(defmethod (setf ,accessor-name) ((new-value null)
+                                                         (instance ,record-class))
+                           (declare (ignore new-value))
+                         (db-query ,(format nil "update `~a` set `~a`=? where ~{`~a`=?~^ and ~}"
+                                            db-table
+                                            column-name
+                                            primary-key-columns)
+                                   nil
+                                   ,@(mapcar (lambda (key)
+                                               (list 'getf 'instance 
+                                                     (keyword* key)))
+                                             primary-key-columns))
+                         (setf (getf instance ,(keyword* column-name)) nil))))))))))
   (setf (gethash db-table *simple-record-tables*) object))
 
 
