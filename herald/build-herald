@@ -1,7 +1,7 @@
 #!/bin/sh
 PATH=~/bin:$PATH
 [ -d "$(dirname "$0")" ] && cd "$(dirname "$0")" || \
-        [ -d ~/herald ] && cd ~/herald || \
+        [ -d ~/Censorius/herald ] && cd ~/Censorius/herald || \
                 [ -d ~/Projects/censorius/herald ] && cd ~/Projects/censorius/herald || \
                         exit 2
 mv --backup=numbered herald herald.backup
