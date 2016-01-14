@@ -28,8 +28,7 @@
 
 ;;; Package declarations and exported symbols
 (defpackage :herald-util
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence)
+  (:use :cl :oliphaunt #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi)
   (:export 
    :+utf-8+
    :36r
@@ -54,13 +53,13 @@
    ))
 
 (defpackage :herald-db
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :herald-util)
+  (:use :cl :oliphaunt #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
+        :herald-util)
   (:export :db-query :*db* :with-sql :*arc* :with-archive-sql :archive-query))
 
 (defpackage :herald-fcgi
-  (:use :cl :alexandria #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
-        :cl-ppcre :split-sequence :herald-db :herald-util)
+  (:use :cl :oliphaunt #+sbcl :sb-fastcgi #-sbcl :cl-fastcgi
+        :herald-db :herald-util)
   (:export :herald-cgi :herald-fcgi))
 
 (in-package :herald-util)
@@ -2009,6 +2008,7 @@ Details: Invoice token ~s;
             invoice))
 
 (defun read-workshops (&optional invoice)
+  (declare (ignore invoice))   ; TODO
   ;; (db-query "select * from `workshops` where invoice=?"
   ;;           invoice)
   nil
