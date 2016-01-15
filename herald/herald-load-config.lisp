@@ -59,21 +59,24 @@
 (defparameter *read-post-timeout* 10
   "The maximum number of seconds to wait while reading from a POST")
 
+(defun if-file-exists (file)
+  (when (probe-file file) file))
+
 (eval-when (:compile-toplevel :load-toplevel)
   (tagbody do-over
      (restart-bind
          ((do-over (lambda () (go do-over))
             :report-function (lambda (s) (princ "Try loading the file herald-config.lisp again" s))))
-       (format t "~& About to load herald-config… ")
-       (let ((config-file (or (merge-pathnames (make-pathname 
-                                                :directory '(:relative "Projects" "censorius" "herald")
-                                                :name "herald-config" :type "lisp")
-                                               (user-homedir-pathname ))
-                              (merge-pathnames (make-pathname
-                                                :name "herald-config" :type "lisp")
-                                               (user-homedir-pathname)))))
-         (load config-file)
-         (format t " … loaded herald-config from ~a" config-file))
+       (let ((config-file (or (if-file-exists (merge-pathnames (make-pathname 
+                                                                :directory '(:relative "Projects" "censorius" "herald")
+                                                                :name "herald-config" :type "lisp")
+                                                               (user-homedir-pathname )))
+                              (if-file-exists (merge-pathnames (make-pathname
+                                                                :name "herald-config" :type "lisp")
+                                                               (user-homedir-pathname))))))
+         (format t "~& About to load herald-config (~a)… " config-file)
+         (load config-file))
+       (format t " … loaded herald-config.")
        (dolist (sym '(test-build host-name uri-prefix sysop-mail registrar-mail vendors-mail workshops-mail
                       archive-mail herald-mail))
          (let ((const (intern (concatenate 'string "+" (symbol-name sym) "+"))))
