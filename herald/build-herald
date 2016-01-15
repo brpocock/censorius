@@ -1,5 +1,9 @@
 #!/bin/sh
+
+set -e
+
 PATH=~/bin:$PATH
+
 if [ -d "$(dirname "$0")" ]
 then
 	cd "$(dirname "$0")"
@@ -13,7 +17,8 @@ else
 	exit 2
 fi
 
-mv --backup=numbered herald herald.backup
+mv --backup=numbered herald herald.backup 2>/dev/null ||:
+mkdir -p ~/arc/herald/
 buildapp --output herald \
 	--logfile herald.buildapp.log \
 	--load ~/quicklisp/setup.lisp \
@@ -23,16 +28,21 @@ buildapp --output herald \
 	--dispatched-entry herald.cgi/herald-fcgi:exec-cgi \
 	--dispatched-entry herald.fcgi/herald-fcgi:exec-fcgi \
 	--dispatched-entry /herald-fcgi:exec-cgi \
-	--dispatched-entry herald.repl/herald-fcgi:exec-repl \
-&& ln -f ./herald ../bin/herald.repl \
-&& ln -f ./herald ../fpgrocks.org/reg/herald.cgi \
-&& echo '  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  Victory is mine.'
+	--dispatched-entry herald.repl/herald-fcgi:exec-repl
+ln -f herald herald.repl
+ln -f herald herald.cgi
+ln -f herald herald.fcgi
 
-tail -n 20 herald.buildapp.log
+echo '  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  Victory is mine.'
+
+BUILD=$(< ~/herald-latest-build.id)
+echo " This build ID = $BUILD"
+cat ~/arc/herald/herald-build-$BUILD.log
+cp herald ~/arc/herald/herald.$BUILD
 
 echo "Version running in Production:"
 curl -d 'verb=about&deployment-marker=t' 'http://www.fpgrocks.org/reg/herald.cgi'
 echo "Version running in Test:"
 curl -d 'verb=about&deployment-marker=t' 'http://www.fpgrocks.org/reg/test/herald.cgi'
-
+echo "This version:"
 

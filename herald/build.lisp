@@ -33,12 +33,19 @@
 ;; (compile-file "build-install.lisp")
 ;; (load "build-install.lisp")
 
-(with-open-file (*standard-output* (make-pathname :directory (pathname-directory (user-homedir-pathname))
+(with-open-file (*standard-output* (make-pathname :directory (append (pathname-directory (user-homedir-pathname))
+                                                                     '("arc" "herald"))
                                                   :name (format nil "herald-build-~:@(~36r~)" 
                                                                 (eval (intern "+COMPILE-TIME+" :herald-fcgi)))
                                                   :type "log")
                                    :direction :output :if-exists :supersede)
   (eval (list (intern "ABOUT-ME" :herald-fcgi))))
+
+(with-open-file (*standard-output* (make-pathname :directory (pathname-directory (user-homedir-pathname))
+                                                  :name "herald-latest-build"
+                                                  :type "id")
+                                   :direction :output :if-exists :supersede)
+  (format t "~:@(~36r~)~%" (eval (intern "+COMPILE-TIME+" :herald-fcgi))))
 
 (let* ((test-build-p (eval (intern "+TEST-BUILD+" (find-package :herald-fcgi))))
        (install-filename (make-pathname :name (format nil "install-herald~@[~*-test~]"
@@ -46,13 +53,12 @@
   (with-open-file (s install-filename
                      :direction :output :if-exists :supersede)
     (format s "#!/bin/sh
-echo Installing Censorius Herald build ~@:(~36r~) for ~:[★LIVE PRODUCTION★~;testing~]"
-            herald-fcgi::+compile-time+ test-build-p)
+echo Installing Censorius Herald build ~@:(~36r~) for ~:[★LIVE PRODUCTION★~;testing~] to ~a"
+            herald-fcgi::+compile-time+ test-build-p
+            herald-fcgi:+uri-prefix+)
     (format s "~2%ln -f ~:[herald.cgi~;herald.fcgi~] ../~a~%" 
             (search ".fcgi" herald-fcgi:+uri-prefix+)
             herald-fcgi:+uri-prefix+))
-  (#+sbcl sb-posix:chmod
-          #+ccl osicat-posix:chmod 
-          install-filename #o775))
+  #+sbcl(sb-posix:chmod install-filename #o775))
 
 
