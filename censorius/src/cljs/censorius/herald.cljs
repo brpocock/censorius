@@ -30,7 +30,7 @@
 
 (defn send-data [verb callback content]
   (util/log "Sending: verb: “" verb ",” content: " (or content "(none)"))
-  (xhr/send (if (= -1 (.indexOf js/document.location "test"))
+  (xhr/send (if (= -1 (.indexOf (str js/document.location) "test"))
               "/reg/herald.cgi"
               "/reg/test/herald.cgi")
             (make-json-callback verb callback)
