@@ -1868,7 +1868,9 @@ Location: ~a
     (redirect-to-invoice invoice)))
 
 (defmethod handle-verb ((verb (eql :paypal-cancel)))
-  (redirect-to-invoice (payment-id->invoice (field "paymentId"))))
+  (throw 'cgi-bye
+    (list 402 "Payment canceled."))
+  #+ (or)  (redirect-to-invoice (payment-id->invoice (field "paymentId"))))
 
 (defun invoice-total ()
   (field 'money 'balance-due))
