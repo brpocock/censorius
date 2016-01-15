@@ -59,7 +59,7 @@ Note, this currently does NOT handle multipart/form-data posts."
                                                       :start 0 :end the-end)))
     (let ((data (coerce (copy-array read-buffer) 'string)))
       (setf (getf *request* :post-data) data)
-      (warn "POST data: ~a" data)
+      (warn "[~:@(~36r~)] POST data: ~a" +compile-time+ data)
       data)))
 
 (defun all-submitted-params ()
@@ -630,7 +630,7 @@ Content-Type: application/javascript; charset=utf-8~2%~/json/~%"
   (format t "Content-Type: text/plain; charset=utf-8~10%LOGON PLEASE>")) ; TODO
 
 (defun reply (structure)
-  (format *error-output* "~& Handling reply: ~s" structure)
+  (format *error-output* "~& [~:@(~36r~)] Handling reply: ~s" +compile-time+ structure)
   (ecase (car structure)
     (:auth (prompt-for-authentication (rest structure)))
     (:error (reply-error (rest structure)))
