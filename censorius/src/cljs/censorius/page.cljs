@@ -224,7 +224,11 @@
   (swap! uri-view assoc  :current-page staff-confirm :id id))
 
 
+(def *allow-leaving* (atom false))
 
+(defn before-unload [_]
+  (unless @*allow-leaving*
+          "This application is asking you to confirm that you want to quit. Your registration information will not be saved."))
 
 
 ;; Initialize app
@@ -235,8 +239,7 @@
   #_ (reader/read-string "(defn boo [] (js/alert \"boo\"))")
   (set! js/document.title (str "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)))
   
-  (set! js/window.onbeforeunload (fn [x]
-                                   "This application is asking you to confirm that you want to quit. Your registration information will not be saved."))
+  (set! js/window.onbeforeunload before-unload)
   
   (reagent/render-component [(:current-page @uri-view) uri-view] (.getElementById js/document "censorius")))
 
@@ -251,8 +254,6 @@
                 " with verification cookie " (js/decodeURIComponent cookie))
       (when (> invoice 4000)
         (invoice/recall-invoice (js/parseInt invoice) (js/decodeURIComponent cookie))))))
-
-(def *allow-leaving* (atom false))
 
 (defn hook-browser-navigation! []
   (let [history (History.)]
