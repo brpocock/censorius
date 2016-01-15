@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+
+echo "Let's build the front-end…"
+pushd censorius
+lein cljsbuild once
+popd
+
+rm -f censorius/www/herald.cgi
+
+echo "Let's build the back-end…"
+rm -f herald/{herald,herald.cgi,herald.repl,*.fasl}
+rsync -Crav -essh herald/* fpgrocks.org:Censorius/herald/
+ssh fpgrocks.org Censorius/herald/build-herald
+
+echo "Let's install the front-end…"
+rsync -Crav -essh censorius/www/* fpgrocks.org:flapagan.org/reg/test/
+
+echo "Let's install the back-end…"
+ssh fpgrocks.org cp -f Censorius/herald/herald.cgi flapagan.org/reg/test/
+
+echo "Deployed:"
+echo "Version running in Production:"
+curl -d "verb=about&deployment-marker=t" "http://www.fpgrocks.org/reg/herald.cgi"
+echo "Version running in Test:"
+curl -d "verb=about&deployment-marker=t" "http://www.fpgrocks.org/reg/test/herald.cgi"
+
