@@ -1,4 +1,0 @@
-(ns censorius.prod
-  (:require [censorius.core :as core]))
-
-(core/main)
