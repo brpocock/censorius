@@ -39,6 +39,9 @@ BUILD=$(< ~/herald-latest-build.id)
 echo " This build ID = $BUILD"
 cat ~/arc/herald/herald-build-$BUILD.log
 cp herald ~/arc/herald/herald.$BUILD
+git rev-parse --verify HEAD > ~/arc/herald/git-$BUILD-status
+git status >> ~/arc/herald/git-$BUILD-status
+git diff >> ~/arc/herald/git-$BUILD-status
 
 echo "Version running in Production:"
 curl -d 'verb=about&deployment-marker=t' 'http://www.fpgrocks.org/reg/herald.cgi'
