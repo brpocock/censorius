@@ -1,9 +1,9 @@
 (ns censorius.herald
-  (:require 
+  (:require
    [clojure.string :as string]
-   
+
    [goog.net.XhrIo :as xhr]
-   
+
    [censorius.data :as d]
    [censorius.guest-list :as guest-list]
    [censorius.merch :as merch]
@@ -12,7 +12,7 @@
 
 (defn map-to-post-data [hash]
   (string/join \& (map (fn [[key value]]
-                         (str (js/encodeURIComponent (name key)) "=" 
+                         (str (js/encodeURIComponent (name key)) "="
                               (js/encodeURIComponent (js/JSON.stringify (clj->js value)))))
                     hash)))
 
@@ -21,7 +21,7 @@
     (fn [reply]
       (if (<= 200 (.getStatus (.-target reply)) 299)
         (callback (js->clj (.getResponseJson (.-target reply))))
-        (do (util/log "Response status " (.getStatus (.-target reply)) " ⇒ " 
+        (do (util/log "Response status " (.getStatus (.-target reply)) " ⇒ "
                       (try #_(string/join "; " (:conditions (js->clj (.getResponseJson (.-target reply)))))
                            (js->clj (.getResponseJson (.-target reply)))
                            (catch :default c "⚠")))
@@ -30,13 +30,15 @@
 
 (defn send-data [verb callback content]
   (util/log "Sending: verb: “" verb ",” content: " (or content "(none)"))
-  (xhr/send "/reg/herald.cgi" 
+  (xhr/send (if (= -1 (.indexOf js/document.location "test"))
+              "/reg/herald.cgi"
+              "/reg/test/herald.cgi")
             (make-json-callback verb callback)
-            "POST" 
+            "POST"
             (str (str "verb=" verb) \&
                  (if content
                    (map-to-post-data (conj content))
-                   "")) 
+                   ""))
             (clj->js {"X-Censorius-Herald" "20151122"
                       "Accept" "text/javascript"})))
 
@@ -71,7 +73,7 @@
   (let [rows (atom [])
         counter (atom 0)
         fields (atom {})]
-    (doseq [hash-atom @hash-atoms] 
+    (doseq [hash-atom @hash-atoms]
       (let [hash @hash-atom
             row @counter]
         (swap! counter inc)
@@ -86,7 +88,7 @@
 ;;     (doseq [row (string/split \, (get jso (str label "∋#")))]
 ;;       (let [row-atom (atom {})]
 ;;         (doseq [[key value] jso]
-;;           (when (= (.substring key 0 (+ 1 (count row) (count prefix))) 
+;;           (when (= (.substring key 0 (+ 1 (count row) (count prefix)))
 ;;                    (str prefix row "∋"))
 ;;             (let [field (.substring key (+ 1 (count row) (count prefix)))]
 ;;               (swap! row-atom assoc (keyword field) value))))
@@ -111,8 +113,8 @@
 
 
 ;; (defn submit-invoice []
-;;   (send-data "save" #(js/alert "invoice sent") 
-;;              (reduce conj 
+;;   (send-data "save" #(js/alert "invoice sent")
+;;              (reduce conj
 ;;                      (list {:verb "save"
 ;;                             :invoice (or (:invoice @d/general) "*")
 ;;                             :token (or (:invoice-token @d/general) "*")
