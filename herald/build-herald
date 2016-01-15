@@ -43,9 +43,6 @@ git rev-parse --verify HEAD > ~/arc/herald/git-$BUILD-status
 git status >> ~/arc/herald/git-$BUILD-status
 git diff >> ~/arc/herald/git-$BUILD-status
 
-echo "Version running in Production:"
-curl -d 'verb=about&deployment-marker=t' 'http://www.fpgrocks.org/reg/herald.cgi'
-echo "Version running in Test:"
-curl -d 'verb=about&deployment-marker=t' 'http://www.fpgrocks.org/reg/test/herald.cgi'
-echo "This version:"
+./check-running
+echo "This version: $BUILD"
 
