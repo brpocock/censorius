@@ -16,10 +16,10 @@
 (defn click-edit [editing? label]
   {:on-click (fn [event]
                (reset! editing? true)
-               (reset! nightshade? false #_ @editing?)
+               (reset! nightshade? true #_ false #_ @editing?)
                (.stopPropagation event))
+   :on-destroy (reset! nightshade? false)
    :style {:display (if @editing? "none" "block")}
-   ;; :key (util/keyword->string label)
    :class (str (.substring (str label) 1 (count (str label)))
                " editable-clickable "
                (if @editing?
@@ -27,6 +27,8 @@
                  "display"))})
 
 (defn close [editing?]
+  (when-not editing?
+    (js/alert "Error: Close button unlinked from pop-up dialog box."))
   [:button {:class "close true"
             :on-click (fn [event] 
                         (reset! nightshade? false)

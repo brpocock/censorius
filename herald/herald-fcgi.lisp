@@ -16,7 +16,7 @@ string"
   (cond ((find #\F (string-upcase gender)) "♀ Female")
         ((find #\M (string-upcase gender)) "♂ Male")
         (t "⊕")))
-
+
 ;;; The  environment  surrounding  each  query is  stashed  into  these;
 ;;; they're unbound at the top-level SO THAT trying to access them will
 ;;; signal an error.
@@ -127,7 +127,7 @@ wish for."
                  (let ((,new-value (progn ,@body)))
                    (setf (gethash ,key ,cache) ,new-value)
                    ,new-value))))))))
-
+
 ;;; Read fields provided by CGI POSTs
 (defgeneric field-read (a b c)
   (:documentation "Select a value that  may have been posted from the user. In particular, the  first item given will be

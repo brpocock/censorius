@@ -179,31 +179,41 @@
 (defonce add-first-guest-timer (atom nil))
 
 (defn add-first-guest-timer-countdown []
-  (swap! add-first-guest-timer dec 1000)
+  (swap! add-first-guest-timer dec 100)
   (if (pos? @add-first-guest-timer)
-    (js/setTimeout add-first-guest-timer-countdown 1000)
+    (js/setTimeout add-first-guest-timer-countdown 100)
     (reset! add-first-guest-timer nil)))
 
 (defn add-first-guest [given surname]
   (reset! add-first-guest-timer 30000)
   (add-first-guest-timer-countdown)
-  (reset! guests  [(atom {:called-by (guess-nickname given surname) :given-name given :surname surname
+  (reset! guests  [(atom {:called-by (guess-nickname given surname)
+                          :given-name given :surname surname
                           :e-mail nil :telephone nil
                           :ticket-type :adult :staff-department nil
                           :sleep :tent :eat nil
+                          :editing-name? (atom false)
                           :gender (guess-gender given)
                           :t-shirt nil :coffee? false :tote? false
-                          :added (util/now)})]))
+                          :added (util/now)})])
+  (js/window.scrollTo 0,0)
+  (.scrollIntoView (js/getElementById "guest-list-box-title")
+                   #js{"block" "start" "behaviour" "smooth"}))
 
 (defn add-additional-guest [given surname]
   (let [leader @(first @guests)]
-    (swap! guests conj (atom {:called-by (guess-nickname given surname) :given-name given :surname surname
+    (swap! guests conj (atom {:called-by (guess-nickname given surname)
+                              :given-name given :surname surname
                               :e-mail nil :telephone nil
                               :ticket-type :adult :staff-department nil
                               :sleep (:sleep leader) :eat (:eat leader)
+                              :editing-name? (atom false)
                               :gender (guess-gender given)
                               :t-shirt nil :coffee? false :tote? false
-                              :added (util/now)}))))
+                              :added (util/now)})))
+  (js/window.scrollTo 0,0)
+  (.scrollIntoView (js/getElementById "guest-list-box-title") 
+                   #js{"block" "start" "behaviour" "smooth"}))
 
 (defn have-guests []
   (pos? (count @guests)))
@@ -304,6 +314,8 @@ For now, could you please put down the additional “"
 
 (defn add-to-party [new-name]
   [:div {:class "no-print"}
+   [:p {:style {:display (if (< 1 (count @guests)) 
+                           "none" "block")}}]
    [text/text-input {:cursor new-name
                      :keys :new-name-entered
                      :label (fn [] (if (have-guests) 
@@ -329,7 +341,7 @@ For now, could you please put down the additional “"
                            "disabled"))}
     (if (have-guests)
       "+ Add to party"
-      "Let's set up your Festival")]])
+      "Click Here to Begin")]])
 
 (defn add-person-row [_ children this]
   (let [new-name (atom  {:new-name-entered ""})]
@@ -415,7 +427,8 @@ For now, could you please put down the additional “"
   (count (filter #(= (:ticket-type @%) :adult) @guests)))
 
 (defn guest-list-box-title []
-  [:h1 "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
+  [:h1 {:id "guest-list-box-title"}
+   "Registration for TEG FPG " (:season @d/festival) " " (:year @d/festival)
    [:span {:style {:display (if (:invoice @d/general)
                               "inline" "none")}}
     "— " (if (:closed @d/general) " CLOSED " "")
@@ -435,7 +448,9 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
     [:span (util/format-money (price-all-guests))]]])
 
 (defn maybe-guest-list []
-  [:tbody (doall (map censorius.guest/guest-row @guests))])
+  [:tbody (doall
+           (for [guest @guests]
+             ^{:key (:added @guest)}[censorius.guest/guest-row guest]))])
 
 (defn guest-list-box []
   (fn []
@@ -443,7 +458,6 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
      [guest-list-box-title]
      [:section {:class "card" :key "guest-list-box"}
       [:h2 [party-title]]
-
       [:div {:style {:display (if (and (number? @add-first-guest-timer)
                                        (> 30000 @add-first-guest-timer)
                                        (= 1 (count @guests))) 
@@ -452,12 +466,9 @@ The Assistant box appears to the right if you're viewing this full-screen on a P
                                 (> 25000 @add-first-guest-timer) 1
                                 (> 30000 @add-first-guest-timer) (/ (- @add-first-guest-timer 25000) 5000)
                                 :else 0)}}
-       [:p "Welcome! Now  that you've added yourself, click  each of the
-       table cells to plan your Festival. "]
-       [:p "Add other members of your party, and watch the Assistant box
-       for advice."]]
+       [:p "Welcome! Click each of the table cells to plan your Festival. "]]
       
-      [:table {:class "people"}
+      [:table {:class (if (= 1 (count @guests)) "people solo" "people")}
        [guests-thead]
        [maybe-guest-list]
        [:tfoot
