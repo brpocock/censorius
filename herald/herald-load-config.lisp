@@ -103,6 +103,7 @@
  • This is a ~:[★LIVE PRODUCTION★~;test~] build.
 
  • User home directory: ~a
+ • URI prefix for myself: ~a
  • DB: ~:[Unknown/incorrect type~;MariaDB/MySQL~] database
     • host: ~a
     • database name: ~a
@@ -125,6 +126,7 @@
 ~2%"
             +test-build+
             (user-homedir-pathname)
+            +uri-prefix+
             herald-secret-config:+mysql+
             (getf herald-secret-config:+params+ :host)
             (getf herald-secret-config:+params+ :database-name)
