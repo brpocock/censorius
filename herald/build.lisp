@@ -3,6 +3,7 @@
   (:export #:install))
 
 (load "~/quicklisp/setup")
+#+ccl (ql:quickload :cffi)
 
 (let ((*default-pathname-defaults* (or (and *load-truename*
                                             (make-pathname :directory (pathname-directory *load-truename*)))
