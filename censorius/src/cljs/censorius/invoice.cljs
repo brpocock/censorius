@@ -161,6 +161,7 @@
     #_ (js/alert (str "Response from server: " (util/stringerific reply)))
     (swap! d/general assoc :invoice invoice)
     (swap! d/general assoc :token token)
+    (swap! censorius.page/*allow-leaving* true)
     (set! js/window.location next-hop)))
 
 (defn try-check-out []
@@ -181,9 +182,8 @@ An eMail has been sent to the Registration staff to review your registration. Yo
     (swap! d/general assoc :token token)
     (if (< invoice 4160)
       (accept-recalled-data reply)
+      (swap! censorius.page/*allow-leaving* true)
       (set! js/window.location "/news/"))))
-
-
 
 (defn save-action []
   (cond (empty? (:note @d/general))
@@ -202,8 +202,6 @@ Cabin and lodge bunks are first-come, first-serve at the time that you pay for y
                                     (submission-data))))
 
 
-
-
 
 (defn invoice-header []
   [:thead

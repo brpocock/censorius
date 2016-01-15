@@ -248,6 +248,8 @@
       (when (> invoice 4000)
         (invoice/recall-invoice (js/parseInt invoice) (js/decodeURIComponent cookie))))))
 
+(def *allow-leaving* (atom false))
+
 (defn hook-browser-navigation! []
   (let [history (History.)]
     (goog.events/listen history EventType/NAVIGATE #(revisit))
