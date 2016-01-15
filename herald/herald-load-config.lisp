@@ -59,10 +59,9 @@
 (defparameter *read-post-timeout* 10
   "The maximum number of seconds to wait while reading from a POST")
 
-(defun if-file-exists (file)
-  (when (probe-file file) file))
-
 (eval-when (:compile-toplevel :load-toplevel)
+  (defun if-file-exists (file)
+    (when (probe-file file) file))
   (tagbody do-over
      (restart-bind
          ((do-over (lambda () (go do-over))
