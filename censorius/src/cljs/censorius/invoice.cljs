@@ -180,10 +180,8 @@
 An eMail has been sent to the Registration staff to review your registration. You will receive an eMail from the system as well."))
     (swap! d/general assoc :invoice invoice)
     (swap! d/general assoc :token token)
-    (if (< invoice 4160)
-      (accept-recalled-data reply)
-      (swap! censorius.page/*allow-leaving* true)
-      (set! js/window.location "/news/"))))
+    (swap! censorius.page/*allow-leaving* true)
+    (set! js/window.location "/news/")))
 
 (defn save-action []
   (cond (empty? (:note @d/general))
