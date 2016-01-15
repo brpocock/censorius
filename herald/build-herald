@@ -20,15 +20,16 @@ fi
 mv --backup=numbered herald herald.backup 2>/dev/null ||:
 mkdir -p ~/arc/herald/
 buildapp --output herald \
-	--logfile herald.buildapp.log \
-	--load ~/quicklisp/setup.lisp \
-	--asdf-path $(pwd) \
-        --asdf-path $(pwd)/elephant \
-        --load build.lisp \
-	--dispatched-entry herald.cgi/herald-fcgi:exec-cgi \
-	--dispatched-entry herald.fcgi/herald-fcgi:exec-fcgi \
-	--dispatched-entry /herald-fcgi:exec-cgi \
-	--dispatched-entry herald.repl/herald-fcgi:exec-repl
+         --logfile herald.buildapp.log \
+         --load ~/quicklisp/setup.lisp \
+         --asdf-path $(pwd) \
+         --asdf-path $(pwd)/elephant \
+         --load build.lisp \
+         --dispatched-entry herald.cgi/herald-fcgi:exec-cgi \
+         --dispatched-entry herald.fcgi/herald-fcgi:exec-fcgi \
+         --dispatched-entry /herald-fcgi:exec-cgi \
+         --dispatched-entry herald.repl/herald-fcgi:exec-repl \
+    || ( tail -n 50 herald.buildapp.log && exit 3 )
 ln -f herald herald.repl
 ln -f herald herald.cgi
 ln -f herald herald.fcgi
