@@ -1,16 +1,16 @@
-@import url(http://fonts.googleapis.com/css?family=Cantarell:400,400italic,700,700italic);
+@import url(https://fonts.googleapis.com/css?family=Cantarell:400,400italic,700,700italic);
 @import url(https://fonts.googleapis.com/css?family=Damion);
-@import url(http://fonts.googleapis.com/css?family=Herr+Von+Muellerhoff);
+@import url(https://fonts.googleapis.com/css?family=Herr+Von+Muellerhoff);
 
 * {
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     /* make transparent link selection, adjust last value opacity 0 to 1.0 */
-    transition: all 1s ease .1s; 
+    transition: all 1s ease .1s;
 }
 
-@font-face {      
+@font-face {
     font-family: Century-Schoolbook;
-    src: url(./Century-Schoolbook.woff); 
+    src: url(./Century-Schoolbook.woff);
 }
 
 @font-face {
