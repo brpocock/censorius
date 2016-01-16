@@ -824,16 +824,16 @@ abbr>.ellide {
     abbr>.ellide {
         display: block;
     }
-    abbr>span:first-child { 
+    abbr>span:first-child {
         display: none;
     }
-    h1>abbr>span:first-child { 
+    h1>abbr>span:first-child {
         display: block;
     }
-    h1>abbr>.ellide { 
+    h1>abbr>.ellide {
         display: none;
     }
-    abbr>.ellide.hint::before { 
+    abbr>.ellide.hint::before {
         content: '';
     }
 }
@@ -853,119 +853,123 @@ abbr>.ellide {
     overflow-y: scroll;
 }
 
-    table.people.solo { 
-        display: block; 
-        width: 100%; 
-    }
+table.people.solo {
+    display: block;
+    width: 100%;
+}
 
-    table.people.solo>tfoot,    table.people.solo>*>tr {
-        display: block;
-        width: 100%;
-    }
+table.people.solo>tfoot, table.people.solo>*>tr {
+    display: block;
+    width: 100%;
+}
 
-    table.people.solo>tfoot>tr>th, table.people.solo>tfoot>tr>td { 
-        display: inline-block; 
-    }
+table.people.solo>tfoot>tr>th, table.people.solo>tfoot>tr>td {
+    display: inline-block;
+}
 
-    table.people.solo>thead { 
-        display: none
-    }
+table.people.solo>thead {
+    display: none
+}
 
-    table.people.solo>tbody>tr>td {
-        display: block;
-        width: 50%;
-        padding: 1ex;
-        margin-left: auto;
-        margin-right: auto;
-        border: 0;
-        background: transparent;
-    }
-     /* 
-     * table.people.solo .editable-clickable {
-     *     min-height: 1cm;
-     *     padding-top: auto;
-     *     padding-bottom: auto;
-     * }
-     * 
-     * table.people.solo .editable-clickable:hover {
-     *     transform: none;
-     * }
-     */
-    
-    table.people.solo>tbody>tr>td::before {
-        display: inline-block;
-        font-size: 100%;
-        color: black;
-        width: 20%;
-        text-align: right;
-    }
+table.people.solo>tbody {
+    width: 100%;
+}
 
-    table.people.solo>tbody>tr>td::after {
-        display: inline-block;
-        font-size: 100%;
-        color: black;
-        width: 20%;
-        text-align: right;
-    }
+table.people.solo>tbody>tr>td {
+    display: block;
+    width: 100%;
+    padding: 1ex;
+    margin-left: auto;
+    margin-right: auto;
+    border: 0;
+    background: transparent;
+}
+/*
+ * table.people.solo .editable-clickable {
+ *     min-height: 1cm;
+ *     padding-top: auto;
+ *     padding-bottom: auto;
+ * }
+ *
+ * table.people.solo .editable-clickable:hover {
+ *     transform: none;
+ * }
+ */
 
-    
-    table.people.solo>tbody>tr>td.name::before {
-        content: "Name: ";
-    }
+table.people.solo>tbody>tr>td::before {
+    display: inline-block;
+    font-size: 100%;
+    color: black;
+    width: 20%;
+    text-align: right;
+}
 
-    table.people.solo>tbody>tr>td.mail::before {
-        content: "eMail Address: ";
-    }
+table.people.solo>tbody>tr>td::after {
+    display: inline-block;
+    font-size: 100%;
+    color: black;
+    width: 20%;
+    text-align: right;
+}
 
-    table.people.solo>tbody>tr>td.phone::before {
-        content: "Telephone number: ";
-    }
 
-    table.people.solo>tbody>tr>td.ticket-type::before {
-        content: "Ticket Type: ";
-    }
+table.people.solo>tbody>tr>td.name::before {
+    content: "Name: ";
+}
 
-    table.people.solo>tbody>tr>td.days::before {
-        content: "Days: ";
-    }
+table.people.solo>tbody>tr>td.mail::before {
+    content: "eMail Address: ";
+}
 
-    table.people.solo>tbody>tr>td.sleep::before {
-        content: "Sleeping: ";
-    }
+table.people.solo>tbody>tr>td.phone::before {
+    content: "Telephone number: ";
+}
 
-    table.people.solo>tbody>tr>td.eat::before {
-        content: "Meal Plan: ";
-    }
+table.people.solo>tbody>tr>td.ticket-type::before {
+    content: "Ticket Type: ";
+}
 
-    table.people.solo>tbody>tr>td.t-shirt::before {
-        content: "T-Shirt: ";
-    }
+table.people.solo>tbody>tr>td.days::before {
+    content: "Days: ";
+}
 
-    table.people.solo>tbody>tr>td.tote::before {
-        content: "Tote Bag: ";
-    }
+table.people.solo>tbody>tr>td.sleep::before {
+    content: "Sleeping: ";
+}
 
-    table.people.solo>tbody>tr>td.coffee::before {
-        content: "Coffee Mug: ";
-    }
+table.people.solo>tbody>tr>td.eat::before {
+    content: "Meal Plan: ";
+}
+
+table.people.solo>tbody>tr>td.t-shirt::before {
+    content: "T-Shirt: ";
+}
+
+table.people.solo>tbody>tr>td.tote::before {
+    content: "Tote Bag: ";
+}
+
+table.people.solo>tbody>tr>td.coffee::before {
+    content: "Coffee Mug: ";
+}
 
 
 @media screen and (max-width: 40rem) {
 
-    table.people { 
-        display: block; 
-        width: 100%; 
+    table.people {
+        display: block;
+        width: 100%;
     }
 
     table.people>tfoot,    table.people>tfoot>tr {
         display: block
     }
 
-    table.people>tfoot>tr>th, table.people>tfoot>tr>td { 
-        display: inline-block; 
+    table.people>tfoot>tr>th, table.people>tfoot>tr>td {
+        display: inline-block;
     }
 
-    table.people>thead { 
+    table.people>thead {
         display: none
     }
 
@@ -1001,7 +1005,7 @@ abbr>.ellide {
     .editable-clickable:hover {
         transform: none;
     }
-    
+
     table.people>tbody>tr>td::before {
         font-size: 125%;
         color: blue;
@@ -1048,39 +1052,39 @@ abbr>.ellide {
         content: "Coffee Mug: ";
     }
 
-    body { 
+    body {
         width: 100%;
         margin-left: 0;
         margin-right: 0;
         margin-top: 2em;
         margin-bottom: 2em;
-        padding: 1ex; 
+        padding: 1ex;
     }
 
-    body>* { 
+    body>* {
         max-width: calc( 100% - 2ex );
-        width: calc( 100% - 2ex ); 
+        width: calc( 100% - 2ex );
     }
 
-    section.card { 
-        width: 100%; 
-        min-width: 20rem; 
-        max-width: 100%; 
-        margin-top: 1em; 
-        margin-bottom: 1em; 
-        margin-left: 0; 
+    section.card {
+        width: 100%;
+        min-width: 20rem;
+        max-width: 100%;
+        margin-top: 1em;
+        margin-bottom: 1em;
+        margin-left: 0;
         margin-right: 0;
-        border: 0;  
+        border: 0;
     }
 
-    .card:hover { 
-        box-shadow: none; 
+    .card:hover {
+        box-shadow: none;
     }
 
-    .card>p { 
-        max-width: 100%; 
+    .card>p {
+        max-width: 100%;
     }
-    
+
 }
 
 @media screen and (min-width: 75rem) {
@@ -1183,7 +1187,7 @@ table {
     }
 
     abbr::before { content: ' (' }
-    
+
     abbr {
         border: 0pt solid white;
         color: #888;
@@ -1387,7 +1391,7 @@ center.centerboth {
     position: relative;
     margin: 1ex auto;
 }
-/* 
+/*
  * #vendor-slips>.slip label {
  *     width: 20px;
  *     height: 20px;
