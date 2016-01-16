@@ -29,18 +29,19 @@
     #(true)))
 
 (defn send-data [verb callback content]
-  (util/log "Sending: verb: “" verb ",” content: " (or content "(none)"))
-  (xhr/send (if (= -1 (.indexOf (str js/document.location) "test"))
-              "/reg/herald.cgi"
-              "/reg/test/herald.cgi")
-            (make-json-callback verb callback)
-            "POST"
-            (str (str "verb=" verb) \&
-                 (if content
-                   (map-to-post-data (conj content))
-                   ""))
-            (clj->js {"X-Censorius-Herald" "20151122"
-                      "Accept" "text/javascript"})))
+  (let [server (if (= -1 (.indexOf (str js/document.location) "test"))
+                 "/reg/herald.cgi"
+                 "/reg/test/herald.cgi")]
+    (util/log "Sending: verb: “" verb ",” content: " (or content "(none)") " to " server)
+    (xhr/send server
+              (make-json-callback verb callback)
+              "POST"
+              (str (str "verb=" verb) \&
+                   (if content
+                     (map-to-post-data (conj content))
+                     ""))
+              (clj->js {"X-Censorius-Herald" "20151122"
+                        "Accept" "text/javascript"}))))
 
 
 ;; (defn validate-mqa-license [license-number]
