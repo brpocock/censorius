@@ -1056,7 +1056,7 @@ cookie says “~36r.”
 (defgeneric handle-verb (verb))
 
 (defmethod handle-verb ((verb (eql :nil)))
-  (list :error 404 "No verb supplied."))
+  '(:error 404 "No verb supplied."))
 
 (defmethod handle-verb ((verb t))
   (list :error 404
@@ -1869,7 +1869,7 @@ Location: ~a
 
 (defmethod handle-verb ((verb (eql :paypal-cancel)))
   (throw 'cgi-bye
-    (list 402 "Payment canceled."))
+    '(:error 402 "Payment canceled."))
   #+ (or)  (redirect-to-invoice (payment-id->invoice (field "paymentId"))))
 
 (defun invoice-total ()
